@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import type { KeyboardEvent } from "react";
+import FavoriteButton from "@/components/FavoriteButton";
 import type { MovieSearchResult } from "@/types";
 
 interface MovieCardProps {
@@ -37,6 +38,17 @@ export default function MovieCard({ movie, onSelect }: MovieCardProps) {
       className="group cursor-pointer overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-sm transition hover:-translate-y-1 hover:border-zinc-300 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-zinc-400 dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700 dark:focus-visible:ring-zinc-600"
     >
       <div className="relative aspect-[2/3] overflow-hidden bg-zinc-100 dark:bg-zinc-800">
+        <div className="absolute right-2 top-2 z-10">
+          <FavoriteButton
+            size="sm"
+            movie={{
+              imdbID: movie.imdbID,
+              title: movie.Title,
+              year: movie.Year,
+              poster: movie.Poster,
+            }}
+          />
+        </div>
         {showPoster ? (
           <Image
             src={movie.Poster}

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
+import FavoriteButton from "@/components/FavoriteButton";
 import { getMovieById, OMDbError } from "@/services/omdb";
 import type { Movie } from "@/types";
 
@@ -255,18 +256,28 @@ export default function MovieDetailModal({
               </div>
 
               <div className="flex flex-col gap-6 p-6 sm:p-8">
-                <header>
-                  <h2
-                    id="movie-detail-title"
-                    className="pr-10 text-2xl font-bold leading-tight text-zinc-900 dark:text-zinc-50 sm:text-3xl"
-                  >
-                    {movie.Title}
-                  </h2>
-                  <p className="mt-2 text-zinc-500 dark:text-zinc-400">
-                    {[displayValue(movie.Year), displayValue(movie.Rated)]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
+                <header className="flex items-start justify-between gap-4">
+                  <div>
+                    <h2
+                      id="movie-detail-title"
+                      className="pr-2 text-2xl font-bold leading-tight text-zinc-900 dark:text-zinc-50 sm:text-3xl"
+                    >
+                      {movie.Title}
+                    </h2>
+                    <p className="mt-2 text-zinc-500 dark:text-zinc-400">
+                      {[displayValue(movie.Year), displayValue(movie.Rated)]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </p>
+                  </div>
+                  <FavoriteButton
+                    movie={{
+                      imdbID: movie.imdbID,
+                      title: movie.Title,
+                      year: movie.Year,
+                      poster: movie.Poster,
+                    }}
+                  />
                 </header>
 
                 {(imdbRating || rottenTomatoesRating || metascore) && (

@@ -54,10 +54,10 @@ export default function Home() {
       <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
         <header className="mb-10 text-center">
           <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-4xl">
-            Movie Search
+            Discover Movies
           </h1>
           <p className="mt-2 text-zinc-600 dark:text-zinc-400">
-            Discover movies powered by the OMDb API
+            Search the OMDb catalog and save favorites to your account
           </p>
         </header>
 
