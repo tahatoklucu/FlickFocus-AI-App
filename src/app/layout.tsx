@@ -22,12 +22,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} h-dvh antialiased`}
     >
-      <body className="flex min-h-full flex-col">
+      <body className="flex h-dvh flex-col overflow-hidden">
         <Providers>
           <Header />
-          <main className="flex-1">{children}</main>
+          <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</main>
           <Footer />
         </Providers>
       </body>
