@@ -147,7 +147,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let authStateReady = false;
     let redirectReady = false;
 
-    if (isGoogleRedirectPending()) {
+    const wasRedirectPending = isGoogleRedirectPending();
+
+    if (wasRedirectPending) {
       setRedirectResolving(true);
     }
 
@@ -194,6 +196,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .catch((error: unknown) => {
         if (!isActive) {
+          return;
+        }
+
+        if (!wasRedirectPending) {
           return;
         }
 

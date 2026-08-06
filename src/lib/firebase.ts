@@ -1,11 +1,5 @@
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
-import {
-  browserLocalPersistence,
-  getAuth,
-  GoogleAuthProvider,
-  initializeAuth,
-  type Auth,
-} from "firebase/auth";
+import { getAuth, type Auth } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -41,16 +35,12 @@ function getFirebaseApp(): FirebaseApp {
 }
 
 export function getFirebaseAuth(): Auth {
-  if (!firebaseAuth) {
-    const app = getFirebaseApp();
+  if (typeof window === "undefined") {
+    throw new Error("Firebase Auth can only be used in the browser.");
+  }
 
-    try {
-      firebaseAuth = initializeAuth(app, {
-        persistence: browserLocalPersistence,
-      });
-    } catch {
-      firebaseAuth = getAuth(app);
-    }
+  if (!firebaseAuth) {
+    firebaseAuth = getAuth(getFirebaseApp());
   }
 
   return firebaseAuth;
@@ -63,8 +53,3 @@ export function getFirebaseDb(): Firestore {
 
   return firebaseDb;
 }
-
-export const googleProvider = new GoogleAuthProvider();
-googleProvider.addScope("profile");
-googleProvider.addScope("email");
-googleProvider.setCustomParameters({ prompt: "select_account" });
