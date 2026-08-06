@@ -6,7 +6,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -20,7 +19,7 @@ import type { AddFavoritePayload, UserFavorite } from "@/types";
 
 interface FavoritesSyncState {
   userId: string | null;
-  hasReceivedSnapshot: boolean;
+  hasRemoteSnapshot: boolean;
   favorites: UserFavorite[];
   error: string | null;
 }
@@ -29,6 +28,7 @@ interface FavoritesContextValue {
   favorites: UserFavorite[];
   favoriteIds: Set<string>;
   loading: boolean;
+  syncing: boolean;
   error: string | null;
   isFavorite: (imdbID: string) => boolean;
   toggleFavorite: (payload: AddFavoritePayload) => Promise<void>;
@@ -37,7 +37,7 @@ interface FavoritesContextValue {
 
 const initialSyncState: FavoritesSyncState = {
   userId: null,
-  hasReceivedSnapshot: false,
+  hasRemoteSnapshot: false,
   favorites: [],
   error: null,
 };
@@ -55,101 +55,104 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   const userId = user?.uid;
   const [syncState, setSyncState] =
     useState<FavoritesSyncState>(initialSyncState);
-  const activeSubscriptionUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!userId || !isFirebaseConfigured()) {
-      activeSubscriptionUserIdRef.current = null;
+    if (!userId || !user || !isFirebaseConfigured()) {
+      setSyncState(initialSyncState);
       return;
     }
 
-    activeSubscriptionUserIdRef.current = userId;
+    const activeUser = user;
+    const activeUserId = userId;
     let isActive = true;
+    let unsubscribe = () => {};
 
-    const timeoutId = window.setTimeout(() => {
-      if (!isActive) {
-        return;
+    setSyncState({
+      userId: activeUserId,
+      hasRemoteSnapshot: false,
+      favorites: [],
+      error: null,
+    });
+
+    async function startSubscription() {
+      try {
+        await activeUser.getIdToken();
+        if (!isActive) {
+          return;
+        }
+
+        unsubscribe = subscribeToFavorites(
+          activeUserId,
+          (updatedFavorites) => {
+            if (!isActive) {
+              return;
+            }
+
+            setSyncState({
+              userId: activeUserId,
+              hasRemoteSnapshot: true,
+              favorites: updatedFavorites,
+              error: null,
+            });
+          },
+          (error) => {
+            if (!isActive) {
+              return;
+            }
+
+            setSyncState((current) => ({
+              userId: activeUserId,
+              hasRemoteSnapshot: true,
+              favorites: current.favorites,
+              error: error.message,
+            }));
+          },
+        );
+      } catch (error: unknown) {
+        if (!isActive) {
+          return;
+        }
+
+        setSyncState((current) => ({
+          userId: activeUserId,
+          hasRemoteSnapshot: true,
+          favorites: current.favorites,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to load favorites.",
+        }));
       }
+    }
 
-      setSyncState((current) => {
-        if (current.userId === userId && current.hasReceivedSnapshot) {
-          return current;
-        }
-
-        return {
-          userId,
-          hasReceivedSnapshot: true,
-          favorites: [],
-          error: "Timed out loading favorites. Please refresh and try again.",
-        };
-      });
-    }, 10_000);
-
-    const unsubscribe = subscribeToFavorites(
-      userId,
-      (updatedFavorites) => {
-        if (!isActive) {
-          return;
-        }
-
-        window.clearTimeout(timeoutId);
-        setSyncState({
-          userId,
-          hasReceivedSnapshot: true,
-          favorites: updatedFavorites,
-          error: null,
-        });
-      },
-      (error) => {
-        if (!isActive) {
-          return;
-        }
-
-        window.clearTimeout(timeoutId);
-        setSyncState({
-          userId,
-          hasReceivedSnapshot: true,
-          favorites: [],
-          error: error.message,
-        });
-      },
-    );
+    void startSubscription();
 
     return () => {
       isActive = false;
-      window.clearTimeout(timeoutId);
       unsubscribe();
-
-      if (activeSubscriptionUserIdRef.current === userId) {
-        activeSubscriptionUserIdRef.current = null;
-      }
     };
-  }, [userId]);
+  }, [userId, user]);
 
   const favorites = useMemo(() => {
-    if (
-      !userId ||
-      syncState.userId !== userId ||
-      !syncState.hasReceivedSnapshot
-    ) {
+    if (!userId || syncState.userId !== userId) {
       return [];
     }
 
     return syncState.favorites;
   }, [userId, syncState]);
 
-  const loading =
+  const syncing =
     !authLoading &&
     Boolean(userId) &&
     isFirebaseConfigured() &&
-    (syncState.userId !== userId || !syncState.hasReceivedSnapshot);
+    syncState.userId === userId &&
+    !syncState.hasRemoteSnapshot &&
+    !syncState.error;
+
+  const loading = authLoading;
 
   const error = useMemo(() => {
-    if (
-      !userId ||
-      syncState.userId !== userId ||
-      !syncState.hasReceivedSnapshot
-    ) {
+    if (!userId || syncState.userId !== userId) {
       return null;
     }
 
@@ -192,6 +195,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       favorites,
       favoriteIds,
       loading,
+      syncing,
       error,
       isFavorite,
       toggleFavorite,
@@ -201,6 +205,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       favorites,
       favoriteIds,
       loading,
+      syncing,
       error,
       isFavorite,
       toggleFavorite,

@@ -1,5 +1,5 @@
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, type Auth } from "firebase/auth";
+import { getAuth, getRedirectResult, GoogleAuthProvider, type Auth, type UserCredential } from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -51,3 +51,15 @@ export function getFirebaseDb(): Firestore {
 }
 
 export const googleProvider = new GoogleAuthProvider();
+
+/** Dedupe redirect resolution across React Strict Mode remounts. */
+let pendingRedirectResult: Promise<UserCredential | null> | null = null;
+
+export function resolveGoogleRedirectResult(auth: Auth) {
+  pendingRedirectResult ??= getRedirectResult(auth).catch((error) => {
+    pendingRedirectResult = null;
+    throw error;
+  });
+
+  return pendingRedirectResult;
+}

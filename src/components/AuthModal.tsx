@@ -22,6 +22,10 @@ function getAuthErrorMessage(error: unknown): string {
         return "Google sign-in was cancelled before completing.";
       case "auth/popup-blocked":
         return "Google sign-in was blocked by the browser. Please try again.";
+      case "auth/unauthorized-domain":
+        return "This domain is not authorized in Firebase. Add your site URL under Firebase Console → Authentication → Settings → Authorized domains.";
+      case "auth/operation-not-allowed":
+        return "Google sign-in is not enabled in Firebase. Enable it under Authentication → Sign-in method.";
       case "auth/too-many-requests":
         return "Too many attempts. Please try again later.";
       default:

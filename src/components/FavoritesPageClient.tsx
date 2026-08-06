@@ -27,7 +27,7 @@ export default function FavoritesPageClient() {
   const { user, loading: authLoading, isConfigured, openAuthModal } = useAuth();
   const {
     favorites,
-    loading: favoritesLoading,
+    syncing: favoritesSyncing,
     error: favoritesError,
     clearError,
   } = useFavorites();
@@ -50,7 +50,7 @@ export default function FavoritesPageClient() {
   }, []);
 
   const isAuthPending = authLoading;
-  const isFavoritesPending = Boolean(user) && favoritesLoading;
+  const isFavoritesPending = Boolean(user) && favoritesSyncing;
 
   const resultLabel = useMemo(
     () => `${movies.length} saved movie${movies.length === 1 ? "" : "s"}`,
@@ -136,11 +136,27 @@ export default function FavoritesPageClient() {
 
   return (
     <>
+      {favoritesError && !isFavoritesPending && (
+        <div
+          role="alert"
+          className="mb-4 flex items-start justify-between gap-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200"
+        >
+          <p>{favoritesError}</p>
+          <button
+            type="button"
+            onClick={clearError}
+            className="shrink-0 text-xs font-medium uppercase tracking-wide opacity-80 hover:opacity-100"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       <section>
         <MovieList
           movies={movies}
           isLoading={isFavoritesPending}
-          error={favoritesError}
+          error={null}
           hasSearched
           onMovieSelect={handleMovieSelect}
           showInitialPrompt={false}
@@ -149,18 +165,6 @@ export default function FavoritesPageClient() {
           emptySubtitle="Search for movies and tap the heart icon to save them here."
           resultLabel={resultLabel}
         />
-
-        {favoritesError && (
-          <div className="mt-4 text-center">
-            <button
-              type="button"
-              onClick={clearError}
-              className="rounded-lg border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
-              Dismiss error
-            </button>
-          </div>
-        )}
 
         {!isFavoritesPending && !favoritesError && movies.length === 0 && (
           <div className="mt-6 text-center">

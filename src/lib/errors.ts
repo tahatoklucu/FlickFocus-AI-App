@@ -4,7 +4,7 @@ export function getFirestoreErrorMessage(error: unknown): string {
   if (error instanceof FirebaseError) {
     switch (error.code) {
       case "permission-denied":
-        return "You do not have permission to access favorites. Check your Firestore security rules.";
+        return "Firestore access denied. Check user rules in Firebase Console → Firestore Rules.";
       case "unavailable":
         return "Firestore is temporarily unavailable. Please check your connection and try again.";
       case "failed-precondition":
