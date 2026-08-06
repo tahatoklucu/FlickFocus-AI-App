@@ -47,6 +47,10 @@ export function getFirebaseAuth(): Auth {
 }
 
 export function getFirebaseDb(): Firestore {
+  if (typeof window === "undefined") {
+    throw new Error("Firestore can only be used in the browser.");
+  }
+
   if (!firebaseDb) {
     firebaseDb = getFirestore(getFirebaseApp());
   }

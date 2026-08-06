@@ -50,12 +50,14 @@ export default function FavoritesPageClient() {
   }, []);
 
   const isAuthPending = authLoading;
-  const isFavoritesPending = Boolean(user) && favoritesSyncing;
 
-  const resultLabel = useMemo(
-    () => `${movies.length} saved movie${movies.length === 1 ? "" : "s"}`,
-    [movies.length],
-  );
+  const resultLabel = useMemo(() => {
+    if (favoritesSyncing) {
+      return "Syncing favorites...";
+    }
+
+    return `${movies.length} saved movie${movies.length === 1 ? "" : "s"}`;
+  }, [favoritesSyncing, movies.length]);
 
   if (!isConfigured) {
     return (
@@ -136,7 +138,7 @@ export default function FavoritesPageClient() {
 
   return (
     <>
-      {favoritesError && !isFavoritesPending && (
+      {favoritesError && (
         <div
           role="alert"
           className="mb-4 flex items-start justify-between gap-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200"
@@ -155,7 +157,7 @@ export default function FavoritesPageClient() {
       <section>
         <MovieList
           movies={movies}
-          isLoading={isFavoritesPending}
+          isLoading={false}
           error={null}
           hasSearched
           onMovieSelect={handleMovieSelect}
@@ -164,9 +166,10 @@ export default function FavoritesPageClient() {
           emptyTitle="No favorites yet"
           emptySubtitle="Search for movies and tap the heart icon to save them here."
           resultLabel={resultLabel}
+          priorityCount={6}
         />
 
-        {!isFavoritesPending && !favoritesError && movies.length === 0 && (
+        {!favoritesError && !favoritesSyncing && movies.length === 0 && (
           <div className="mt-6 text-center">
             <Link
               href="/"

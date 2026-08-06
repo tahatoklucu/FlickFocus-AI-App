@@ -3,8 +3,6 @@
 import { useEffect, useState, type MouseEvent } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useFavorites } from "@/context/FavoritesContext";
-import { FavoritesError } from "@/services/favorites";
-import { getUnknownErrorMessage } from "@/lib/errors";
 import type { AddFavoritePayload } from "@/types";
 
 interface FavoriteButtonProps {
@@ -19,24 +17,24 @@ export default function FavoriteButton({
   className = "",
 }: FavoriteButtonProps) {
   const { user, openAuthModal } = useAuth();
-  const { isFavorite, toggleFavorite } = useFavorites();
-  const [isToggling, setIsToggling] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const { isFavorite, toggleFavorite, error: favoritesError } = useFavorites();
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const favorited = isFavorite(movie.imdbID);
   const sizeClasses = size === "sm" ? "h-8 w-8" : "h-10 w-10";
   const iconClasses = size === "sm" ? "h-4 w-4" : "h-5 w-5";
+  const displayedError = localError ?? favoritesError;
 
   useEffect(() => {
-    if (!error) {
+    if (!displayedError) {
       return;
     }
 
-    const timeoutId = window.setTimeout(() => setError(null), 4000);
+    const timeoutId = window.setTimeout(() => setLocalError(null), 4000);
     return () => window.clearTimeout(timeoutId);
-  }, [error]);
+  }, [displayedError]);
 
-  async function handleClick(event: MouseEvent<HTMLButtonElement>) {
+  function handleClick(event: MouseEvent<HTMLButtonElement>) {
     event.stopPropagation();
     event.preventDefault();
 
@@ -45,20 +43,8 @@ export default function FavoriteButton({
       return;
     }
 
-    setIsToggling(true);
-    setError(null);
-
-    try {
-      await toggleFavorite(movie);
-    } catch (err) {
-      setError(
-        err instanceof FavoritesError
-          ? err.message
-          : getUnknownErrorMessage(err, "Failed to update favorite."),
-      );
-    } finally {
-      setIsToggling(false);
-    }
+    setLocalError(null);
+    toggleFavorite(movie);
   }
 
   return (
@@ -66,14 +52,13 @@ export default function FavoriteButton({
       <button
         type="button"
         onClick={handleClick}
-        disabled={isToggling}
         aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
         aria-pressed={favorited}
-        title={error ?? undefined}
-        className={`inline-flex items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/70 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-zinc-900/80 dark:hover:bg-zinc-800 ${sizeClasses} ${className}`}
+        title={displayedError ?? undefined}
+        className={`inline-flex items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/70 dark:bg-zinc-900/80 dark:hover:bg-zinc-800 ${sizeClasses} ${className}`}
       >
         <svg
-          className={`${iconClasses} ${favorited ? "fill-red-500 text-red-500" : "fill-none"}`}
+          className={`${iconClasses} transition ${favorited ? "fill-red-500 text-red-500" : "fill-none"}`}
           viewBox="0 0 24 24"
           stroke="currentColor"
           strokeWidth={favorited ? 0 : 2}
@@ -87,12 +72,12 @@ export default function FavoriteButton({
         </svg>
       </button>
 
-      {error && (
+      {displayedError && (
         <p
           role="alert"
           className="absolute right-0 top-full z-20 mt-1 w-44 rounded-lg bg-red-950/90 px-2 py-1 text-[10px] leading-snug text-red-100"
         >
-          {error}
+          {displayedError}
         </p>
       )}
     </div>

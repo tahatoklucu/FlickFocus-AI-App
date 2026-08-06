@@ -70,6 +70,7 @@ export default function HomePageClient({
             error={error}
             hasSearched={hasSearched}
             onMovieSelect={handleMovieSelect}
+            priorityCount={6}
             emptyTitle="No movies found"
             emptySubtitle="We couldn't find any matches in the OMDb catalog. Try a different title, director, or keyword."
           />

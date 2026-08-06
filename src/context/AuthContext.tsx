@@ -184,37 +184,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       finishInitialization();
     });
 
-    void completeGoogleRedirectSignIn(auth)
-      .then((result) => {
-        if (!isActive || !result?.user) {
-          return;
-        }
+    if (wasRedirectPending) {
+      void completeGoogleRedirectSignIn(auth)
+        .then((result) => {
+          if (!isActive || !result?.user) {
+            return;
+          }
 
-        applyAuthUser(result.user, setUser, setProfileSyncState);
-        setAuthError(null);
-        setIsAuthModalOpen(false);
-      })
-      .catch((error: unknown) => {
-        if (!isActive) {
-          return;
-        }
+          applyAuthUser(result.user, setUser, setProfileSyncState);
+          setAuthError(null);
+          setIsAuthModalOpen(false);
+        })
+        .catch((error: unknown) => {
+          if (!isActive) {
+            return;
+          }
 
-        if (!wasRedirectPending) {
-          return;
-        }
+          setAuthError(getGoogleAuthErrorMessage(error));
+          setAuthModalMode("signin");
+          setIsAuthModalOpen(true);
+        })
+        .finally(() => {
+          if (!isActive) {
+            return;
+          }
 
-        setAuthError(getGoogleAuthErrorMessage(error));
-        setAuthModalMode("signin");
-        setIsAuthModalOpen(true);
-      })
-      .finally(() => {
-        if (!isActive) {
-          return;
-        }
-
-        redirectReady = true;
-        finishInitialization();
-      });
+          redirectReady = true;
+          finishInitialization();
+        });
+    } else {
+      redirectReady = true;
+      finishInitialization();
+    }
 
     return () => {
       isActive = false;

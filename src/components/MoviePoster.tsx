@@ -59,6 +59,8 @@ function MoviePoster({
       fill
       sizes={sizes}
       priority={priority}
+      fetchPriority={priority ? "high" : "auto"}
+      loading={priority ? "eager" : "lazy"}
       className={className}
       onError={() => setHasError(true)}
     />
