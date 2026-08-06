@@ -3,13 +3,19 @@ import {
   deleteDoc,
   doc,
   onSnapshot,
-  orderBy,
-  query,
   setDoc,
   type Unsubscribe,
 } from "firebase/firestore";
+import { getFirestoreErrorMessage } from "@/lib/errors";
 import { getFirebaseDb } from "@/lib/firebase";
 import type { AddFavoritePayload, UserFavorite } from "@/types";
+
+export class FavoritesError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "FavoritesError";
+  }
+}
 
 function favoritesCollection(userId: string) {
   return collection(getFirebaseDb(), "users", userId, "favorites");
@@ -31,27 +37,39 @@ function mapFavoriteDoc(
   };
 }
 
+function sortFavorites(favorites: UserFavorite[]): UserFavorite[] {
+  return [...favorites].sort((a, b) => b.addedAt.localeCompare(a.addedAt));
+}
+
+async function runFavoritesOperation<T>(
+  operation: () => Promise<T>,
+  fallbackMessage: string,
+): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    throw new FavoritesError(getFirestoreErrorMessage(error) || fallbackMessage);
+  }
+}
+
 /** Subscribe to real-time updates for a user's favorites. */
 export function subscribeToFavorites(
   userId: string,
   onUpdate: (favorites: UserFavorite[]) => void,
   onError?: (error: Error) => void,
 ): Unsubscribe {
-  const favoritesQuery = query(
-    favoritesCollection(userId),
-    orderBy("addedAt", "desc"),
-  );
-
   return onSnapshot(
-    favoritesQuery,
+    favoritesCollection(userId),
     (snapshot) => {
-      const favorites = snapshot.docs.map((document) =>
-        mapFavoriteDoc(userId, document.id, document.data()),
+      const favorites = sortFavorites(
+        snapshot.docs.map((document) =>
+          mapFavoriteDoc(userId, document.id, document.data()),
+        ),
       );
       onUpdate(favorites);
     },
     (error) => {
-      onError?.(error);
+      onError?.(new FavoritesError(getFirestoreErrorMessage(error)));
     },
   );
 }
@@ -61,21 +79,23 @@ export async function addFavorite(
   userId: string,
   payload: AddFavoritePayload,
 ): Promise<void> {
-  const favoriteRef = doc(
-    getFirebaseDb(),
-    "users",
-    userId,
-    "favorites",
-    payload.imdbID,
-  );
+  await runFavoritesOperation(async () => {
+    const favoriteRef = doc(
+      getFirebaseDb(),
+      "users",
+      userId,
+      "favorites",
+      payload.imdbID,
+    );
 
-  await setDoc(favoriteRef, {
-    imdbID: payload.imdbID,
-    title: payload.title,
-    year: payload.year,
-    poster: payload.poster,
-    addedAt: new Date().toISOString(),
-  });
+    await setDoc(favoriteRef, {
+      imdbID: payload.imdbID,
+      title: payload.title,
+      year: payload.year,
+      poster: payload.poster,
+      addedAt: new Date().toISOString(),
+    });
+  }, "Failed to save favorite.");
 }
 
 /** Remove a movie from the user's favorites. */
@@ -83,8 +103,16 @@ export async function removeFavorite(
   userId: string,
   imdbID: string,
 ): Promise<void> {
-  const favoriteRef = doc(getFirebaseDb(), "users", userId, "favorites", imdbID);
-  await deleteDoc(favoriteRef);
+  await runFavoritesOperation(async () => {
+    const favoriteRef = doc(
+      getFirebaseDb(),
+      "users",
+      userId,
+      "favorites",
+      imdbID,
+    );
+    await deleteDoc(favoriteRef);
+  }, "Failed to remove favorite.");
 }
 
 /** Toggle favorite status; returns true if added, false if removed. */

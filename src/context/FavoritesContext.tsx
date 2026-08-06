@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -17,58 +18,140 @@ import {
 } from "@/services/favorites";
 import type { AddFavoritePayload, UserFavorite } from "@/types";
 
+interface FavoritesSyncState {
+  userId: string | null;
+  hasReceivedSnapshot: boolean;
+  favorites: UserFavorite[];
+  error: string | null;
+}
+
 interface FavoritesContextValue {
   favorites: UserFavorite[];
   favoriteIds: Set<string>;
   loading: boolean;
+  error: string | null;
   isFavorite: (imdbID: string) => boolean;
   toggleFavorite: (payload: AddFavoritePayload) => Promise<void>;
+  clearError: () => void;
 }
+
+const initialSyncState: FavoritesSyncState = {
+  userId: null,
+  hasReceivedSnapshot: false,
+  favorites: [],
+  error: null,
+};
 
 const FavoritesContext = createContext<FavoritesContextValue | undefined>(
   undefined,
 );
 
+/**
+ * Layout-level provider: one Firestore listener persists across page navigations
+ * and is torn down only when the signed-in user changes or the app unmounts.
+ */
 export function FavoritesProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [favoritesSnapshot, setFavoritesSnapshot] = useState<{
-    userId: string;
-    favorites: UserFavorite[];
-  } | null>(null);
+  const userId = user?.uid;
+  const [syncState, setSyncState] =
+    useState<FavoritesSyncState>(initialSyncState);
+  const activeSubscriptionUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!user || !isFirebaseConfigured()) {
+    if (!userId || !isFirebaseConfigured()) {
+      activeSubscriptionUserIdRef.current = null;
       return;
     }
 
+    activeSubscriptionUserIdRef.current = userId;
+    let isActive = true;
+
+    const timeoutId = window.setTimeout(() => {
+      if (!isActive) {
+        return;
+      }
+
+      setSyncState((current) => {
+        if (current.userId === userId && current.hasReceivedSnapshot) {
+          return current;
+        }
+
+        return {
+          userId,
+          hasReceivedSnapshot: true,
+          favorites: [],
+          error: "Timed out loading favorites. Please refresh and try again.",
+        };
+      });
+    }, 10_000);
+
     const unsubscribe = subscribeToFavorites(
-      user.uid,
+      userId,
       (updatedFavorites) => {
-        setFavoritesSnapshot({
-          userId: user.uid,
+        if (!isActive) {
+          return;
+        }
+
+        setSyncState({
+          userId,
+          hasReceivedSnapshot: true,
           favorites: updatedFavorites,
+          error: null,
         });
       },
-      () => {
-        setFavoritesSnapshot({
-          userId: user.uid,
+      (error) => {
+        if (!isActive) {
+          return;
+        }
+
+        setSyncState({
+          userId,
+          hasReceivedSnapshot: true,
           favorites: [],
+          error: error.message,
         });
       },
     );
 
-    return unsubscribe;
-  }, [user]);
+    return () => {
+      isActive = false;
+      window.clearTimeout(timeoutId);
+      unsubscribe();
+
+      if (activeSubscriptionUserIdRef.current === userId) {
+        activeSubscriptionUserIdRef.current = null;
+      }
+    };
+  }, [userId]);
 
   const favorites = useMemo(() => {
-    if (!user || favoritesSnapshot?.userId !== user.uid) {
+    if (
+      !userId ||
+      syncState.userId !== userId ||
+      !syncState.hasReceivedSnapshot
+    ) {
       return [];
     }
 
-    return favoritesSnapshot.favorites;
-  }, [user, favoritesSnapshot]);
+    return syncState.favorites;
+  }, [userId, syncState]);
 
-  const loading = Boolean(user) && favoritesSnapshot?.userId !== user?.uid;
+  const loading =
+    Boolean(userId) &&
+    isFirebaseConfigured() &&
+    (!syncState.hasReceivedSnapshot || syncState.userId !== userId);
+
+  const error = useMemo(() => {
+    if (
+      !userId ||
+      syncState.userId !== userId ||
+      !syncState.hasReceivedSnapshot
+    ) {
+      return null;
+    }
+
+    return syncState.error;
+  }, [userId, syncState]);
 
   const favoriteIds = useMemo(
     () => new Set(favorites.map((favorite) => favorite.imdbID)),
@@ -80,19 +163,25 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     [favoriteIds],
   );
 
+  const clearError = useCallback(() => {
+    setSyncState((current) =>
+      current.error ? { ...current, error: null } : current,
+    );
+  }, []);
+
   const toggleFavorite = useCallback(
     async (payload: AddFavoritePayload) => {
-      if (!user) {
+      if (!userId) {
         throw new Error("You must be signed in to manage favorites.");
       }
 
       await toggleFavoriteService(
-        user.uid,
+        userId,
         payload,
         favoriteIds.has(payload.imdbID),
       );
     },
-    [user, favoriteIds],
+    [userId, favoriteIds],
   );
 
   const value = useMemo<FavoritesContextValue>(
@@ -100,10 +189,20 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       favorites,
       favoriteIds,
       loading,
+      error,
       isFavorite,
       toggleFavorite,
+      clearError,
     }),
-    [favorites, favoriteIds, loading, isFavorite, toggleFavorite],
+    [
+      favorites,
+      favoriteIds,
+      loading,
+      error,
+      isFavorite,
+      toggleFavorite,
+      clearError,
+    ],
   );
 
   return (

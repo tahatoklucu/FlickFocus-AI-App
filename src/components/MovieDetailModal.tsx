@@ -1,19 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Image from "next/image";
 import FavoriteButton from "@/components/FavoriteButton";
-import { getMovieById, OMDbError } from "@/services/omdb";
+import MovieNotFound from "@/components/MovieNotFound";
+import MoviePoster from "@/components/MoviePoster";
+import { getMovieById, getOMDbErrorMessage } from "@/services/omdb";
+import { isMovieNotFoundMessage } from "@/services/omdb-core";
 import type { Movie } from "@/types";
 
 interface MovieDetailModalProps {
   imdbID: string | null;
   isOpen: boolean;
   onClose: () => void;
-}
-
-function hasValidPoster(poster: string): boolean {
-  return poster !== "N/A" && poster.trim().length > 0;
 }
 
 function displayValue(value: string | undefined): string | null {
@@ -53,6 +51,10 @@ export default function MovieDetailModal({
   const [error, setError] = useState<string | null>(null);
 
   const handleClose = useCallback(() => {
+    onClose();
+  }, [onClose]);
+
+  const handleSearchAgain = useCallback(() => {
     onClose();
   }, [onClose]);
 
@@ -101,11 +103,7 @@ export default function MovieDetailModal({
         }
       } catch (err) {
         if (!cancelled) {
-          setError(
-            err instanceof OMDbError
-              ? err.message
-              : "Failed to load movie details.",
-          );
+          setError(getOMDbErrorMessage(err, "Failed to load movie details."));
         }
       } finally {
         if (!cancelled) {
@@ -133,6 +131,7 @@ export default function MovieDetailModal({
     ? getRating(movie, "Rotten Tomatoes")
     : null;
   const metascore = movie ? displayValue(movie.Metascore) : null;
+  const isMovieNotFound = error ? isMovieNotFoundMessage(error) : false;
 
   return (
     <div
@@ -201,7 +200,17 @@ export default function MovieDetailModal({
           </div>
         )}
 
-        {error && !isLoading && (
+        {error && !isLoading && isMovieNotFound && (
+          <MovieNotFound
+            compact
+            title="Movie not found"
+            description="This title isn't in the OMDb catalog, or the ID may be invalid. Try searching for another movie."
+            onSearchAgain={handleSearchAgain}
+            onClose={handleClose}
+          />
+        )}
+
+        {error && !isLoading && !isMovieNotFound && (
           <div className="px-6 py-24 text-center">
             <p
               role="alert"
@@ -222,37 +231,16 @@ export default function MovieDetailModal({
         {movie && !isLoading && !error && (
           <div className="overflow-y-auto">
             <div className="grid gap-0 sm:grid-cols-[280px_1fr] md:grid-cols-[320px_1fr]">
-              <div className="relative aspect-[2/3] bg-zinc-100 sm:aspect-auto sm:min-h-full dark:bg-zinc-800">
-                {hasValidPoster(movie.Poster) ? (
-                  <Image
-                    src={movie.Poster}
-                    alt={`${movie.Title} poster`}
-                    fill
-                    sizes="(max-width: 640px) 100vw, 320px"
-                    className="object-cover"
-                    priority
-                  />
-                ) : (
-                  <div className="flex h-full min-h-[320px] flex-col items-center justify-center gap-2 px-4 text-center text-zinc-400">
-                    <svg
-                      className="h-12 w-12 opacity-60"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                      strokeWidth={1.5}
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        d="M7 4v16M17 4v16M3 8h4m10 0h4M3 12h18M3 16h4m10 0h4M4 20h16a1 1 0 001-1V5a1 1 0 00-1-1H4a1 1 0 00-1 1v14a1 1 0 001 1z"
-                      />
-                    </svg>
-                    <span className="text-xs font-medium uppercase tracking-wide">
-                      No poster available
-                    </span>
-                  </div>
-                )}
+              <div className="relative aspect-[2/3] overflow-hidden bg-zinc-100 sm:aspect-auto sm:min-h-full dark:bg-zinc-800">
+                <MoviePoster
+                  poster={movie.Poster}
+                  title={movie.Title}
+                  year={movie.Year}
+                  sizes="(max-width: 640px) 100vw, 320px"
+                  priority
+                  variant="detail"
+                  className="object-cover"
+                />
               </div>
 
               <div className="flex flex-col gap-6 p-6 sm:p-8">

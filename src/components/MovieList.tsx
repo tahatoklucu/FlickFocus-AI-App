@@ -1,3 +1,7 @@
+"use client";
+
+import { memo } from "react";
+import MovieNotFound from "@/components/MovieNotFound";
 import type { MovieSearchResult } from "@/types";
 import MovieCard from "./MovieCard";
 
@@ -7,14 +11,26 @@ interface MovieListProps {
   error: string | null;
   hasSearched: boolean;
   onMovieSelect: (imdbID: string) => void;
+  loadingMessage?: string;
+  emptyTitle?: string;
+  emptySubtitle?: string;
+  showInitialPrompt?: boolean;
+  resultLabel?: string;
+  priorityCount?: number;
 }
 
-export default function MovieList({
+function MovieList({
   movies,
   isLoading,
   error,
   hasSearched,
   onMovieSelect,
+  loadingMessage = "Searching movies...",
+  emptyTitle = "No movies found",
+  emptySubtitle = "Try a different search term",
+  showInitialPrompt = true,
+  resultLabel,
+  priorityCount = 0,
 }: MovieListProps) {
   if (isLoading) {
     return (
@@ -39,7 +55,7 @@ export default function MovieList({
             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
           />
         </svg>
-        <p className="text-sm font-medium">Searching movies...</p>
+        <p className="text-sm font-medium">{loadingMessage}</p>
       </div>
     );
   }
@@ -57,7 +73,7 @@ export default function MovieList({
     );
   }
 
-  if (!hasSearched) {
+  if (!hasSearched && showInitialPrompt) {
     return (
       <div className="flex flex-col items-center justify-center gap-2 py-20 text-center text-zinc-500 dark:text-zinc-400">
         <svg
@@ -82,25 +98,32 @@ export default function MovieList({
 
   if (movies.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 py-20 text-center text-zinc-500 dark:text-zinc-400">
-        <p className="text-sm font-medium">No movies found</p>
-        <p className="text-xs">Try a different search term</p>
-      </div>
+      <MovieNotFound
+        title={emptyTitle}
+        description={emptySubtitle}
+      />
     );
   }
 
   return (
     <div>
       <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
-        {movies.length} result{movies.length === 1 ? "" : "s"} found
+        {resultLabel ??
+          `${movies.length} result${movies.length === 1 ? "" : "s"} found`}
       </p>
       <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-        {movies.map((movie) => (
+        {movies.map((movie, index) => (
           <li key={movie.imdbID}>
-            <MovieCard movie={movie} onSelect={onMovieSelect} />
+            <MovieCard
+              movie={movie}
+              onSelect={onMovieSelect}
+              priority={index < priorityCount}
+            />
           </li>
         ))}
       </ul>
     </div>
   );
 }
+
+export default memo(MovieList);

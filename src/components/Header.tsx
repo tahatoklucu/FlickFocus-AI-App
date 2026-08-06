@@ -1,13 +1,33 @@
 "use client";
 
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/context/AuthContext";
-import AuthModal from "@/components/AuthModal";
+import { useFavorites } from "@/context/FavoritesContext";
+
+const AuthModal = dynamic(() => import("@/components/AuthModal"), {
+  ssr: false,
+});
+
+function FavoritesCountBadge({ count }: { count: number }) {
+  return (
+    <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-zinc-200/80 px-1.5 py-0.5 text-[10px] font-semibold leading-none tabular-nums text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
+      {count}
+    </span>
+  );
+}
 
 export default function Header() {
+  const pathname = usePathname();
   const { user, loading, isConfigured, openAuthModal, logout } = useAuth();
+  const { favorites } = useFavorites();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const favoritesCount = favorites.length;
+  const showFavoritesBadge = Boolean(user);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -32,13 +52,55 @@ export default function Header() {
     <>
       <header className="sticky top-0 z-40 border-b border-zinc-200 bg-white/80 backdrop-blur-md dark:border-zinc-800 dark:bg-zinc-950/80">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div>
-            <p className="text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-              Movie Search
-            </p>
-            <p className="hidden text-xs text-zinc-500 dark:text-zinc-400 sm:block">
-              Discover & save your favorites
-            </p>
+          <div className="flex items-center gap-6">
+            <Link href="/" className="group">
+              <p className="text-lg font-bold tracking-tight text-zinc-900 transition group-hover:text-zinc-600 dark:text-zinc-50 dark:group-hover:text-zinc-300">
+                FlickFocus
+              </p>
+              <p className="hidden text-xs text-zinc-500 dark:text-zinc-400 sm:block">
+                Discover & save your favorite movies
+              </p>
+            </Link>
+
+            {isConfigured && (
+              <nav className="hidden items-center gap-1 sm:flex">
+                <Link
+                  href="/"
+                  className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                    pathname === "/"
+                      ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50"
+                      : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
+                  }`}
+                >
+                  Search
+                </Link>
+                <Link
+                  href="/favorites"
+                  className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                    pathname === "/favorites"
+                      ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50"
+                      : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
+                  }`}
+                >
+                  Favorites
+                  {showFavoritesBadge && (
+                    <FavoritesCountBadge count={favoritesCount} />
+                  )}
+                </Link>
+                {user && (
+                  <Link
+                    href="/profile"
+                    className={`rounded-lg px-3 py-2 text-sm font-medium transition ${
+                      pathname === "/profile"
+                        ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50"
+                        : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-50"
+                    }`}
+                  >
+                    Profile
+                  </Link>
+                )}
+              </nav>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -88,6 +150,25 @@ export default function Header() {
                         {user.email}
                       </p>
                     </div>
+                    <Link
+                      href="/favorites"
+                      role="menuitem"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex w-full items-center justify-between px-4 py-2.5 text-left text-sm text-zinc-700 transition hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                    >
+                      <span>My Favorites</span>
+                      {showFavoritesBadge && (
+                        <FavoritesCountBadge count={favoritesCount} />
+                      )}
+                    </Link>
+                    <Link
+                      href="/profile"
+                      role="menuitem"
+                      onClick={() => setIsMenuOpen(false)}
+                      className="flex w-full px-4 py-2.5 text-left text-sm text-zinc-700 transition hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                    >
+                      My Profile
+                    </Link>
                     <button
                       type="button"
                       role="menuitem"
