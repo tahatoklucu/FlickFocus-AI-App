@@ -1,31 +1,48 @@
-# Next.js AI-Assisted Movie Search Application
+# FlickFocus 🎬
 
-This project is a modern web application built with **Next.js (App Router)**, **TypeScript**, and **Tailwind CSS**, developed as part of the FlyRank AI frontend engineering training track. The development process heavily leveraged AI-assisted coding practices (Claude & Cursor) to ensure clean architecture, robust type safety, and efficient API integration.
+FlickFocus is a modern, high-performance web application for discovering movies, managing custom watchlists, and exploring detailed cinematic data. Built with Next.js App Router, Tailwind CSS, and OMDb API, featuring secure user authentication via Firebase.
 
----
+## ✨ Features
 
-## 🚀 Features
-* **Movie Search & Discovery:** Real-time search functionality integrated with the OMDb API.
-* **Modern Tech Stack:** Built using Next.js App Router for optimal performance and SEO.
-* **Authentication & Favorites:** Secure user authentication and personalized movie watchlists/favorites management.
-* **Responsive UI:** Styled cleanly with Tailwind CSS for seamless mobile and desktop experiences.
-
----
+- **Movie Discovery & Search:** Real-time search powered by the OMDb database with rich filtering and detailed modal views.
+- **Cinematic UI/UX:** Dark-themed, streaming-platform-inspired design (Netflix/Apple TV+ style) featuring glassmorphism elements and responsive layouts.
+- **Personal Watchlist & Favorites:** Secure user authentication allowing users to save and manage favorite movies.
+- **Advanced SEO Optimization:** Fully configured metadata, Open Graph (OG) tags, Twitter cards, and semantic structure for maximum search engine visibility.
 
 ## 🛠️ Tech Stack
-* **Framework:** Next.js (App Router)
-* **Language:** TypeScript
-* **Styling:** Tailwind CSS
-* **API:** OMDb API
-* **Backend/Auth:** Firebase (Auth & Database)
 
----
+- **Framework:** Next.js (App Router)
+- **Styling:** Tailwind CSS
+- **Authentication & Database:** Firebase Auth / Firestore
+- **External API:** OMDb API
+- **Deployment:** Vercel
 
-## 📁 Project Architecture
-The project follows a clean, modular structure emphasizing separation of concerns:
+## 🤖 AI-Assisted Development & Prompts
+
+This project was developed independently using AI as an interactive development assistant (Claude / Gemini). Throughout the development process, AI was utilized for:
+- Implementing robust SEO metadata architectures and sharing site constants.
+- Refining complex UI components, such as the `MovieDetailModal` aspect ratios and responsive grid systems.
+- Structuring modern navigation systems with glassmorphic styling and dropdown profile menus.
+
+## 🏗️ System Architecture & Project Structure
+
+FlickFocus is architected following the modern **Next.js App Router** paradigm, separating server-rendered layouts from interactive client components, with dedicated utility and context layers.
+
 ```text
-src/
-├── app/              # Next.js App Router pages and layouts
-├── components/       # Reusable UI components (Views)
-├── services/         # API integration and external data handling
-└── types/            # TypeScript interfaces and type definitions
+FlickFocus/
+├── src/
+│   ├── app/                      # Next.js App Router pages & layouts
+│   │   ├── layout.tsx            # Root layout with global SEO metadata & providers
+│   │   ├── page.tsx              # Home / Discovery view
+│   │   ├── favorites/            # Protected user favorites view
+│   │   └── profile/              # User settings and profile view
+│   ├── components/               # Modular UI building blocks
+│   │   ├── Header.tsx            # Glassmorphic sticky navbar & profile dropdown
+│   │   ├── MovieDetailModal.tsx  # Cinematic detail view with responsive poster framing
+│   │   └── ...                   # Cards, search bars, and shared UI elements
+│   ├── context/                  # Global React Context providers (Auth & Favorites state)
+│   └── lib/                      # Core configuration, API clients, and SEO helpers
+│       ├── site.ts               # Shared site constants and metadata defaults
+│       └── metadata.ts           # Dynamic Open Graph & Twitter Card generators
+├── public/                       # Static assets and icons
+└── package.json                  # Dependencies and scripts
