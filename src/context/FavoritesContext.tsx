@@ -51,7 +51,7 @@ const FavoritesContext = createContext<FavoritesContextValue | undefined>(
  * and is torn down only when the signed-in user changes or the app unmounts.
  */
 export function FavoritesProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const userId = user?.uid;
   const [syncState, setSyncState] =
     useState<FavoritesSyncState>(initialSyncState);
@@ -92,6 +92,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        window.clearTimeout(timeoutId);
         setSyncState({
           userId,
           hasReceivedSnapshot: true,
@@ -104,6 +105,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
           return;
         }
 
+        window.clearTimeout(timeoutId);
         setSyncState({
           userId,
           hasReceivedSnapshot: true,
@@ -137,9 +139,10 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
   }, [userId, syncState]);
 
   const loading =
+    !authLoading &&
     Boolean(userId) &&
     isFirebaseConfigured() &&
-    (!syncState.hasReceivedSnapshot || syncState.userId !== userId);
+    (syncState.userId !== userId || !syncState.hasReceivedSnapshot);
 
   const error = useMemo(() => {
     if (

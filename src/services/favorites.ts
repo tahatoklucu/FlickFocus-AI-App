@@ -58,20 +58,29 @@ export function subscribeToFavorites(
   onUpdate: (favorites: UserFavorite[]) => void,
   onError?: (error: Error) => void,
 ): Unsubscribe {
-  return onSnapshot(
-    favoritesCollection(userId),
-    (snapshot) => {
-      const favorites = sortFavorites(
-        snapshot.docs.map((document) =>
-          mapFavoriteDoc(userId, document.id, document.data()),
-        ),
-      );
-      onUpdate(favorites);
-    },
-    (error) => {
-      onError?.(new FavoritesError(getFirestoreErrorMessage(error)));
-    },
-  );
+  try {
+    return onSnapshot(
+      favoritesCollection(userId),
+      (snapshot) => {
+        const favorites = sortFavorites(
+          snapshot.docs.map((document) =>
+            mapFavoriteDoc(userId, document.id, document.data()),
+          ),
+        );
+        onUpdate(favorites);
+      },
+      (error) => {
+        onError?.(new FavoritesError(getFirestoreErrorMessage(error)));
+      },
+    );
+  } catch (error) {
+    onError?.(
+      new FavoritesError(
+        getFirestoreErrorMessage(error) || "Failed to load favorites.",
+      ),
+    );
+    return () => {};
+  }
 }
 
 /** Add a movie to the user's favorites (document ID = imdbID). */

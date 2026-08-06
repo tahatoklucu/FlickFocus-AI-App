@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import FavoriteButton from "@/components/FavoriteButton";
 import MovieNotFound from "@/components/MovieNotFound";
-import MoviePoster from "@/components/MoviePoster";
+import { hasValidPoster } from "@/components/MoviePoster";
 import { getMovieById, getOMDbErrorMessage } from "@/services/omdb";
 import { isMovieNotFoundMessage } from "@/services/omdb-core";
 import type { Movie } from "@/types";
@@ -13,6 +14,7 @@ interface MovieDetailModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
 
 function displayValue(value: string | undefined): string | null {
   if (!value || value === "N/A") {
@@ -26,17 +28,239 @@ function getRating(movie: Movie, source: string): string | null {
   return rating?.Value ?? null;
 }
 
-function DetailRow({ label, value }: { label: string; value: string | null }) {
+function formatImdbRating(value: string): string {
+  return value.includes("/") ? value : `${value}/10`;
+}
+
+function splitList(value: string | null): string[] {
+  if (!value) {
+    return [];
+  }
+  return value.split(",").map((item) => item.trim()).filter(Boolean);
+}
+
+function StarIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+    </svg>
+  );
+}
+
+function ClockIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      aria-hidden="true"
+    >
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
+    </svg>
+  );
+}
+
+function CalendarIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+      />
+    </svg>
+  );
+}
+
+function MetaItem({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <span className="inline-flex items-center gap-2 text-sm text-neutral-300">
+      <span className="text-neutral-500" aria-hidden="true">
+        {icon}
+      </span>
+      <span className="sr-only">{label}: </span>
+      <span className="font-medium">{value}</span>
+    </span>
+  );
+}
+
+function RatingPill({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: string;
+  className: string;
+}) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm font-semibold ring-1 ring-inset ring-white/10 ${className}`}
+    >
+      <StarIcon className="h-3.5 w-3.5 shrink-0" />
+      <span className="text-[10px] font-bold uppercase tracking-wider opacity-75">{label}</span>
+      <span>{value}</span>
+    </span>
+  );
+}
+
+function InfoCard({ label, value }: { label: string; value: string | null }) {
   if (!value) {
     return null;
   }
 
   return (
-    <div>
-      <dt className="text-xs font-medium uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+    <div className="rounded-lg bg-neutral-900/70 px-4 py-3 ring-1 ring-neutral-800">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
         {label}
-      </dt>
-      <dd className="mt-1 text-sm text-zinc-800 dark:text-zinc-200">{value}</dd>
+      </p>
+      <p className="mt-1.5 text-sm leading-relaxed text-neutral-200">{value}</p>
+    </div>
+  );
+}
+
+function GenreTags({ genres }: { genres: string[] }) {
+  if (genres.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {genres.map((genre) => (
+        <span
+          key={genre}
+          className="rounded-full bg-neutral-800/80 px-3 py-1 text-xs font-medium text-neutral-300 ring-1 ring-neutral-700/80"
+        >
+          {genre}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function PosterShowcase({
+  poster,
+  title,
+  year,
+}: {
+  poster: string;
+  title: string;
+  year?: string;
+}) {
+  const [hasError, setHasError] = useState(false);
+  const showImage = hasValidPoster(poster) && !hasError;
+
+  return (
+    <div className="relative mx-auto w-[270px] shrink-0 sm:mx-0">
+      {showImage && (
+        <>
+          <div
+            className="pointer-events-none absolute -inset-10 -z-10 opacity-30 blur-[72px]"
+            aria-hidden="true"
+          >
+            <Image
+              src={poster}
+              alt=""
+              fill
+              sizes="270px"
+              className="scale-125 object-cover"
+              priority
+            />
+          </div>
+          <div
+            className="pointer-events-none absolute -inset-4 -z-10 rounded-[2rem] opacity-50 blur-2xl"
+            aria-hidden="true"
+          >
+            <Image
+              src={poster}
+              alt=""
+              fill
+              sizes="270px"
+              className="object-cover"
+              priority
+            />
+          </div>
+        </>
+      )}
+
+      <div className="relative aspect-[2/3] w-full overflow-hidden rounded-xl shadow-2xl shadow-black/80 ring-1 ring-white/10">
+        {showImage ? (
+          <Image
+            src={poster}
+            alt={`${title} poster`}
+            fill
+            sizes="270px"
+            priority
+            className="object-cover object-center"
+            onError={() => setHasError(true)}
+          />
+        ) : (
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-br from-neutral-800 via-neutral-900 to-neutral-950 px-4 text-center">
+            <p className="line-clamp-4 text-base font-semibold leading-snug text-white sm:text-lg">
+              {title}
+            </p>
+            {year && (
+              <p className="mt-2 text-xs font-medium uppercase tracking-widest text-neutral-500">
+                {year}
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ModalToolbar({
+  onClose,
+  movie,
+  showFavorite,
+}: {
+  onClose: () => void;
+  movie?: Movie;
+  showFavorite: boolean;
+}) {
+  return (
+    <div className="absolute right-3 top-3 z-30 flex items-center gap-2 sm:right-4 sm:top-4">
+      {showFavorite && movie && (
+        <FavoriteButton
+          movie={{
+            imdbID: movie.imdbID,
+            title: movie.Title,
+            year: movie.Year,
+            poster: movie.Poster,
+          }}
+          size="sm"
+          className="bg-neutral-800/95 text-neutral-100 ring-1 ring-neutral-700 transition hover:scale-105 hover:bg-neutral-700"
+        />
+      )}
+      <button
+        type="button"
+        onClick={onClose}
+        className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-neutral-800/95 text-neutral-200 ring-1 ring-neutral-700 transition hover:scale-105 hover:bg-neutral-700 hover:text-white"
+        aria-label="Close movie details"
+      >
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
     </div>
   );
 }
@@ -124,104 +348,67 @@ export default function MovieDetailModal({
   }
 
   const imdbRating = movie
-    ? (getRating(movie, "Internet Movie Database") ??
-      displayValue(movie.imdbRating))
+    ? (getRating(movie, "Internet Movie Database") ?? displayValue(movie.imdbRating))
     : null;
-  const rottenTomatoesRating = movie
-    ? getRating(movie, "Rotten Tomatoes")
-    : null;
+  const rottenTomatoesRating = movie ? getRating(movie, "Rotten Tomatoes") : null;
   const metascore = movie ? displayValue(movie.Metascore) : null;
   const isMovieNotFound = error ? isMovieNotFoundMessage(error) : false;
+  const year = movie ? displayValue(movie.Year) : null;
+  const runtime = movie ? displayValue(movie.Runtime) : null;
+  const rated = movie ? displayValue(movie.Rated) : null;
+  const plot = movie ? displayValue(movie.Plot) : null;
+  const genres = splitList(displayValue(movie?.Genre));
+  const showFavorite = Boolean(movie && !isLoading && !error);
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-6"
       role="presentation"
       onClick={handleClose}
     >
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-        aria-hidden="true"
-      />
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" aria-hidden="true" />
 
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="movie-detail-title"
         aria-busy={isLoading}
-        className="relative z-10 flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:max-h-[90vh] sm:rounded-2xl dark:bg-zinc-900"
+        className="relative z-10 flex max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-neutral-800 bg-neutral-950 shadow-2xl sm:max-h-[90vh] sm:rounded-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <button
-          type="button"
-          onClick={handleClose}
-          className="absolute right-3 top-3 z-20 rounded-full bg-black/50 p-2 text-white transition hover:bg-black/70 dark:bg-zinc-800/80 dark:hover:bg-zinc-700"
-          aria-label="Close movie details"
-        >
-          <svg
-            className="h-5 w-5"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
-        </button>
+        <ModalToolbar onClose={handleClose} movie={movie ?? undefined} showFavorite={showFavorite} />
 
         {isLoading && (
-          <div className="flex flex-col items-center justify-center gap-3 px-6 py-24 text-zinc-500 dark:text-zinc-400">
-            <svg
-              className="h-8 w-8 animate-spin"
-              fill="none"
-              viewBox="0 0 24 24"
-              aria-hidden="true"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-              />
+          <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 px-6 pb-16 pt-16">
+            <svg className="h-9 w-9 animate-spin text-neutral-400" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            <p className="text-sm font-medium">Loading movie details...</p>
+            <p className="text-sm font-medium text-neutral-400">Loading movie details...</p>
           </div>
         )}
 
         {error && !isLoading && isMovieNotFound && (
-          <MovieNotFound
-            compact
-            title="Movie not found"
-            description="This title isn't in the OMDb catalog, or the ID may be invalid. Try searching for another movie."
-            onSearchAgain={handleSearchAgain}
-            onClose={handleClose}
-          />
+          <div className="px-6 pb-10 pt-16 text-neutral-300">
+            <MovieNotFound
+              compact
+              title="Movie not found"
+              description="This title isn't in the OMDb catalog, or the ID may be invalid. Try searching for another movie."
+              onSearchAgain={handleSearchAgain}
+              onClose={handleClose}
+            />
+          </div>
         )}
 
         {error && !isLoading && !isMovieNotFound && (
-          <div className="px-6 py-24 text-center">
-            <p
-              role="alert"
-              className="text-sm font-medium text-red-600 dark:text-red-400"
-            >
+          <div className="px-6 pb-16 pt-16 text-center">
+            <p role="alert" className="text-sm font-medium text-red-400">
               {error}
             </p>
             <button
               type="button"
               onClick={handleClose}
-              className="mt-4 rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
+              className="mt-5 rounded-lg bg-neutral-100 px-5 py-2.5 text-sm font-medium text-neutral-900 transition hover:bg-white"
             >
               Close
             </button>
@@ -229,97 +416,81 @@ export default function MovieDetailModal({
         )}
 
         {movie && !isLoading && !error && (
-          <div className="overflow-y-auto">
-            <div className="grid gap-0 sm:grid-cols-[280px_1fr] md:grid-cols-[320px_1fr]">
-              <div className="relative aspect-[2/3] overflow-hidden bg-zinc-100 sm:aspect-auto sm:min-h-full dark:bg-zinc-800">
-                <MoviePoster
-                  poster={movie.Poster}
-                  title={movie.Title}
-                  year={movie.Year}
-                  sizes="(max-width: 640px) 100vw, 320px"
-                  priority
-                  variant="detail"
-                  className="object-cover"
-                />
-              </div>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            <div className="flex flex-col gap-8 px-5 pb-8 pt-14 sm:flex-row sm:gap-12 sm:px-8 sm:pb-10 sm:pt-16">
+              <PosterShowcase
+                poster={movie.Poster}
+                title={movie.Title}
+                year={movie.Year}
+              />
 
-              <div className="flex flex-col gap-6 p-6 sm:p-8">
-                <header className="flex items-start justify-between gap-4">
+              <div className="min-w-0 flex-1 space-y-6">
+                <header className="space-y-4">
                   <div>
                     <h2
                       id="movie-detail-title"
-                      className="pr-2 text-2xl font-bold leading-tight text-zinc-900 dark:text-zinc-50 sm:text-3xl"
+                      className="text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl"
                     >
                       {movie.Title}
                     </h2>
-                    <p className="mt-2 text-zinc-500 dark:text-zinc-400">
-                      {[displayValue(movie.Year), displayValue(movie.Rated)]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
+                    {rated && (
+                      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
+                        {rated}
+                      </p>
+                    )}
                   </div>
-                  <FavoriteButton
-                    movie={{
-                      imdbID: movie.imdbID,
-                      title: movie.Title,
-                      year: movie.Year,
-                      poster: movie.Poster,
-                    }}
-                  />
+
+                  <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                    {year && <MetaItem icon={<CalendarIcon className="h-4 w-4" />} label="Year" value={year} />}
+                    {runtime && <MetaItem icon={<ClockIcon className="h-4 w-4" />} label="Runtime" value={runtime} />}
+                  </div>
+
+                  {(imdbRating || rottenTomatoesRating || metascore) && (
+                    <div className="flex flex-wrap gap-2">
+                      {imdbRating && (
+                        <RatingPill
+                          label="IMDb"
+                          value={formatImdbRating(imdbRating)}
+                          className="bg-amber-500/10 text-amber-300"
+                        />
+                      )}
+                      {rottenTomatoesRating && (
+                        <RatingPill
+                          label="RT"
+                          value={rottenTomatoesRating}
+                          className="bg-red-500/10 text-red-300"
+                        />
+                      )}
+                      {metascore && (
+                        <RatingPill
+                          label="Meta"
+                          value={metascore}
+                          className="bg-emerald-500/10 text-emerald-300"
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  <GenreTags genres={genres} />
                 </header>
 
-                {(imdbRating || rottenTomatoesRating || metascore) && (
-                  <div className="flex flex-wrap gap-3">
-                    {imdbRating && (
-                      <span className="inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-sm font-medium text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-200">
-                        IMDb {imdbRating}
-                        {imdbRating.includes("/") ? "" : "/10"}
-                      </span>
-                    )}
-                    {rottenTomatoesRating && (
-                      <span className="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-sm font-medium text-red-800 dark:bg-red-900/40 dark:text-red-200">
-                        RT {rottenTomatoesRating}
-                      </span>
-                    )}
-                    {metascore && (
-                      <span className="inline-flex items-center rounded-full bg-green-100 px-3 py-1 text-sm font-medium text-green-800 dark:bg-green-900/40 dark:text-green-200">
-                        Metascore {metascore}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {displayValue(movie.Plot) && (
+                {plot && (
                   <section>
-                    <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-                      Plot
+                    <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
+                      Synopsis
                     </h3>
-                    <p className="text-sm leading-relaxed text-zinc-700 dark:text-zinc-300">
-                      {movie.Plot}
+                    <p className="text-base leading-7 text-neutral-300 sm:text-[17px] sm:leading-8">
+                      {plot}
                     </p>
                   </section>
                 )}
 
-                <dl className="grid gap-4 sm:grid-cols-2">
-                  <DetailRow label="Genre" value={displayValue(movie.Genre)} />
-                  <DetailRow
-                    label="Runtime"
-                    value={displayValue(movie.Runtime)}
-                  />
-                  <DetailRow
-                    label="Director"
-                    value={displayValue(movie.Director)}
-                  />
-                  <DetailRow label="Actors" value={displayValue(movie.Actors)} />
-                  <DetailRow
-                    label="Released"
-                    value={displayValue(movie.Released)}
-                  />
-                  <DetailRow
-                    label="Language"
-                    value={displayValue(movie.Language)}
-                  />
-                </dl>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <InfoCard label="Director" value={displayValue(movie.Director)} />
+                  <InfoCard label="Cast" value={displayValue(movie.Actors)} />
+                  <InfoCard label="Released" value={displayValue(movie.Released)} />
+                  <InfoCard label="Language" value={displayValue(movie.Language)} />
+                </div>
               </div>
             </div>
           </div>
