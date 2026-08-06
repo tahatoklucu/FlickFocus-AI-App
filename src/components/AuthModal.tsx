@@ -18,7 +18,10 @@ function getAuthErrorMessage(error: unknown): string {
       case "auth/weak-password":
         return "Password must be at least 6 characters.";
       case "auth/popup-closed-by-user":
-        return "Sign-in popup was closed before completing.";
+      case "auth/redirect-cancelled-by-user":
+        return "Google sign-in was cancelled before completing.";
+      case "auth/popup-blocked":
+        return "Google sign-in was blocked by the browser. Please try again.";
       case "auth/too-many-requests":
         return "Too many attempts. Please try again later.";
       default:
@@ -44,15 +47,21 @@ function AuthModalForm({ onClose }: AuthModalFormProps) {
     signInWithGoogle,
     signInWithEmail,
     signUpWithEmail,
+    authError,
+    clearAuthError,
   } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRedirecting, setIsRedirecting] = useState(false);
+
+  const displayedError = error ?? authError;
 
   function switchMode(mode: AuthModalMode) {
     setError(null);
+    clearAuthError();
     openAuthModal(mode);
   }
 
@@ -76,13 +85,15 @@ function AuthModalForm({ onClose }: AuthModalFormProps) {
 
   async function handleGoogleSignIn() {
     setError(null);
+    clearAuthError();
     setIsSubmitting(true);
+    setIsRedirecting(true);
 
     try {
       await signInWithGoogle();
     } catch (err) {
+      setIsRedirecting(false);
       setError(getAuthErrorMessage(err));
-    } finally {
       setIsSubmitting(false);
     }
   }
@@ -174,8 +185,23 @@ function AuthModalForm({ onClose }: AuthModalFormProps) {
             d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
           />
         </svg>
-        Continue with Google
+        {isRedirecting ? "Redirecting..." : "Continue with Google"}
       </button>
+
+      {isRedirecting && (
+        <p className="mb-4 text-center text-xs text-zinc-500 dark:text-zinc-400">
+          Redirecting to Google…
+        </p>
+      )}
+
+      {displayedError && !isRedirecting && (
+        <p
+          role="alert"
+          className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300"
+        >
+          {displayedError}
+        </p>
+      )}
 
       <div className="relative mb-4">
         <div className="absolute inset-0 flex items-center">
@@ -231,15 +257,6 @@ function AuthModalForm({ onClose }: AuthModalFormProps) {
             placeholder="At least 6 characters"
           />
         </div>
-
-        {error && (
-          <p
-            role="alert"
-            className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300"
-          >
-            {error}
-          </p>
-        )}
 
         <button
           type="submit"

@@ -1,10 +1,12 @@
 "use client";
 
+import { FirebaseError } from "firebase/app";
 import {
   createUserWithEmailAndPassword,
+  getRedirectResult,
   onAuthStateChanged,
   signInWithEmailAndPassword,
-  signInWithPopup,
+  signInWithRedirect,
   signOut,
   type User,
 } from "firebase/auth";
@@ -37,6 +39,8 @@ interface AuthContextValue {
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  authError: string | null;
+  clearAuthError: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -46,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(isFirebaseConfigured());
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<AuthModalMode>("signin");
+  const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isFirebaseConfigured()) {
@@ -60,6 +65,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    if (!isFirebaseConfigured()) {
+      return;
+    }
+
+    let isActive = true;
+
+    getRedirectResult(getFirebaseAuth())
+      .then((result) => {
+        if (!isActive) {
+          return;
+        }
+
+        if (result?.user) {
+          setAuthError(null);
+          setIsAuthModalOpen(false);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!isActive) {
+          return;
+        }
+
+        setAuthError(getGoogleAuthErrorMessage(error));
+        setAuthModalMode("signin");
+        setIsAuthModalOpen(true);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const clearAuthError = useCallback(() => {
+    setAuthError(null);
+  }, []);
+
   const openAuthModal = useCallback((mode: AuthModalMode = "signin") => {
     setAuthModalMode(mode);
     setIsAuthModalOpen(true);
@@ -67,12 +109,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const closeAuthModal = useCallback(() => {
     setIsAuthModalOpen(false);
+    setAuthError(null);
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
-    await signInWithPopup(getFirebaseAuth(), googleProvider);
-    closeAuthModal();
-  }, [closeAuthModal]);
+    await signInWithRedirect(getFirebaseAuth(), googleProvider);
+  }, []);
 
   const signInWithEmail = useCallback(
     async (email: string, password: string) => {
@@ -107,6 +149,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithEmail,
       signUpWithEmail,
       logout,
+      authError,
+      clearAuthError,
     }),
     [
       user,
@@ -119,6 +163,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signInWithEmail,
       signUpWithEmail,
       logout,
+      authError,
+      clearAuthError,
     ],
   );
 
@@ -135,4 +181,27 @@ export function useAuth(): AuthContextValue {
   }
 
   return context;
+}
+
+function getGoogleAuthErrorMessage(error: unknown): string {
+  if (error instanceof FirebaseError) {
+    switch (error.code) {
+      case "auth/account-exists-with-different-credential":
+        return "An account already exists with this email using a different sign-in method.";
+      case "auth/popup-closed-by-user":
+      case "auth/cancelled-popup-request":
+      case "auth/redirect-cancelled-by-user":
+        return "Google sign-in was cancelled.";
+      case "auth/popup-blocked":
+        return "Google sign-in was blocked. Please try again.";
+      default:
+        return error.message;
+    }
+  }
+
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  return "Google sign-in failed. Please try again.";
 }
