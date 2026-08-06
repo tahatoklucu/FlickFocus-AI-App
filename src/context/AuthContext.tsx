@@ -5,7 +5,6 @@ import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
   signInWithEmailAndPassword,
-  signInWithPopup,
   signInWithRedirect,
   signOut,
   type User,
@@ -277,23 +276,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
-    const auth = getFirebaseAuth();
-
-    try {
-      await signInWithPopup(auth, googleProvider);
-      closeAuthModal();
-    } catch (error) {
-      if (
-        error instanceof FirebaseError &&
-        error.code === "auth/popup-blocked"
-      ) {
-        await signInWithRedirect(auth, googleProvider);
-        return;
-      }
-
-      throw error;
-    }
-  }, [closeAuthModal]);
+    await signInWithRedirect(getFirebaseAuth(), googleProvider);
+  }, []);
 
   const signInWithEmail = useCallback(
     async (email: string, password: string) => {
