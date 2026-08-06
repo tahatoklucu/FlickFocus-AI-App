@@ -67,8 +67,6 @@ function SocialLink({
 }
 
 export default function Footer() {
-  const year = new Date().getFullYear();
-
   return (
     <footer className="mt-auto border-t border-neutral-800/60 bg-neutral-950/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-4 py-8 sm:flex-row sm:px-6 lg:px-8">
@@ -79,8 +77,8 @@ export default function Footer() {
           >
             FlickFocus
           </Link>
-          <p className="text-xs text-neutral-500">
-            &copy; {year} Built by Taha Toklucu
+          <p className="text-xs text-neutral-500" suppressHydrationWarning>
+            &copy; {new Date().getFullYear()} Built by Taha Toklucu
           </p>
         </div>
 

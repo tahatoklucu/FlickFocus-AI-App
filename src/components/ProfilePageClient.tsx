@@ -35,7 +35,7 @@ function formatDate(value: string | undefined): string {
     return "Unknown";
   }
 
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);

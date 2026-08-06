@@ -1,5 +1,11 @@
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
-import { getAuth, getRedirectResult, GoogleAuthProvider, type Auth, type UserCredential } from "firebase/auth";
+import {
+  browserLocalPersistence,
+  getAuth,
+  GoogleAuthProvider,
+  initializeAuth,
+  type Auth,
+} from "firebase/auth";
 import { getFirestore, type Firestore } from "firebase/firestore";
 
 const firebaseConfig = {
@@ -36,7 +42,15 @@ function getFirebaseApp(): FirebaseApp {
 
 export function getFirebaseAuth(): Auth {
   if (!firebaseAuth) {
-    firebaseAuth = getAuth(getFirebaseApp());
+    const app = getFirebaseApp();
+
+    try {
+      firebaseAuth = initializeAuth(app, {
+        persistence: browserLocalPersistence,
+      });
+    } catch {
+      firebaseAuth = getAuth(app);
+    }
   }
 
   return firebaseAuth;
@@ -51,15 +65,6 @@ export function getFirebaseDb(): Firestore {
 }
 
 export const googleProvider = new GoogleAuthProvider();
-
-/** Dedupe redirect resolution across React Strict Mode remounts. */
-let pendingRedirectResult: Promise<UserCredential | null> | null = null;
-
-export function resolveGoogleRedirectResult(auth: Auth) {
-  pendingRedirectResult ??= getRedirectResult(auth).catch((error) => {
-    pendingRedirectResult = null;
-    throw error;
-  });
-
-  return pendingRedirectResult;
-}
+googleProvider.addScope("profile");
+googleProvider.addScope("email");
+googleProvider.setCustomParameters({ prompt: "select_account" });

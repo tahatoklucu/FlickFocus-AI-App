@@ -1,11 +1,9 @@
 "use client";
 
-import { FirebaseError } from "firebase/app";
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
   signInWithEmailAndPassword,
-  signInWithRedirect,
   signOut,
   type User,
 } from "firebase/auth";
@@ -16,14 +14,18 @@ import {
   useEffect,
   useMemo,
   useState,
+  type Dispatch,
   type ReactNode,
+  type SetStateAction,
 } from "react";
+import { getFirebaseAuth, isFirebaseConfigured } from "@/lib/firebase";
 import {
-  getFirebaseAuth,
-  googleProvider,
-  isFirebaseConfigured,
-  resolveGoogleRedirectResult,
-} from "@/lib/firebase";
+  completeGoogleRedirectSignIn,
+  getGoogleAuthErrorMessage,
+  isGoogleRedirectPending,
+  signInWithGoogle as startGoogleSignIn,
+  type GoogleSignInMethod,
+} from "@/lib/google-auth";
 import {
   buildProfileFromAuth,
   ensureUserProfile,
@@ -37,6 +39,7 @@ interface AuthContextValue {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
+  redirectResolving: boolean;
   profileLoading: boolean;
   profileError: string | null;
   isConfigured: boolean;
@@ -44,7 +47,7 @@ interface AuthContextValue {
   authModalMode: AuthModalMode;
   openAuthModal: (mode?: AuthModalMode) => void;
   closeAuthModal: () => void;
-  signInWithGoogle: () => Promise<void>;
+  signInWithGoogle: () => Promise<GoogleSignInMethod>;
   signInWithEmail: (email: string, password: string) => Promise<void>;
   signUpWithEmail: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -69,38 +72,127 @@ const initialProfileSyncState: ProfileSyncState = {
   error: null,
 };
 
+function AuthInitOverlay({ message }: { message: string }) {
+  return (
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-neutral-950/60 backdrop-blur-sm"
+      role="status"
+      aria-live="polite"
+      aria-label={message}
+    >
+      <div className="flex flex-col items-center gap-3 rounded-2xl border border-neutral-800 bg-neutral-900/95 px-8 py-6 shadow-2xl">
+        <svg
+          className="h-8 w-8 animate-spin text-white"
+          fill="none"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+        >
+          <circle
+            className="opacity-25"
+            cx="12"
+            cy="12"
+            r="10"
+            stroke="currentColor"
+            strokeWidth="4"
+          />
+          <path
+            className="opacity-75"
+            fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+          />
+        </svg>
+        <p className="text-sm font-medium text-neutral-200">{message}</p>
+      </div>
+    </div>
+  );
+}
+
+function applyAuthUser(
+  firebaseUser: User,
+  setUser: (user: User) => void,
+  setProfileSyncState: Dispatch<SetStateAction<ProfileSyncState>>,
+) {
+  setUser(firebaseUser);
+  setProfileSyncState({
+    userId: firebaseUser.uid,
+    hasReceivedProfile: true,
+    profile: buildProfileFromAuth(firebaseUser),
+    error: null,
+  });
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profileSyncState, setProfileSyncState] =
     useState<ProfileSyncState>(initialProfileSyncState);
   const [loading, setLoading] = useState(() => isFirebaseConfigured());
+  const [redirectResolving, setRedirectResolving] = useState(false);
+  const [hasMounted, setHasMounted] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<AuthModalMode>("signin");
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  useEffect(() => {
     if (!isFirebaseConfigured()) {
+      setLoading(false);
       return;
     }
 
     const auth = getFirebaseAuth();
     let isActive = true;
-    let unsubscribe = () => {};
+    let authStateReady = false;
+    let redirectReady = false;
 
-    async function initializeAuth() {
-      try {
-        const result = await resolveGoogleRedirectResult(auth);
+    if (isGoogleRedirectPending()) {
+      setRedirectResolving(true);
+    }
 
-        if (!isActive) {
+    function finishInitialization() {
+      if (!isActive || !authStateReady || !redirectReady) {
+        return;
+      }
+
+      setLoading(false);
+      setRedirectResolving(false);
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (!isActive) {
+        return;
+      }
+
+      setUser(firebaseUser);
+
+      if (firebaseUser) {
+        setProfileSyncState({
+          userId: firebaseUser.uid,
+          hasReceivedProfile: true,
+          profile: buildProfileFromAuth(firebaseUser),
+          error: null,
+        });
+      } else {
+        setProfileSyncState(initialProfileSyncState);
+      }
+
+      authStateReady = true;
+      finishInitialization();
+    });
+
+    void completeGoogleRedirectSignIn(auth)
+      .then((result) => {
+        if (!isActive || !result?.user) {
           return;
         }
 
-        if (result?.user) {
-          setUser(result.user);
-          setAuthError(null);
-          setIsAuthModalOpen(false);
-        }
-      } catch (error: unknown) {
+        applyAuthUser(result.user, setUser, setProfileSyncState);
+        setAuthError(null);
+        setIsAuthModalOpen(false);
+      })
+      .catch((error: unknown) => {
         if (!isActive) {
           return;
         }
@@ -108,34 +200,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setAuthError(getGoogleAuthErrorMessage(error));
         setAuthModalMode("signin");
         setIsAuthModalOpen(true);
-      }
-
-      if (!isActive) {
-        return;
-      }
-
-      unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      })
+      .finally(() => {
         if (!isActive) {
           return;
         }
 
-        setUser(firebaseUser);
-        setLoading(false);
-
-        if (firebaseUser) {
-          setProfileSyncState({
-            userId: firebaseUser.uid,
-            hasReceivedProfile: true,
-            profile: buildProfileFromAuth(firebaseUser),
-            error: null,
-          });
-        } else {
-          setProfileSyncState(initialProfileSyncState);
-        }
+        redirectReady = true;
+        finishInitialization();
       });
-    }
-
-    void initializeAuth();
 
     return () => {
       isActive = false;
@@ -276,8 +349,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
-    await signInWithRedirect(getFirebaseAuth(), googleProvider);
-  }, []);
+    const method = await startGoogleSignIn(getFirebaseAuth());
+
+    if (method === "popup") {
+      closeAuthModal();
+    }
+
+    return method;
+  }, [closeAuthModal]);
 
   const signInWithEmail = useCallback(
     async (email: string, password: string) => {
@@ -304,6 +383,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       userProfile,
       loading,
+      redirectResolving,
       profileLoading,
       profileError,
       isConfigured: isFirebaseConfigured(),
@@ -323,6 +403,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       userProfile,
       loading,
+      redirectResolving,
       profileLoading,
       profileError,
       isAuthModalOpen,
@@ -340,7 +421,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   return (
-    <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+    <AuthContext.Provider value={value}>
+      {children}
+      {hasMounted && loading && isFirebaseConfigured() ? (
+        <AuthInitOverlay
+          message={
+            redirectResolving
+              ? "Completing sign-in..."
+              : "Loading your account..."
+          }
+        />
+      ) : null}
+    </AuthContext.Provider>
   );
 }
 
@@ -352,31 +444,4 @@ export function useAuth(): AuthContextValue {
   }
 
   return context;
-}
-
-function getGoogleAuthErrorMessage(error: unknown): string {
-  if (error instanceof FirebaseError) {
-    switch (error.code) {
-      case "auth/unauthorized-domain":
-        return "This domain is not authorized in Firebase. Add your site URL (e.g. flickfocus.vercel.app or localhost) under Firebase Console → Authentication → Settings → Authorized domains.";
-      case "auth/operation-not-allowed":
-        return "Google sign-in is not enabled in Firebase. Turn it on under Authentication → Sign-in method.";
-      case "auth/account-exists-with-different-credential":
-        return "An account already exists with this email using a different sign-in method.";
-      case "auth/popup-closed-by-user":
-      case "auth/cancelled-popup-request":
-      case "auth/redirect-cancelled-by-user":
-        return "Google sign-in was cancelled.";
-      case "auth/popup-blocked":
-        return "Google sign-in was blocked. Please try again.";
-      default:
-        return error.message;
-    }
-  }
-
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  return "Google sign-in failed. Please try again.";
 }

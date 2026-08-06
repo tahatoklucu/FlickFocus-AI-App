@@ -91,10 +91,16 @@ function AuthModalForm({ onClose }: AuthModalFormProps) {
     setError(null);
     clearAuthError();
     setIsSubmitting(true);
-    setIsRedirecting(true);
 
     try {
-      await signInWithGoogle();
+      const method = await signInWithGoogle();
+
+      if (method === "redirect") {
+        setIsRedirecting(true);
+        return;
+      }
+
+      setIsSubmitting(false);
     } catch (err) {
       setIsRedirecting(false);
       setError(getAuthErrorMessage(err));
