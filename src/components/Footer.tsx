@@ -77,7 +77,7 @@ export default function Footer() {
   }
 
   return (
-    <footer className="mt-auto shrink-0 border-t border-neutral-800/60 bg-neutral-950/80 backdrop-blur-md">
+    <footer className="border-t border-neutral-800/60 bg-neutral-950/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-4 py-6 sm:flex-row sm:px-6 sm:py-8 lg:px-8">
         <div className="flex flex-col items-center gap-2 sm:items-start">
           <Link

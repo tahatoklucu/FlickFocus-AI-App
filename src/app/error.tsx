@@ -14,7 +14,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
   }, [error]);
 
   return (
-    <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden bg-zinc-950 px-4 py-12 text-center sm:py-20">
+    <div className="relative flex min-h-[calc(100dvh-4rem)] flex-col items-center justify-center overflow-hidden bg-zinc-950 px-4 py-12 text-center sm:py-20">
       <div
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(127,29,29,0.15),transparent_55%),radial-gradient(ellipse_at_bottom,rgba(24,24,27,0.9),rgba(9,9,11,1))]"
         aria-hidden="true"
