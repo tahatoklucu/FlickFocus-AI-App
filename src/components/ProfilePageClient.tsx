@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { useCallback, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useFavorites } from "@/context/FavoritesContext";
+import Button from "@/components/ui/Button";
+import { buttonClass } from "@/lib/button-styles";
 import type { UserProfile } from "@/types/user";
 
 function getAuthDisplayName(user: User): string {
@@ -158,13 +160,9 @@ export default function ProfilePageClient() {
             Access your account details, favorites count, and preferences.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => openAuthModal("signin")}
-          className="rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-        >
+        <Button type="button" onClick={() => openAuthModal("signin")}>
           Sign In
-        </button>
+        </Button>
       </div>
     );
   }
@@ -180,13 +178,15 @@ export default function ProfilePageClient() {
             Could not sync your Firestore profile; showing your session info
             instead. {profileError}
           </p>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={clearProfileError}
-            className="inline-flex min-h-11 shrink-0 items-center px-2 text-xs font-medium uppercase tracking-wide text-amber-100/80 hover:text-white"
+            className="shrink-0 uppercase tracking-wide text-amber-100/80 hover:text-white"
           >
             Dismiss
-          </button>
+          </Button>
         </div>
       )}
 
@@ -269,17 +269,18 @@ export default function ProfilePageClient() {
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <Link
             href="/favorites"
-            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+            className={buttonClass("secondary", "md", "flex-1")}
           >
             View Favorites
           </Link>
-          <button
+          <Button
             type="button"
+            variant="danger"
             onClick={handleSignOut}
-            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-red-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600"
+            className="flex-1"
           >
             Sign Out
-          </button>
+          </Button>
         </div>
       </section>
 

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createPageMetadata } from "@/lib/metadata";
+import { buttonClass } from "@/lib/button-styles";
 import { SITE_NAME } from "@/lib/site";
 
 export const metadata = createPageMetadata({
@@ -40,15 +41,16 @@ export default function NotFound() {
         </p>
 
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link
-            href="/"
-            className="inline-flex min-h-11 min-w-[160px] items-center justify-center rounded-xl bg-amber-500 px-6 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
-          >
+          <Link href="/" className={buttonClass("amber", "md", "min-w-[160px]")}>
             Back to Home
           </Link>
           <Link
             href="/favorites"
-            className="inline-flex min-h-11 min-w-[160px] items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900/60 px-6 py-3 text-sm font-medium text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-800"
+            className={buttonClass(
+              "secondary",
+              "md",
+              "min-w-[160px] bg-zinc-900/60 text-zinc-200 dark:bg-zinc-900/60",
+            )}
           >
             My Favorites
           </Link>

@@ -43,6 +43,28 @@ button:disabled {
   cursor: not-allowed;
 }
 
+.chat-input {
+  display: block;
+  font-size: 16px;
+  line-height: 1.5rem;
+  -webkit-text-size-adjust: 100%;
+}
+
+.chat-input::placeholder {
+  line-height: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .chat-input {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+
+  .chat-input::placeholder {
+    line-height: 1.25rem;
+  }
+}
+
 @keyframes chat-message-in {
   from {
     opacity: 0;
@@ -110,7 +132,76 @@ button:disabled {
   .chat-message-enter,
   .chat-control-enter,
   .chat-thinking-pulse,
-  .chat-text-reveal {
+  .chat-text-reveal,
+  .auth-modal-enter,
+  .auth-modal-backdrop {
     animation: none;
+  }
+}
+
+@keyframes auth-modal-backdrop-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes auth-modal-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.auth-modal-backdrop {
+  animation: auth-modal-backdrop-in 220ms ease-out both;
+}
+
+.auth-modal-enter {
+  animation: auth-modal-in 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.auth-field {
+  display: block;
+  width: 100%;
+  min-height: 2.75rem;
+  border-radius: 0.875rem;
+  border: 1px solid rgb(63 63 70 / 0.9);
+  background: rgb(24 24 27 / 0.85);
+  padding: 0.75rem 1rem 0.75rem 2.75rem;
+  font-size: 16px;
+  line-height: 1.5rem;
+  color: rgb(250 250 250);
+  transition: border-color 200ms ease, box-shadow 200ms ease, background-color 200ms ease;
+}
+
+.auth-field::placeholder {
+  color: rgb(113 113 122);
+}
+
+.auth-field:focus {
+  outline: none;
+  border-color: rgb(139 92 246 / 0.75);
+  background: rgb(24 24 27);
+  box-shadow: 0 0 0 3px rgb(139 92 246 / 0.18);
+}
+
+.auth-field:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+@media (min-width: 640px) {
+  .auth-field {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
   }
 }

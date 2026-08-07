@@ -20,6 +20,7 @@ import {
   type ReactNode,
 } from "react";
 import StreamingMarkdownText from "@/components/StreamingMarkdownText";
+import Button from "@/components/ui/Button";
 import { useChatAutoScroll } from "@/hooks/useChatAutoScroll";
 import { readChatMessages, writeChatMessages, clearChatMessages } from "@/lib/chat-storage";
 
@@ -213,32 +214,36 @@ function ClearChatControl({ onConfirm }: { onConfirm: () => void }) {
         <span className="text-xs text-zinc-500 dark:text-zinc-400">
           Clear all messages?
         </span>
-        <button
+        <Button
           type="button"
+          variant="danger"
+          size="sm"
           onClick={() => {
             onConfirm();
             setConfirming(false);
           }}
-          className="inline-flex min-h-9 items-center rounded-lg bg-red-600 px-3 text-xs font-semibold text-white transition hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/40"
         >
           Clear
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="secondary"
+          size="sm"
           onClick={() => setConfirming(false)}
-          className="inline-flex min-h-9 items-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-300/60 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
         >
           Cancel
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
-    <button
+    <Button
       type="button"
+      variant="secondary"
+      size="sm"
       onClick={() => setConfirming(true)}
-      className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-300/60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+      className="gap-1.5"
       aria-label="Clear chat history"
     >
       <svg
@@ -256,7 +261,7 @@ function ClearChatControl({ onConfirm }: { onConfirm: () => void }) {
         />
       </svg>
       Clear chat
-    </button>
+    </Button>
   );
 }
 
@@ -534,10 +539,11 @@ function ChatPageClientLoaded() {
         </div>
 
         {showJumpToLatest ? (
-          <button
+          <Button
             type="button"
+            variant="float"
             onClick={() => scrollToBottom("smooth")}
-            className="chat-control-enter motion-reduce:animate-none absolute bottom-4 left-1/2 z-[25] inline-flex min-h-11 -translate-x-1/2 items-center gap-2 rounded-full border border-zinc-300/80 bg-white px-4 py-2 text-sm font-semibold text-zinc-800 shadow-lg shadow-black/25 backdrop-blur-sm transition-colors duration-200 motion-reduce:transition-none hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-zinc-500 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+            className="chat-control-enter motion-reduce:animate-none absolute bottom-4 left-1/2 z-[25] -translate-x-1/2 rounded-full px-4 py-2 motion-reduce:transition-none"
             aria-label="Jump to latest message"
           >
             <svg
@@ -555,7 +561,7 @@ function ChatPageClientLoaded() {
               />
             </svg>
             Jump to latest
-          </button>
+          </Button>
         ) : null}
       </div>
 
@@ -563,13 +569,15 @@ function ChatPageClientLoaded() {
         <div className="chat-control-enter motion-reduce:animate-none shrink-0 border-t border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-300">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <p className="min-w-0 flex-1 break-words">{error.message || "Something went wrong. Please try again."}</p>
-            <button
+            <Button
               type="button"
+              variant="ghost"
+              size="sm"
               onClick={() => clearError()}
-              className="inline-flex min-h-11 shrink-0 items-center px-2 text-xs font-medium text-red-200 underline-offset-2 hover:underline"
+              className="shrink-0 text-red-200 underline-offset-2 hover:text-red-100"
             >
               Dismiss
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}
@@ -578,7 +586,7 @@ function ChatPageClientLoaded() {
         onSubmit={handleSubmit}
         className="shrink-0 border-t border-zinc-200 bg-zinc-50/80 p-3 dark:border-zinc-800 dark:bg-zinc-950/40 sm:p-4"
       >
-        <div className="flex items-end gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:items-end sm:gap-3">
           <label htmlFor="chat-input" className="sr-only">
             Message
           </label>
@@ -587,41 +595,48 @@ function ChatPageClientLoaded() {
             value={input}
             onChange={(event) => setInput(event.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask for a recommendation, genre, or film trivia…"
+            placeholder="Ask about movies…"
             rows={1}
+            enterKeyHint="send"
+            autoComplete="off"
+            autoCorrect="on"
+            spellCheck
             disabled={isInputDisabled}
-            className="max-h-32 min-h-[44px] flex-1 resize-none rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+            className="chat-input block max-h-32 min-h-11 flex-1 resize-none rounded-xl border border-zinc-300 bg-white px-3 py-[11px] text-zinc-900 placeholder:text-zinc-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/30 disabled:cursor-not-allowed disabled:opacity-60 sm:py-2.5 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
           />
 
           {showStopButton ? (
-            <button
+            <Button
               key="stop-control"
               type="button"
+              variant="secondary"
               onClick={handleStop}
-              className="chat-control-enter motion-reduce:animate-none inline-flex h-11 shrink-0 items-center justify-center rounded-xl border border-zinc-300 bg-white px-4 text-sm font-semibold text-zinc-800 transition-colors duration-200 motion-reduce:transition-none hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-violet-500/30 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700"
+              className="chat-control-enter motion-reduce:animate-none shrink-0 motion-reduce:transition-none"
               aria-label="Stop generating"
             >
               Stop
-            </button>
+            </Button>
           ) : (
             <div key="send-controls" className="flex shrink-0 items-end gap-2">
               {canRegenerate ? (
-                <button
+                <Button
                   type="button"
+                  variant="secondary"
                   onClick={handleRegenerate}
-                  className="chat-control-enter motion-reduce:animate-none inline-flex h-11 items-center justify-center rounded-xl border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-700 transition-colors duration-200 motion-reduce:transition-none hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-violet-500/30 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+                  className="chat-control-enter motion-reduce:animate-none motion-reduce:transition-none"
                   aria-label="Regenerate last response"
                 >
                   Regenerate
-                </button>
+                </Button>
               ) : null}
-              <button
+              <Button
                 type="submit"
+                variant="violet"
                 disabled={!canSubmit}
-                className="chat-control-enter motion-reduce:animate-none inline-flex h-11 shrink-0 items-center justify-center rounded-xl bg-violet-600 px-4 text-sm font-semibold text-white shadow-md shadow-violet-900/20 transition-colors duration-200 motion-reduce:transition-none hover:bg-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/40 disabled:cursor-not-allowed disabled:opacity-50"
+                className="chat-control-enter motion-reduce:animate-none shrink-0 motion-reduce:transition-none"
               >
                 Send
-              </button>
+              </Button>
             </div>
           )}
         </div>

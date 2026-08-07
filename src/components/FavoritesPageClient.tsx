@@ -4,6 +4,8 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useMemo, useState } from "react";
 import MovieList from "@/components/MovieList";
+import Button from "@/components/ui/Button";
+import { buttonClass } from "@/lib/button-styles";
 import { useAuth } from "@/context/AuthContext";
 import { useFavorites } from "@/context/FavoritesContext";
 import type { MovieSearchResult, UserFavorite } from "@/types";
@@ -125,13 +127,9 @@ export default function FavoritesPageClient() {
             Create an account or sign in to save and access your watchlist.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => openAuthModal("signin")}
-          className="inline-flex min-h-11 items-center rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-        >
+        <Button type="button" onClick={() => openAuthModal("signin")}>
           Sign In
-        </button>
+        </Button>
       </div>
     );
   }
@@ -144,13 +142,15 @@ export default function FavoritesPageClient() {
           className="mb-4 flex flex-col items-start justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-200 sm:flex-row sm:items-start"
         >
           <p className="min-w-0 break-words">{favoritesError}</p>
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={clearError}
-            className="inline-flex min-h-11 shrink-0 items-center px-2 text-xs font-medium uppercase tracking-wide opacity-80 hover:opacity-100"
+            className="shrink-0 uppercase tracking-wide opacity-80 hover:opacity-100"
           >
             Dismiss
-          </button>
+          </Button>
         </div>
       )}
 
@@ -173,7 +173,7 @@ export default function FavoritesPageClient() {
           <div className="mt-6 text-center">
             <Link
               href="/"
-              className="inline-flex min-h-11 items-center rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+              className={buttonClass("secondary", "md")}
             >
               Browse Movies
             </Link>

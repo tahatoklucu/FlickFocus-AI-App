@@ -3,6 +3,8 @@
 import { useEffect, useState, type MouseEvent } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useFavorites } from "@/context/FavoritesContext";
+import { buttonClass } from "@/lib/button-styles";
+import { cn } from "@/lib/cn";
 import type { AddFavoritePayload } from "@/types";
 
 interface FavoriteButtonProps {
@@ -55,7 +57,7 @@ export default function FavoriteButton({
         aria-label={favorited ? "Remove from favorites" : "Add to favorites"}
         aria-pressed={favorited}
         title={displayedError ?? undefined}
-        className={`inline-flex items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/70 dark:bg-zinc-900/80 dark:hover:bg-zinc-800 ${sizeClasses} ${className}`}
+        className={buttonClass("favorite", "icon", cn(sizeClasses, className))}
       >
         <svg
           className={`${iconClasses} transition ${favorited ? "fill-red-500 text-red-500" : "fill-none"}`}

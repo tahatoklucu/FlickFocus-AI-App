@@ -6,6 +6,9 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useFavorites } from "@/context/FavoritesContext";
+import Button from "@/components/ui/Button";
+import { buttonClass } from "@/lib/button-styles";
+import { cn } from "@/lib/cn";
 
 const AuthModal = dynamic(() => import("@/components/AuthModal"), {
   ssr: false,
@@ -34,11 +37,10 @@ function DropdownItem({
   active?: boolean;
   children: ReactNode;
 }) {
-  const className = `flex w-full min-h-11 items-center justify-between px-4 py-2.5 text-left text-sm transition ${
-    active
-      ? "bg-white/10 text-white"
-      : "text-neutral-300 hover:bg-white/5 hover:text-white"
-  }`;
+  const className = cn(
+    buttonClass("menu", "md"),
+    active && "bg-white/10 text-white",
+  );
 
   if (href) {
     return (
@@ -131,11 +133,11 @@ export default function Header() {
             <Link
               href="/chat"
               aria-label="AI Chat"
-              className={`inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors sm:hidden ${
-                pathname === "/chat"
-                  ? "bg-violet-500/20 text-violet-300"
-                  : "text-neutral-400 hover:bg-white/5 hover:text-white"
-              }`}
+              className={cn(
+                buttonClass("iconGhost", "icon"),
+                pathname === "/chat" && "bg-violet-500/20 text-violet-300",
+                "sm:hidden",
+              )}
             >
               <svg
                 className="h-5 w-5"
@@ -169,10 +171,11 @@ export default function Header() {
               <div className="h-9 w-28 animate-pulse rounded-full bg-neutral-800/80" />
             ) : user ? (
               <div className="relative" ref={menuRef}>
-                <button
+                <Button
                   type="button"
+                  variant="pill"
                   onClick={() => setIsMenuOpen((open) => !open)}
-                  className="flex min-h-11 items-center gap-2 rounded-full border border-neutral-700/60 bg-neutral-900/70 py-1.5 pl-1.5 pr-3 text-sm font-medium text-neutral-100 shadow-sm shadow-black/20 transition-all duration-200 hover:scale-[1.02] hover:border-neutral-600 hover:bg-neutral-800/90 hover:shadow-md hover:shadow-black/30"
+                  className="gap-2 py-1.5 pl-1.5 pr-3"
                   aria-expanded={isMenuOpen}
                   aria-haspopup="menu"
                   aria-label="Open profile menu"
@@ -197,7 +200,7 @@ export default function Header() {
                       d="M19 9l-7 7-7-7"
                     />
                   </svg>
-                </button>
+                </Button>
 
                 {isMenuOpen && (
                   <div
@@ -233,34 +236,34 @@ export default function Header() {
                     </div>
 
                     <div className="border-t border-neutral-800/80 py-1">
-                      <button
+                      <Button
                         type="button"
                         role="menuitem"
+                        variant="menuDanger"
                         onClick={handleLogout}
-                        className="flex min-h-11 w-full px-4 py-2.5 text-left text-sm text-red-400 transition hover:bg-red-500/10 hover:text-red-300"
                       >
                         Sign Out
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <button
+                <Button
                   type="button"
+                  variant="pillGhost"
                   onClick={() => openAuthModal("signin")}
-                  className="inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-medium text-neutral-300 transition-all duration-200 hover:scale-[1.02] hover:bg-white/5 hover:text-white"
                 >
                   Sign In
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="pillPrimary"
                   onClick={() => openAuthModal("signup")}
-                  className="inline-flex min-h-11 items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-neutral-950 shadow-md shadow-black/20 transition-all duration-200 hover:scale-[1.03] hover:bg-neutral-100 hover:shadow-lg hover:shadow-black/30"
                 >
                   Sign Up
-                </button>
+                </Button>
               </div>
             )}
           </div>

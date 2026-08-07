@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useCallback, useState } from "react";
+import Button from "@/components/ui/Button";
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -59,10 +60,10 @@ export default function SearchBar({
             aria-label="Search for a movie"
           />
         </div>
-        <button
+        <Button
           type="submit"
           disabled={isLoading || !query.trim()}
-          className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-xl bg-zinc-900 px-6 text-sm font-medium text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 sm:w-auto sm:min-w-[120px]"
+          className="w-full sm:min-w-[120px] sm:w-auto"
         >
           {isLoading ? (
             <>
@@ -91,7 +92,7 @@ export default function SearchBar({
           ) : (
             "Search"
           )}
-        </button>
+        </Button>
       </div>
     </form>
   );

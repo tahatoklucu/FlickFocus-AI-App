@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import FavoriteButton from "@/components/FavoriteButton";
 import MovieNotFound from "@/components/MovieNotFound";
+import Button from "@/components/ui/Button";
 import { hasValidPoster } from "@/components/MoviePoster";
 import { getMovieById, getOMDbErrorMessage } from "@/services/omdb";
 import { isMovieNotFoundMessage } from "@/services/omdb-core";
@@ -251,16 +252,18 @@ function ModalToolbar({
           className="bg-neutral-800/95 text-neutral-100 ring-1 ring-neutral-700 transition hover:scale-105 hover:bg-neutral-700"
         />
       )}
-      <button
+      <Button
         type="button"
+        variant="icon"
+        size="icon"
         onClick={onClose}
-        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-neutral-800/95 text-neutral-200 ring-1 ring-neutral-700 transition hover:scale-105 hover:bg-neutral-700 hover:text-white sm:h-9 sm:w-9"
+        className="border-neutral-700/90 bg-neutral-800/95 text-neutral-200 ring-1 ring-neutral-700 hover:text-white sm:h-9 sm:w-9"
         aria-label="Close movie details"
       >
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
-      </button>
+      </Button>
     </div>
   );
 }
@@ -409,13 +412,9 @@ export default function MovieDetailModal({
             <p role="alert" className="text-sm font-medium text-red-400">
               {error}
             </p>
-            <button
-              type="button"
-              onClick={handleClose}
-              className="mt-5 rounded-lg bg-neutral-100 px-5 py-2.5 text-sm font-medium text-neutral-900 transition hover:bg-white"
-            >
+            <Button type="button" variant="secondary" onClick={handleClose} className="mt-5">
               Close
-            </button>
+            </Button>
           </div>
         )}
 

@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useEffect } from "react";
+import Button from "@/components/ui/Button";
+import { buttonClass } from "@/lib/button-styles";
 
 interface ErrorPageProps {
   error: Error & { digest?: string };
@@ -33,16 +35,17 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
         </p>
 
         <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <button
+          <Button
             type="button"
+            variant="amber"
             onClick={reset}
-            className="inline-flex min-h-11 min-w-[160px] items-center justify-center rounded-xl bg-amber-500 px-6 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
+            className="min-w-[160px]"
           >
             Try again
-          </button>
+          </Button>
           <Link
             href="/"
-            className="inline-flex min-h-11 min-w-[160px] items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900/60 px-6 py-3 text-sm font-medium text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-800"
+            className={buttonClass("secondary", "md", "min-w-[160px] bg-zinc-900/60 text-zinc-200 dark:bg-zinc-900/60")}
           >
             Back to Home
           </Link>

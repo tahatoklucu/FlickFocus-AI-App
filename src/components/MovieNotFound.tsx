@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import Button from "@/components/ui/Button";
+import { buttonClass } from "@/lib/button-styles";
 
 interface MovieNotFoundProps {
   title?: string;
@@ -65,31 +67,20 @@ export default function MovieNotFound({
       {(onClose || onSearchAgain) && (
         <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
           {onSearchAgain && (
-            <button
-              type="button"
-              onClick={onSearchAgain}
-              className="inline-flex min-h-11 items-center rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-            >
+            <Button type="button" onClick={onSearchAgain}>
               Try another search
-            </button>
+            </Button>
           )}
           {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="inline-flex min-h-11 items-center rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
+            <Button type="button" variant="secondary" onClick={onClose}>
               Close
-            </button>
+            </Button>
           )}
         </div>
       )}
 
       {!onClose && !onSearchAgain && !compact && (
-        <Link
-          href="/"
-          className="inline-flex min-h-11 items-center rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300"
-        >
+        <Link href="/" className={buttonClass("primary", "md")}>
           Back to Home
         </Link>
       )}
