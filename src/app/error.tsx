@@ -14,7 +14,7 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
   }, [error]);
 
   return (
-    <div className="relative flex min-h-[calc(100vh-4rem)] flex-1 flex-col items-center justify-center overflow-hidden bg-zinc-950 px-4 py-20 text-center">
+    <div className="relative flex flex-1 flex-col items-center justify-center overflow-hidden bg-zinc-950 px-4 py-12 text-center sm:py-20">
       <div
         className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(127,29,29,0.15),transparent_55%),radial-gradient(ellipse_at_bottom,rgba(24,24,27,0.9),rgba(9,9,11,1))]"
         aria-hidden="true"
@@ -36,13 +36,13 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
           <button
             type="button"
             onClick={reset}
-            className="inline-flex min-w-[160px] items-center justify-center rounded-xl bg-amber-500 px-6 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
+            className="inline-flex min-h-11 min-w-[160px] items-center justify-center rounded-xl bg-amber-500 px-6 py-3 text-sm font-semibold text-zinc-950 transition hover:bg-amber-400"
           >
             Try again
           </button>
           <Link
             href="/"
-            className="inline-flex min-w-[160px] items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900/60 px-6 py-3 text-sm font-medium text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-800"
+            className="inline-flex min-h-11 min-w-[160px] items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900/60 px-6 py-3 text-sm font-medium text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-800"
           >
             Back to Home
           </Link>

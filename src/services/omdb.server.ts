@@ -71,7 +71,11 @@ export const searchMovies = cache(
         type: type ?? "movie",
       });
     } catch (error) {
-      if (error instanceof OMDbError && error.message === "Movie not found!") {
+      if (
+        error instanceof OMDbError &&
+        (error.message === "Movie not found!" ||
+          error.message === "Too many results.")
+      ) {
         return emptySearchResponse();
       }
       throw error;

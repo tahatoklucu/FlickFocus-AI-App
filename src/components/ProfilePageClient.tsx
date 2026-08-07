@@ -174,16 +174,16 @@ export default function ProfilePageClient() {
       {profileError && (
         <div
           role="alert"
-          className="flex items-start justify-between gap-4 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200"
+          className="flex flex-col items-start justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200 sm:flex-row sm:items-start"
         >
-          <p>
+          <p className="min-w-0 break-words">
             Could not sync your Firestore profile; showing your session info
             instead. {profileError}
           </p>
           <button
             type="button"
             onClick={clearProfileError}
-            className="shrink-0 text-xs font-medium uppercase tracking-wide text-amber-100/80 hover:text-white"
+            className="inline-flex min-h-11 shrink-0 items-center px-2 text-xs font-medium uppercase tracking-wide text-amber-100/80 hover:text-white"
           >
             Dismiss
           </button>
@@ -209,7 +209,7 @@ export default function ProfilePageClient() {
             <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
               {displayName}
             </h2>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+            <p className="mt-1 break-all text-sm text-zinc-500 dark:text-zinc-400">
               {email}
             </p>
             <span className="mt-3 inline-flex rounded-full bg-zinc-100 px-3 py-1 text-xs font-medium text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
@@ -269,14 +269,14 @@ export default function ProfilePageClient() {
         <div className="mt-4 flex flex-col gap-3 sm:flex-row">
           <Link
             href="/favorites"
-            className="inline-flex flex-1 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-800 transition hover:bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
           >
             View Favorites
           </Link>
           <button
             type="button"
             onClick={handleSignOut}
-            className="inline-flex flex-1 items-center justify-center rounded-xl bg-red-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600"
+            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-red-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600"
           >
             Sign Out
           </button>

@@ -24,10 +24,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-dvh antialiased`}
     >
-      <body className="flex h-dvh flex-col overflow-hidden">
+      <body className="flex h-dvh flex-col overflow-x-hidden overflow-y-hidden">
         <Providers>
           <Header />
-          <main className="flex min-h-0 flex-1 flex-col overflow-y-auto">{children}</main>
+          <main className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">{children}</main>
           <Footer />
         </Providers>
       </body>

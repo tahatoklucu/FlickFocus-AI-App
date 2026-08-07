@@ -96,7 +96,7 @@ function MetaItem({
         {icon}
       </span>
       <span className="sr-only">{label}: </span>
-      <span className="font-medium">{value}</span>
+      <span className="min-w-0 break-words font-medium">{value}</span>
     </span>
   );
 }
@@ -112,7 +112,7 @@ function RatingPill({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-sm font-semibold ring-1 ring-inset ring-white/10 ${className}`}
+      className={`inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-md px-2.5 py-1 text-sm font-semibold ring-1 ring-inset ring-white/10 ${className}`}
     >
       <StarIcon className="h-3.5 w-3.5 shrink-0" />
       <span className="text-[10px] font-bold uppercase tracking-wider opacity-75">{label}</span>
@@ -131,7 +131,7 @@ function InfoCard({ label, value }: { label: string; value: string | null }) {
       <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
         {label}
       </p>
-      <p className="mt-1.5 text-sm leading-relaxed text-neutral-200">{value}</p>
+      <p className="mt-1.5 break-words text-sm leading-relaxed text-neutral-200">{value}</p>
     </div>
   );
 }
@@ -254,7 +254,7 @@ function ModalToolbar({
       <button
         type="button"
         onClick={onClose}
-        className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-neutral-800/95 text-neutral-200 ring-1 ring-neutral-700 transition hover:scale-105 hover:bg-neutral-700 hover:text-white"
+        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-neutral-800/95 text-neutral-200 ring-1 ring-neutral-700 transition hover:scale-105 hover:bg-neutral-700 hover:text-white sm:h-9 sm:w-9"
         aria-label="Close movie details"
       >
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
@@ -288,8 +288,12 @@ export default function MovieDetailModal({
     }
 
     document.body.style.overflow = "hidden";
+    document.body.style.overflowX = "hidden";
+    document.documentElement.style.overflowX = "hidden";
     return () => {
       document.body.style.overflow = "";
+      document.body.style.overflowX = "";
+      document.documentElement.style.overflowX = "";
     };
   }, [isOpen]);
 
@@ -362,7 +366,7 @@ export default function MovieDetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-6"
+      className="fixed inset-0 z-50 flex items-end justify-center overflow-x-hidden p-0 sm:items-center sm:p-6"
       role="presentation"
       onClick={handleClose}
     >
@@ -373,7 +377,7 @@ export default function MovieDetailModal({
         aria-modal="true"
         aria-labelledby="movie-detail-title"
         aria-busy={isLoading}
-        className="relative z-10 flex max-h-[94vh] w-full max-w-5xl flex-col overflow-hidden rounded-t-2xl border border-neutral-800 bg-neutral-950 shadow-2xl sm:max-h-[90vh] sm:rounded-2xl"
+        className="relative z-10 flex max-h-[94dvh] w-full max-w-5xl flex-col overflow-hidden overscroll-x-none rounded-t-2xl border border-neutral-800 bg-neutral-950 shadow-2xl sm:max-h-[90dvh] sm:rounded-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <ModalToolbar onClose={handleClose} movie={movie ?? undefined} showFavorite={showFavorite} />
@@ -416,8 +420,8 @@ export default function MovieDetailModal({
         )}
 
         {movie && !isLoading && !error && (
-          <div className="min-h-0 flex-1 overflow-y-auto">
-            <div className="flex flex-col gap-8 px-5 pb-8 pt-14 sm:flex-row sm:gap-12 sm:px-8 sm:pb-10 sm:pt-16">
+          <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-x-none">
+            <div className="flex min-w-0 flex-col gap-8 px-5 pb-8 pt-14 sm:flex-row sm:gap-12 sm:px-8 sm:pb-10 sm:pt-16">
               <PosterShowcase
                 poster={movie.Poster}
                 title={movie.Title}
@@ -429,7 +433,7 @@ export default function MovieDetailModal({
                   <div>
                     <h2
                       id="movie-detail-title"
-                      className="text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl"
+                      className="break-words text-2xl font-extrabold leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl"
                     >
                       {movie.Title}
                     </h2>
@@ -479,7 +483,7 @@ export default function MovieDetailModal({
                     <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
                       Synopsis
                     </h3>
-                    <p className="text-base leading-7 text-neutral-300 sm:text-[17px] sm:leading-8">
+                    <p className="break-words text-base leading-7 text-neutral-300 sm:text-[17px] sm:leading-8">
                       {plot}
                     </p>
                   </section>

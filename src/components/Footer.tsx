@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
 const GITHUB_REPO_URL = "https://github.com/tahatoklucu/FlickFocus-AI-App";
@@ -59,7 +62,7 @@ function SocialLink({
       target="_blank"
       rel="noopener noreferrer"
       aria-label={label}
-      className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-neutral-800 bg-neutral-900/60 text-neutral-400 transition-all duration-200 hover:scale-105 hover:border-neutral-600 hover:bg-neutral-800 hover:text-white hover:shadow-lg hover:shadow-black/30"
+      className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-neutral-800 bg-neutral-900/60 text-neutral-400 transition-all duration-200 hover:scale-105 hover:border-neutral-600 hover:bg-neutral-800 hover:text-white hover:shadow-lg hover:shadow-black/30"
     >
       {children}
     </a>
@@ -67,9 +70,15 @@ function SocialLink({
 }
 
 export default function Footer() {
+  const pathname = usePathname();
+
+  if (pathname === "/chat") {
+    return null;
+  }
+
   return (
     <footer className="mt-auto shrink-0 border-t border-neutral-800/60 bg-neutral-950/80 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-4 py-8 sm:flex-row sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-4 py-6 sm:flex-row sm:px-6 sm:py-8 lg:px-8">
         <div className="flex flex-col items-center gap-2 sm:items-start">
           <Link
             href="/"

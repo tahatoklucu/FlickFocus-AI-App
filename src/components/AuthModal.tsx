@@ -113,7 +113,7 @@ function AuthModalForm({ onClose }: AuthModalFormProps) {
       <button
         type="button"
         onClick={onClose}
-        className="absolute right-4 top-4 rounded-full p-1 text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
+        className="absolute right-3 top-3 inline-flex h-11 w-11 items-center justify-center rounded-full text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 dark:hover:bg-zinc-800 dark:hover:text-zinc-200 sm:right-4 sm:top-4"
         aria-label="Close authentication modal"
       >
         <svg
@@ -150,7 +150,7 @@ function AuthModalForm({ onClose }: AuthModalFormProps) {
         <button
           type="button"
           onClick={() => switchMode("signin")}
-          className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition ${
+          className={`flex min-h-11 flex-1 items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition ${
             authModalMode === "signin"
               ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-50"
               : "text-zinc-600 dark:text-zinc-400"
@@ -161,7 +161,7 @@ function AuthModalForm({ onClose }: AuthModalFormProps) {
         <button
           type="button"
           onClick={() => switchMode("signup")}
-          className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition ${
+          className={`flex min-h-11 flex-1 items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition ${
             authModalMode === "signup"
               ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-50"
               : "text-zinc-600 dark:text-zinc-400"
@@ -327,7 +327,7 @@ export default function AuthModal() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="auth-modal-title"
-        className="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-900"
+        className="relative z-10 max-h-[min(90dvh,calc(100dvh-2rem))] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl dark:bg-zinc-900"
         onClick={(event) => event.stopPropagation()}
       >
         <AuthModalForm onClose={closeAuthModal} />

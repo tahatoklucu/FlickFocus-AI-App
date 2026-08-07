@@ -34,7 +34,7 @@ function DropdownItem({
   active?: boolean;
   children: ReactNode;
 }) {
-  const className = `flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition ${
+  const className = `flex w-full min-h-11 items-center justify-between px-4 py-2.5 text-left text-sm transition ${
     active
       ? "bg-white/10 text-white"
       : "text-neutral-300 hover:bg-white/5 hover:text-white"
@@ -130,6 +130,30 @@ export default function Header() {
             </Link>
             <Link
               href="/chat"
+              aria-label="AI Chat"
+              className={`inline-flex h-11 w-11 items-center justify-center rounded-full transition-colors sm:hidden ${
+                pathname === "/chat"
+                  ? "bg-violet-500/20 text-violet-300"
+                  : "text-neutral-400 hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              <svg
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={1.75}
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 0 1 .778-.332 48.294 48.294 0 0 0 5.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z"
+                />
+              </svg>
+            </Link>
+            <Link
+              href="/chat"
               className={`hidden text-sm font-medium transition-colors sm:inline ${
                 pathname === "/chat"
                   ? "text-white"
@@ -148,7 +172,7 @@ export default function Header() {
                 <button
                   type="button"
                   onClick={() => setIsMenuOpen((open) => !open)}
-                  className="flex items-center gap-2 rounded-full border border-neutral-700/60 bg-neutral-900/70 py-1.5 pl-1.5 pr-3 text-sm font-medium text-neutral-100 shadow-sm shadow-black/20 transition-all duration-200 hover:scale-[1.02] hover:border-neutral-600 hover:bg-neutral-800/90 hover:shadow-md hover:shadow-black/30"
+                  className="flex min-h-11 items-center gap-2 rounded-full border border-neutral-700/60 bg-neutral-900/70 py-1.5 pl-1.5 pr-3 text-sm font-medium text-neutral-100 shadow-sm shadow-black/20 transition-all duration-200 hover:scale-[1.02] hover:border-neutral-600 hover:bg-neutral-800/90 hover:shadow-md hover:shadow-black/30"
                   aria-expanded={isMenuOpen}
                   aria-haspopup="menu"
                   aria-label="Open profile menu"
@@ -213,7 +237,7 @@ export default function Header() {
                         type="button"
                         role="menuitem"
                         onClick={handleLogout}
-                        className="flex w-full px-4 py-2.5 text-left text-sm text-red-400 transition hover:bg-red-500/10 hover:text-red-300"
+                        className="flex min-h-11 w-full px-4 py-2.5 text-left text-sm text-red-400 transition hover:bg-red-500/10 hover:text-red-300"
                       >
                         Sign Out
                       </button>
@@ -226,14 +250,14 @@ export default function Header() {
                 <button
                   type="button"
                   onClick={() => openAuthModal("signin")}
-                  className="rounded-full px-4 py-2 text-sm font-medium text-neutral-300 transition-all duration-200 hover:scale-[1.02] hover:bg-white/5 hover:text-white"
+                  className="inline-flex min-h-11 items-center rounded-full px-4 py-2 text-sm font-medium text-neutral-300 transition-all duration-200 hover:scale-[1.02] hover:bg-white/5 hover:text-white"
                 >
                   Sign In
                 </button>
                 <button
                   type="button"
                   onClick={() => openAuthModal("signup")}
-                  className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-neutral-950 shadow-md shadow-black/20 transition-all duration-200 hover:scale-[1.03] hover:bg-neutral-100 hover:shadow-lg hover:shadow-black/30"
+                  className="inline-flex min-h-11 items-center rounded-full bg-white px-4 py-2 text-sm font-semibold text-neutral-950 shadow-md shadow-black/20 transition-all duration-200 hover:scale-[1.03] hover:bg-neutral-100 hover:shadow-lg hover:shadow-black/30"
                 >
                   Sign Up
                 </button>

@@ -21,7 +21,7 @@ import {
 } from "react";
 import StreamingMarkdownText from "@/components/StreamingMarkdownText";
 import { useChatAutoScroll } from "@/hooks/useChatAutoScroll";
-import { readChatMessages, writeChatMessages } from "@/lib/chat-storage";
+import { readChatMessages, writeChatMessages, clearChatMessages } from "@/lib/chat-storage";
 
 type ChatUiPhase = "idle" | "waiting" | "streaming" | "stopping";
 
@@ -125,7 +125,7 @@ function ChatMessageBubble({
         }
       >
         {isUser ? (
-          <p className="whitespace-pre-wrap text-sm leading-relaxed sm:text-[15px]">
+          <p className="break-words whitespace-pre-wrap text-sm leading-relaxed sm:text-[15px]">
             {getMessageText(message)}
           </p>
         ) : (
@@ -195,6 +195,71 @@ function AssistantMessageContent({
   );
 }
 
+function ClearChatControl({ onConfirm }: { onConfirm: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+
+  useEffect(() => {
+    if (!confirming) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => setConfirming(false), 5000);
+    return () => window.clearTimeout(timeoutId);
+  }, [confirming]);
+
+  if (confirming) {
+    return (
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        <span className="text-xs text-zinc-500 dark:text-zinc-400">
+          Clear all messages?
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            onConfirm();
+            setConfirming(false);
+          }}
+          className="inline-flex min-h-9 items-center rounded-lg bg-red-600 px-3 text-xs font-semibold text-white transition hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/40"
+        >
+          Clear
+        </button>
+        <button
+          type="button"
+          onClick={() => setConfirming(false)}
+          className="inline-flex min-h-9 items-center rounded-lg border border-zinc-300 bg-white px-3 text-xs font-medium text-zinc-700 transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-300/60 dark:border-zinc-600 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700"
+        >
+          Cancel
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setConfirming(true)}
+      className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-zinc-200 bg-white px-3 text-xs font-medium text-zinc-600 transition hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-300/60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:bg-zinc-800"
+      aria-label="Clear chat history"
+    >
+      <svg
+        className="h-3.5 w-3.5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+        aria-hidden="true"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916A2.25 2.25 0 0012.75 3h-1.5a2.25 2.25 0 00-2.25 2.25v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+        />
+      </svg>
+      Clear chat
+    </button>
+  );
+}
+
 export default function ChatPageClient() {
   const isMounted = useSyncExternalStore(
     () => () => {},
@@ -204,7 +269,7 @@ export default function ChatPageClient() {
 
   if (!isMounted) {
     return (
-      <div className="flex h-[min(600px,75vh)] max-h-[75vh] min-h-[320px] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60" />
+      <div className="flex h-[min(600px,75vh)] max-h-[75vh] min-h-[320px] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60 sm:h-auto sm:max-h-none sm:min-h-0 sm:flex-1" />
     );
   }
 
@@ -213,7 +278,7 @@ export default function ChatPageClient() {
 
 function ChatPageClientLoaded() {
   const initialMessages = useMemo(() => readChatMessages(), []);
-  const messageCountAtRestore = initialMessages.length;
+  const [animateFromIndex, setAnimateFromIndex] = useState(initialMessages.length);
   const [input, setInput] = useState("");
   const [stopRequestedAt, setStopRequestedAt] = useState<number | null>(null);
   const pendingSendRef = useRef<string | null>(null);
@@ -231,6 +296,7 @@ function ChatPageClientLoaded() {
     regenerate,
     error,
     clearError,
+    setMessages,
   } = useChat({
     transport,
     id: "flickfocus-chat",
@@ -257,6 +323,11 @@ function ChatPageClientLoaded() {
   } = useChatAutoScroll();
 
   useEffect(() => {
+    if (messages.length === 0) {
+      clearChatMessages();
+      return;
+    }
+
     writeChatMessages(messages);
   }, [messages]);
 
@@ -358,9 +429,27 @@ function ChatPageClientLoaded() {
     Boolean(getMessageText(lastMessage).trim());
 
   const shouldAnimateMessage = useCallback(
-    (index: number) => index >= messageCountAtRestore,
-    [messageCountAtRestore],
+    (index: number) => index >= animateFromIndex,
+    [animateFromIndex],
   );
+
+  const handleClearChat = useCallback(() => {
+    if (showStopButton) {
+      setStopRequestedAt(Date.now());
+      stop();
+    }
+
+    pendingSendRef.current = null;
+    setStopRequestedAt(null);
+    setInput("");
+    clearError();
+    setMessages([]);
+    clearChatMessages();
+    setAnimateFromIndex(0);
+    pinToBottom();
+
+    containerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+  }, [clearError, containerRef, pinToBottom, setMessages, showStopButton, stop]);
 
   const handleRegenerate = useCallback(() => {
     if (!canRegenerate) {
@@ -373,7 +462,16 @@ function ChatPageClientLoaded() {
   }, [canRegenerate, clearError, pinToBottom, regenerate]);
 
   return (
-    <div className="flex h-[min(600px,75vh)] max-h-[75vh] min-h-[320px] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
+    <div className="flex min-h-[320px] flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60 sm:min-h-0">
+      {messages.length > 0 ? (
+        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-zinc-200 px-3 py-2 dark:border-zinc-800 sm:px-4">
+          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+            {messages.length} message{messages.length === 1 ? "" : "s"}
+          </p>
+          <ClearChatControl onConfirm={handleClearChat} />
+        </div>
+      ) : null}
+
       <div className="relative min-h-0 flex-1">
         <div
           ref={containerRef}
@@ -439,7 +537,7 @@ function ChatPageClientLoaded() {
           <button
             type="button"
             onClick={() => scrollToBottom("smooth")}
-            className="chat-control-enter motion-reduce:animate-none absolute bottom-4 left-1/2 z-[25] inline-flex -translate-x-1/2 items-center gap-2 rounded-full border border-zinc-300/80 bg-white px-4 py-2 text-sm font-semibold text-zinc-800 shadow-lg shadow-black/25 backdrop-blur-sm transition-colors duration-200 motion-reduce:transition-none hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-zinc-500 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
+            className="chat-control-enter motion-reduce:animate-none absolute bottom-4 left-1/2 z-[25] inline-flex min-h-11 -translate-x-1/2 items-center gap-2 rounded-full border border-zinc-300/80 bg-white px-4 py-2 text-sm font-semibold text-zinc-800 shadow-lg shadow-black/25 backdrop-blur-sm transition-colors duration-200 motion-reduce:transition-none hover:bg-zinc-50 focus:outline-none focus:ring-2 focus:ring-violet-500/40 dark:border-zinc-500 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800"
             aria-label="Jump to latest message"
           >
             <svg
@@ -463,12 +561,12 @@ function ChatPageClientLoaded() {
 
       {error ? (
         <div className="chat-control-enter motion-reduce:animate-none shrink-0 border-t border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-300">
-          <div className="flex items-start justify-between gap-3">
-            <p>{error.message || "Something went wrong. Please try again."}</p>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <p className="min-w-0 flex-1 break-words">{error.message || "Something went wrong. Please try again."}</p>
             <button
               type="button"
               onClick={() => clearError()}
-              className="shrink-0 text-xs font-medium text-red-200 underline-offset-2 hover:underline"
+              className="inline-flex min-h-11 shrink-0 items-center px-2 text-xs font-medium text-red-200 underline-offset-2 hover:underline"
             >
               Dismiss
             </button>

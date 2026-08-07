@@ -35,17 +35,17 @@ async function runHealthCheck(): Promise<HealthCheckResult> {
 function HealthCheckLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-full bg-zinc-50 dark:bg-zinc-950">
-      <main className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
-        <header className="mb-10 text-center">
-          <h1 className="text-3xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-4xl">
+      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
+        <header className="mb-6 text-center sm:mb-10">
+          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-3xl lg:text-4xl">
             Health Check
           </h1>
-          <p className="mt-2 text-zinc-600 dark:text-zinc-400">
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 sm:text-base">
             OMDb API connectivity test for FlickFocus
           </p>
         </header>
         {children}
-      </main>
+      </div>
     </div>
   );
 }
@@ -55,7 +55,7 @@ function HealthCheckSuccess({ response }: { response: SearchResponse }) {
 
   return (
     <section className="mx-auto max-w-2xl rounded-2xl border border-emerald-200 bg-white p-6 shadow-sm dark:border-emerald-900/50 dark:bg-zinc-900 sm:p-8">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <span
           className="inline-flex h-3 w-3 rounded-full bg-emerald-500"
           aria-hidden="true"
@@ -92,7 +92,7 @@ function HealthCheckSuccess({ response }: { response: SearchResponse }) {
               <span className="font-semibold">{sample.Title}</span>
               {sample.Year ? ` (${sample.Year})` : null}
               {" · "}
-              <span className="font-mono text-xs text-zinc-500 dark:text-zinc-400">
+              <span className="break-all font-mono text-xs text-zinc-500 dark:text-zinc-400">
                 {sample.imdbID}
               </span>
             </dd>
@@ -119,7 +119,7 @@ function HealthCheckFailure({ message }: { message: string }) {
       role="alert"
       className="mx-auto max-w-2xl rounded-2xl border border-red-200 bg-white p-6 shadow-sm dark:border-red-900/50 dark:bg-zinc-900 sm:p-8"
     >
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <span
           className="inline-flex h-3 w-3 rounded-full bg-red-500"
           aria-hidden="true"
@@ -134,7 +134,7 @@ function HealthCheckFailure({ message }: { message: string }) {
         response.
       </p>
 
-      <p className="mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200">
+      <p className="mt-4 break-words rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-800 dark:border-red-900/40 dark:bg-red-950/30 dark:text-red-200">
         {message}
       </p>
     </section>

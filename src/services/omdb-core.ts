@@ -95,3 +95,7 @@ export function isMovieNotFoundMessage(message: string): boolean {
     normalized.includes("imdb id")
   );
 }
+
+export function isTooManyResultsMessage(message: string): boolean {
+  return message.toLowerCase().includes("too many results");
+}

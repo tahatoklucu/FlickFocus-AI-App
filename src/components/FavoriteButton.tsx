@@ -21,8 +21,8 @@ export default function FavoriteButton({
   const [localError, setLocalError] = useState<string | null>(null);
 
   const favorited = isFavorite(movie.imdbID);
-  const sizeClasses = size === "sm" ? "h-8 w-8" : "h-10 w-10";
-  const iconClasses = size === "sm" ? "h-4 w-4" : "h-5 w-5";
+  const sizeClasses = size === "sm" ? "h-9 w-9 sm:h-10 sm:w-10" : "h-11 w-11";
+  const iconClasses = size === "sm" ? "h-4 w-4 sm:h-5 sm:w-5" : "h-5 w-5";
   const displayedError = localError ?? favoritesError;
 
   useEffect(() => {
@@ -75,7 +75,7 @@ export default function FavoriteButton({
       {displayedError && (
         <p
           role="alert"
-          className="absolute right-0 top-full z-20 mt-1 w-44 rounded-lg bg-red-950/90 px-2 py-1 text-[10px] leading-snug text-red-100"
+          className="absolute right-0 top-full z-20 mt-1 w-44 max-w-[min(11rem,calc(100vw-2rem))] break-words rounded-lg bg-red-950/90 px-2 py-1 text-[10px] leading-snug text-red-100"
         >
           {displayedError}
         </p>

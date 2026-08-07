@@ -111,7 +111,7 @@ function MovieList({
         {resultLabel ??
           `${movies.length} result${movies.length === 1 ? "" : "s"} found`}
       </p>
-      <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
         {movies.map((movie, index) => (
           <li key={movie.imdbID}>
             <MovieCard

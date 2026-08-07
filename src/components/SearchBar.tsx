@@ -1,14 +1,30 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useCallback, useState } from "react";
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
+  onClear?: () => void;
   isLoading?: boolean;
 }
 
-export default function SearchBar({ onSearch, isLoading = false }: SearchBarProps) {
+export default function SearchBar({
+  onSearch,
+  onClear,
+  isLoading = false,
+}: SearchBarProps) {
   const [query, setQuery] = useState("");
+
+  const handleQueryChange = useCallback(
+    (value: string) => {
+      setQuery(value);
+
+      if (!value.trim()) {
+        onClear?.();
+      }
+    },
+    [onClear],
+  );
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,17 +52,17 @@ export default function SearchBar({ onSearch, isLoading = false }: SearchBarProp
           <input
             type="search"
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => handleQueryChange(event.target.value)}
             placeholder="Search for a movie..."
             disabled={isLoading}
-            className="w-full rounded-xl border border-zinc-200 bg-white py-3 pl-12 pr-4 text-zinc-900 placeholder:text-zinc-400 shadow-sm transition focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-200 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-500 dark:focus:border-zinc-500 dark:focus:ring-zinc-800"
+            className="min-h-11 w-full rounded-xl border border-zinc-200 bg-white py-3 pl-12 pr-4 text-zinc-900 placeholder:text-zinc-400 shadow-sm transition focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-200 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-500 dark:focus:border-zinc-500 dark:focus:ring-zinc-800"
             aria-label="Search for a movie"
           />
         </div>
         <button
           type="submit"
           disabled={isLoading || !query.trim()}
-          className="inline-flex h-12 items-center justify-center rounded-xl bg-zinc-900 px-6 text-sm font-medium text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 sm:min-w-[120px]"
+          className="inline-flex min-h-11 w-full cursor-pointer items-center justify-center rounded-xl bg-zinc-900 px-6 text-sm font-medium text-white transition hover:bg-zinc-700 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-300 sm:w-auto sm:min-w-[120px]"
         >
           {isLoading ? (
             <>
