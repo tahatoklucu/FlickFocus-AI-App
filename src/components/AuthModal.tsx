@@ -386,7 +386,7 @@ export default function AuthModal() {
 
   return (
     <div
-      className="fixed inset-0 z-[60] flex items-end justify-center p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 z-[60] flex items-center justify-center p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-6"
       role="presentation"
       onClick={closeAuthModal}
     >
@@ -399,7 +399,7 @@ export default function AuthModal() {
         role="dialog"
         aria-modal="true"
         aria-labelledby="auth-modal-title"
-        className="auth-modal-enter relative z-10 max-h-[94dvh] w-full max-w-[440px] overflow-y-auto rounded-t-3xl border border-white/10 bg-zinc-950/95 p-6 shadow-2xl shadow-black/50 ring-1 ring-white/10 backdrop-blur-xl sm:max-h-[min(90dvh,calc(100dvh-2rem))] sm:rounded-3xl sm:p-7"
+        className="auth-modal-enter relative z-10 max-h-[min(92dvh,calc(100dvh-2rem))] w-full max-w-[440px] overflow-y-auto overscroll-contain rounded-3xl border border-white/10 bg-zinc-950/95 p-5 shadow-2xl shadow-black/50 ring-1 ring-white/10 backdrop-blur-xl sm:max-h-[min(90dvh,calc(100dvh-3rem))] sm:p-7"
         onClick={(event) => event.stopPropagation()}
       >
         <AuthModalForm onClose={closeAuthModal} />
