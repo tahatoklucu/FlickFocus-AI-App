@@ -59,7 +59,7 @@ function DropdownItem({
 
 export default function Header() {
   const pathname = usePathname();
-  const { user, loading, isConfigured, openAuthModal, logout } = useAuth();
+  const { user, userProfile, loading, isConfigured, openAuthModal, logout } = useAuth();
   const { favorites } = useFavorites();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -67,7 +67,10 @@ export default function Header() {
 
   const favoritesCount = favorites.length;
   const displayName =
-    user?.displayName ?? user?.email?.split("@")[0] ?? "User";
+    userProfile?.displayName ||
+    user?.displayName ||
+    user?.email?.split("@")[0] ||
+    "User";
 
   const closeMenu = () => setIsMenuOpen(false);
 

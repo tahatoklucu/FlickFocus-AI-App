@@ -1,6 +1,11 @@
 import { getApp, getApps, initializeApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import {
+  getFirestore,
+  initializeFirestore,
+  type Firestore,
+} from "firebase/firestore";
+import { getStorage, type FirebaseStorage } from "firebase/storage";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -14,6 +19,7 @@ const firebaseConfig = {
 let firebaseApp: FirebaseApp | undefined;
 let firebaseAuth: Auth | undefined;
 let firebaseDb: Firestore | undefined;
+let firebaseStorage: FirebaseStorage | undefined;
 
 export function isFirebaseConfigured(): boolean {
   return Object.values(firebaseConfig).every(Boolean);
@@ -46,14 +52,38 @@ export function getFirebaseAuth(): Auth {
   return firebaseAuth;
 }
 
+function createFirestore(): Firestore {
+  const app = getFirebaseApp();
+
+  try {
+    return initializeFirestore(app, {
+      experimentalForceLongPolling: true,
+    });
+  } catch {
+    return getFirestore(app);
+  }
+}
+
 export function getFirebaseDb(): Firestore {
   if (typeof window === "undefined") {
     throw new Error("Firestore can only be used in the browser.");
   }
 
   if (!firebaseDb) {
-    firebaseDb = getFirestore(getFirebaseApp());
+    firebaseDb = createFirestore();
   }
 
   return firebaseDb;
+}
+
+export function getFirebaseStorage(): FirebaseStorage {
+  if (typeof window === "undefined") {
+    throw new Error("Firebase Storage can only be used in the browser.");
+  }
+
+  if (!firebaseStorage) {
+    firebaseStorage = getStorage(getFirebaseApp());
+  }
+
+  return firebaseStorage;
 }

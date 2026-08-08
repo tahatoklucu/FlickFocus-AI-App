@@ -13,6 +13,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type Dispatch,
   type ReactNode,
@@ -30,6 +31,9 @@ import {
   buildProfileFromAuth,
   ensureUserProfile,
   subscribeToUserProfile,
+  updateUserProfile as persistUserProfile,
+  uploadUserAvatar,
+  type UpdateUserProfileInput,
 } from "@/services/users";
 import type { UserProfile } from "@/types/user";
 
@@ -41,6 +45,7 @@ interface AuthContextValue {
   loading: boolean;
   redirectResolving: boolean;
   profileLoading: boolean;
+  profileSyncing: boolean;
   profileError: string | null;
   isConfigured: boolean;
   isAuthModalOpen: boolean;
@@ -54,6 +59,9 @@ interface AuthContextValue {
   authError: string | null;
   clearAuthError: () => void;
   clearProfileError: () => void;
+  retryProfileSync: () => Promise<void>;
+  updateUserProfile: (input: UpdateUserProfileInput) => Promise<UserProfile>;
+  uploadProfilePhoto: (file: File) => Promise<string>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -131,6 +139,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<AuthModalMode>("signin");
   const [authError, setAuthError] = useState<string | null>(null);
+  const [profileSyncing, setProfileSyncing] = useState(false);
+  const profileUnsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     setHasMounted(true);
@@ -225,15 +235,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!user || !isFirebaseConfigured()) {
+      profileUnsubscribeRef.current?.();
+      profileUnsubscribeRef.current = null;
       return;
     }
 
     const activeUser = user;
     const userId = activeUser.uid;
     let isActive = true;
-    let unsubscribeProfile = () => {};
+
+    function attachProfileListener() {
+      profileUnsubscribeRef.current?.();
+
+      profileUnsubscribeRef.current = subscribeToUserProfile(
+        userId,
+        (profile) => {
+          if (!isActive || !profile) {
+            return;
+          }
+
+          setProfileSyncState({
+            userId,
+            hasReceivedProfile: true,
+            profile,
+            error: null,
+          });
+        },
+        (error) => {
+          if (!isActive) {
+            return;
+          }
+
+          setProfileSyncState((current) => ({
+            userId,
+            hasReceivedProfile: true,
+            profile: current.profile ?? buildProfileFromAuth(activeUser),
+            error: error.message,
+          }));
+        },
+      );
+    }
 
     async function syncProfile() {
+      setProfileSyncing(true);
+
       try {
         await activeUser.getIdToken();
         if (!isActive) {
@@ -265,31 +310,68 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               ? error.message
               : "Failed to sync user profile.",
         }));
+      } finally {
+        if (isActive) {
+          setProfileSyncing(false);
+        }
       }
 
       if (!isActive) {
         return;
       }
 
-      unsubscribeProfile = subscribeToUserProfile(
+      attachProfileListener();
+    }
+
+    void syncProfile();
+
+    return () => {
+      isActive = false;
+      profileUnsubscribeRef.current?.();
+      profileUnsubscribeRef.current = null;
+    };
+  }, [user]);
+
+  const retryProfileSync = useCallback(async () => {
+    if (!user || !isFirebaseConfigured() || profileSyncing) {
+      return;
+    }
+
+    const activeUser = user;
+    const userId = activeUser.uid;
+
+    setProfileSyncing(true);
+    setProfileSyncState((current) =>
+      current.userId === userId ? { ...current, error: null } : current,
+    );
+
+    try {
+      await activeUser.getIdToken();
+      const profile = await ensureUserProfile(activeUser);
+
+      setProfileSyncState({
         userId,
-        (profile) => {
-          if (!isActive || !profile) {
+        hasReceivedProfile: true,
+        profile,
+        error: null,
+      });
+
+      profileUnsubscribeRef.current?.();
+      profileUnsubscribeRef.current = subscribeToUserProfile(
+        userId,
+        (nextProfile) => {
+          if (!nextProfile) {
             return;
           }
 
           setProfileSyncState({
             userId,
             hasReceivedProfile: true,
-            profile,
+            profile: nextProfile,
             error: null,
           });
         },
         (error) => {
-          if (!isActive) {
-            return;
-          }
-
           setProfileSyncState((current) => ({
             userId,
             hasReceivedProfile: true,
@@ -298,15 +380,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }));
         },
       );
+    } catch (error: unknown) {
+      setProfileSyncState((current) => ({
+        userId,
+        hasReceivedProfile: true,
+        profile: current.profile ?? buildProfileFromAuth(activeUser),
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to sync user profile.",
+      }));
+    } finally {
+      setProfileSyncing(false);
     }
-
-    void syncProfile();
-
-    return () => {
-      isActive = false;
-      unsubscribeProfile();
-    };
-  }, [user]);
+  }, [user, profileSyncing]);
 
   const userId = user?.uid;
   const userProfile = useMemo(() => {
@@ -334,6 +421,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return profileSyncState.error;
   }, [userId, profileSyncState]);
+
+  useEffect(() => {
+    if (!user || !profileError) {
+      return;
+    }
+
+    function handleOnline() {
+      void retryProfileSync();
+    }
+
+    window.addEventListener("online", handleOnline);
+    return () => window.removeEventListener("online", handleOnline);
+  }, [user, profileError, retryProfileSync]);
 
   const clearAuthError = useCallback(() => {
     setAuthError(null);
@@ -385,6 +485,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await signOut(getFirebaseAuth());
   }, []);
 
+  const updateUserProfile = useCallback(
+    async (input: UpdateUserProfileInput) => {
+      if (!user) {
+        throw new Error("You must be signed in to update your profile.");
+      }
+
+      const profile = await persistUserProfile(user, input);
+      const auth = getFirebaseAuth();
+
+      if (auth.currentUser) {
+        setUser(auth.currentUser);
+      }
+
+      setProfileSyncState({
+        userId: user.uid,
+        hasReceivedProfile: true,
+        profile,
+        error: null,
+      });
+
+      return profile;
+    },
+    [user],
+  );
+
+  const uploadProfilePhoto = useCallback(
+    async (file: File) => {
+      if (!user) {
+        throw new Error("You must be signed in to upload a profile photo.");
+      }
+
+      return uploadUserAvatar(user, file);
+    },
+    [user],
+  );
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -392,6 +528,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       redirectResolving,
       profileLoading,
+      profileSyncing,
       profileError,
       isConfigured: isFirebaseConfigured(),
       isAuthModalOpen,
@@ -405,6 +542,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authError,
       clearAuthError,
       clearProfileError,
+      retryProfileSync,
+      updateUserProfile,
+      uploadProfilePhoto,
     }),
     [
       user,
@@ -412,6 +552,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       redirectResolving,
       profileLoading,
+      profileSyncing,
       profileError,
       isAuthModalOpen,
       authModalMode,
@@ -424,6 +565,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authError,
       clearAuthError,
       clearProfileError,
+      retryProfileSync,
+      updateUserProfile,
+      uploadProfilePhoto,
     ],
   );
 

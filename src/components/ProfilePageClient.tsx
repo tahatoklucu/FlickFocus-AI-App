@@ -7,6 +7,7 @@ import { useCallback, useMemo } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useFavorites } from "@/context/FavoritesContext";
 import Button from "@/components/ui/Button";
+import ProfileSettingsForm from "@/components/ProfileSettingsForm";
 import { buttonClass } from "@/lib/button-styles";
 import type { UserProfile } from "@/types/user";
 
@@ -68,10 +69,12 @@ export default function ProfilePageClient() {
     userProfile,
     loading: authLoading,
     profileError,
+    profileSyncing,
     isConfigured,
     openAuthModal,
     logout,
     clearProfileError,
+    retryProfileSync,
   } = useAuth();
   const { favorites, syncing: favoritesSyncing } = useFavorites();
 
@@ -174,19 +177,37 @@ export default function ProfilePageClient() {
           role="alert"
           className="flex flex-col items-start justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200 sm:flex-row sm:items-start"
         >
-          <p className="min-w-0 break-words">
-            Could not sync your Firestore profile; showing your session info
-            instead. {profileError}
-          </p>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            onClick={clearProfileError}
-            className="shrink-0 uppercase tracking-wide text-amber-100/80 hover:text-white"
-          >
-            Dismiss
-          </Button>
+          <div className="min-w-0 space-y-1">
+            <p className="font-medium text-amber-100">
+              Profile sync is offline
+            </p>
+            <p className="break-words text-amber-200/90">
+              Showing your session info for now. {profileError}
+            </p>
+            <p className="text-xs text-amber-200/70">
+              We will retry automatically when your connection is back.
+            </p>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => void retryProfileSync()}
+              disabled={profileSyncing}
+            >
+              {profileSyncing ? "Retrying..." : "Retry sync"}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={clearProfileError}
+              className="uppercase tracking-wide text-amber-100/80 hover:text-white"
+            >
+              Dismiss
+            </Button>
+          </div>
         </div>
       )}
 
@@ -238,6 +259,23 @@ export default function ProfilePageClient() {
         </dl>
       </section>
 
+      <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-8">
+        <div className="mb-6">
+          <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+            Profile settings
+          </h3>
+          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+            Update your display name and profile photo.
+          </p>
+        </div>
+
+        <ProfileSettingsForm
+          key={`${displayName}-${photoURL ?? "none"}`}
+          displayName={displayName}
+          photoURL={photoURL}
+        />
+      </section>
+
       <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
         <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
           Account statistics
@@ -282,16 +320,6 @@ export default function ProfilePageClient() {
             Sign Out
           </Button>
         </div>
-      </section>
-
-      <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-        <h3 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-          Preferences
-        </h3>
-        <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-          Additional preference controls (theme, notifications, and default
-          search filters) will be available in a future update.
-        </p>
       </section>
     </div>
   );

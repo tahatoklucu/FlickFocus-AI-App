@@ -6,7 +6,7 @@ export function getFirestoreErrorMessage(error: unknown): string {
       case "permission-denied":
         return "Firestore access denied. Check user rules in Firebase Console → Firestore Rules.";
       case "unavailable":
-        return "Firestore is temporarily unavailable. Please check your connection and try again.";
+        return "Could not reach Firestore. Check your internet connection and try again.";
       case "failed-precondition":
         return "Favorites could not be loaded. Please refresh and try again.";
       case "unauthenticated":
