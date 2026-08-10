@@ -213,6 +213,43 @@ Defined in `src/lib/animated-action-button.ts` and implemented in `src/app/globa
 | `/chat` send control | Controlled | Maps chat phase + error to button states |
 | `/profile` demo panel | Controlled + uncontrolled | `AnimatedActionButtonDemo` for QA / capstone review |
 
+## Web 3D Experience (Cinema Hero)
+
+The homepage (`/`) features a lazy-loaded **interactive 3D cinema hero** — a procedural film reel with clapperboard accent, built with **Three.js**, **React Three Fiber**, and **Drei**. No external GLB/GLTF assets are shipped; the scene uses lightweight primitive geometry only.
+
+### Interactions
+
+| Input | Behavior |
+| --- | --- |
+| Cursor move | Parallax rotation of the full scene (reduced strength on mobile) |
+| Hover reel | Emissive highlight on reel + floating film frames |
+| Click reel | Toggles **gold ↔ violet spotlight** theme with a subtle pulse animation |
+
+### Performance & bundle notes
+
+| Concern | Approach |
+| --- | --- |
+| **Initial JS** | Canvas loads via `next/dynamic` (`ssr: false`) — Three.js is not in the critical path |
+| **Model size** | **0 KB** external models — 100% procedural meshes (torus, cylinder, boxes) |
+| **Mobile** | Lower DPR cap (`1–1.25`), antialiasing off, 2 film frames instead of 4, no sparkle particles |
+| **Desktop** | DPR cap `1–1.75`, soft fog + 28 sparkles |
+| **Reduced motion** | `prefers-reduced-motion: reduce` → static CSS fallback (`CinemaHeroFallback`) with no WebGL |
+| **Premium FX tier** | Desktop only: `FogExp2`, procedural `Lightformer` environment (no external HDR fetch), rim spot light, subtle Bloom |
+| **Mobile tier** | Bloom, fog, environment map, rim light, and sparkles disabled via `useMediaQuery` |
+| **Target** | Lightweight scene tuned for **60fps** on modern phones; transform/emissive updates only |
+
+### Implementation reference
+
+| Concern | Location |
+| --- | --- |
+| Lazy entry + motion gate | `src/components/hero/CinemaHeroExperience.tsx` |
+| WebGL canvas shell | `src/components/hero/CinemaHeroCanvas.tsx` |
+| Scene & interactions | `src/components/hero/CinemaHeroScene.tsx` |
+| Post-processing (Bloom) | `src/components/hero/CinemaHeroEffects.tsx` |
+| Static fallback | `src/components/hero/CinemaHeroFallback.tsx` |
+| Tokens & palette | `src/lib/cinema-hero-3d.ts` |
+| Reduced-motion hook | `src/hooks/usePrefersReducedMotion.ts` |
+
 ## 🤖 AI-Assisted Development & Prompts
 
 This project was developed independently using AI as an interactive development assistant (Claude / Gemini). Throughout the development process, AI was utilized for:
