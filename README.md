@@ -215,40 +215,59 @@ Defined in `src/lib/animated-action-button.ts` and implemented in `src/app/globa
 
 ## Web 3D Experience (Cinema Hero)
 
-The homepage (`/`) features a lazy-loaded **interactive 3D cinema hero** — a procedural film reel with clapperboard accent, built with **Three.js**, **React Three Fiber**, and **Drei**. No external GLB/GLTF assets are shipped; the scene uses lightweight primitive geometry only.
+The homepage (`/`) includes an interactive **3D cinema hero** — a procedural film reel with clapperboard accent — built with **Three.js**, **React Three Fiber**, and **Drei**. The scene ships **no external GLB/GLTF assets**; every mesh is an R3F primitive (torus, cylinder, box, plane).
 
 ### Interactions
 
 | Input | Behavior |
 | --- | --- |
-| Cursor move | Parallax rotation of the full scene (reduced strength on mobile) |
+| Cursor move | Parallax rotation of the scene (reduced strength on mobile) |
 | Hover reel | Emissive highlight on reel + floating film frames |
-| Click reel | Toggles **gold ↔ violet spotlight** theme with a subtle pulse animation |
+| Click reel | Toggles **gold ↔ violet spotlight** theme with a subtle pulse |
 
-### Performance & bundle notes
+### Zero external model cost
+
+| Item | Detail |
+| --- | --- |
+| **Asset payload** | **0 KB** — no downloaded models or HDR files |
+| **Geometry** | 100% procedural primitives composed in `CinemaHeroScene.tsx` |
+| **Environment** | Procedural `<Environment>` built from in-scene `Lightformer` lights (no CDN fetch) |
+
+### Performance optimizations
 
 | Concern | Approach |
 | --- | --- |
-| **Initial JS** | Canvas loads via `next/dynamic` (`ssr: false`) — Three.js is not in the critical path |
-| **Model size** | **0 KB** external models — 100% procedural meshes (torus, cylinder, boxes) |
-| **Mobile** | Lower DPR cap (`1–1.25`), antialiasing off, 2 film frames instead of 4, no sparkle particles |
-| **Desktop** | DPR cap `1–1.75`, soft fog + 28 sparkles |
-| **Reduced motion** | `prefers-reduced-motion: reduce` → static CSS fallback (`CinemaHeroFallback`) with no WebGL |
-| **Premium FX tier** | Desktop only: `FogExp2`, procedural `Lightformer` environment (no external HDR fetch), rim spot light, subtle Bloom |
-| **Mobile tier** | Bloom, fog, environment map, rim light, and sparkles disabled via `useMediaQuery` |
-| **Target** | Lightweight scene tuned for **60fps** on modern phones; transform/emissive updates only |
+| **Lazy-load** | Canvas entry via `next/dynamic` (`ssr: false`) in `CinemaHeroExperience.tsx` — Three.js stays out of the initial bundle |
+| **Dynamic DPR** | Mobile: `1–1.25` · Desktop: `1–1.75` — caps pixel ratio to protect frame budget |
+| **Device-tier FX** | `useMediaQuery` gates heavy effects: desktop gets `FogExp2`, rim light, Bloom, and sparkles; mobile keeps a lighter scene (fewer film frames, no bloom/fog/sparkles) |
+| **Tone mapping** | ACES Filmic exposure tuning for consistent highlights without blown-out emissive |
+| **Target** | Lightweight scene aimed at **60fps** on modern devices |
+
+### Accessibility
+
+When **`prefers-reduced-motion: reduce`** is active, the WebGL canvas is never mounted. Instead, a static **`CinemaHeroFallback`** (pure CSS illustration of reel + clapper) is rendered — same hero slot, no motion, no GPU work. Gated by `usePrefersReducedMotion` in `CinemaHeroExperience.tsx`.
+
+### Visual enhancements
+
+| Layer | Detail |
+| --- | --- |
+| **PBR materials** | `MeshStandardMaterial` with tuned `metalness` / `roughness` / `envMapIntensity` tokens in `cinema-hero-3d.ts` |
+| **Environment reflections** | Drei `<Environment>` + `Lightformer` rig for cinematic specular highlights (gold/violet theme-aware) |
+| **Atmospheric lighting** | Layered ambient, hemisphere, key/fill/accent point lights, rim spot, and `FogExp2` depth falloff (desktop tier) |
+| **Post-processing** | Subtle `@react-three/postprocessing` Bloom on desktop when motion is allowed |
 
 ### Implementation reference
 
 | Concern | Location |
 | --- | --- |
 | Lazy entry + motion gate | `src/components/hero/CinemaHeroExperience.tsx` |
-| WebGL canvas shell | `src/components/hero/CinemaHeroCanvas.tsx` |
-| Scene & interactions | `src/components/hero/CinemaHeroScene.tsx` |
-| Post-processing (Bloom) | `src/components/hero/CinemaHeroEffects.tsx` |
-| Static fallback | `src/components/hero/CinemaHeroFallback.tsx` |
+| WebGL canvas + DPR | `src/components/hero/CinemaHeroCanvas.tsx` |
+| Scene, PBR & lighting | `src/components/hero/CinemaHeroScene.tsx` |
+| Bloom pass | `src/components/hero/CinemaHeroEffects.tsx` |
+| Static CSS fallback | `src/components/hero/CinemaHeroFallback.tsx` |
 | Tokens & palette | `src/lib/cinema-hero-3d.ts` |
 | Reduced-motion hook | `src/hooks/usePrefersReducedMotion.ts` |
+| Viewport / device tier | `src/hooks/useMediaQuery.ts` |
 
 ## 🤖 AI-Assisted Development & Prompts
 
