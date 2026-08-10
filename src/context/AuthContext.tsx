@@ -20,6 +20,7 @@ import {
   type SetStateAction,
 } from "react";
 import { getFirebaseAuth, isFirebaseConfigured } from "@/lib/firebase";
+import { readProfileCache } from "@/lib/profile-cache";
 import {
   completeGoogleRedirectSignIn,
   getGoogleAuthErrorMessage,
@@ -47,6 +48,7 @@ interface AuthContextValue {
   profileLoading: boolean;
   profileSyncing: boolean;
   profileError: string | null;
+  cloudSyncOffline: boolean;
   isConfigured: boolean;
   isAuthModalOpen: boolean;
   authModalMode: AuthModalMode;
@@ -71,6 +73,7 @@ interface ProfileSyncState {
   hasReceivedProfile: boolean;
   profile: UserProfile | null;
   error: string | null;
+  cloudSyncOffline: boolean;
 }
 
 const initialProfileSyncState: ProfileSyncState = {
@@ -78,6 +81,7 @@ const initialProfileSyncState: ProfileSyncState = {
   hasReceivedProfile: false,
   profile: null,
   error: null,
+  cloudSyncOffline: false,
 };
 
 function AuthInitOverlay({ message }: { message: string }) {
@@ -124,8 +128,10 @@ function applyAuthUser(
   setProfileSyncState({
     userId: firebaseUser.uid,
     hasReceivedProfile: true,
-    profile: buildProfileFromAuth(firebaseUser),
+    profile:
+      readProfileCache(firebaseUser.uid) ?? buildProfileFromAuth(firebaseUser),
     error: null,
+    cloudSyncOffline: false,
   });
 }
 
@@ -183,8 +189,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfileSyncState({
           userId: firebaseUser.uid,
           hasReceivedProfile: true,
-          profile: buildProfileFromAuth(firebaseUser),
+          profile:
+            readProfileCache(firebaseUser.uid) ??
+            buildProfileFromAuth(firebaseUser),
           error: null,
+          cloudSyncOffline: false,
         });
       } else {
         setProfileSyncState(initialProfileSyncState);
@@ -259,9 +268,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             hasReceivedProfile: true,
             profile,
             error: null,
+            cloudSyncOffline: false,
           });
         },
-        (error) => {
+        () => {
           if (!isActive) {
             return;
           }
@@ -269,8 +279,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfileSyncState((current) => ({
             userId,
             hasReceivedProfile: true,
-            profile: current.profile ?? buildProfileFromAuth(activeUser),
-            error: error.message,
+            profile:
+              current.profile ??
+              readProfileCache(userId) ??
+              buildProfileFromAuth(activeUser),
+            error: null,
+            cloudSyncOffline: true,
           }));
         },
       );
@@ -285,18 +299,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        const profile = await ensureUserProfile(activeUser);
+        const { profile, syncedToCloud } = await ensureUserProfile(activeUser);
         if (!isActive) {
           return;
         }
 
-        setProfileSyncState({
-          userId,
-          hasReceivedProfile: true,
-          profile,
-          error: null,
-        });
-      } catch (error: unknown) {
+          setProfileSyncState({
+            userId,
+            hasReceivedProfile: true,
+            profile,
+            error: null,
+            cloudSyncOffline: !syncedToCloud,
+          });
+
+        if (syncedToCloud) {
+          attachProfileListener();
+        }
+      } catch {
         if (!isActive) {
           return;
         }
@@ -304,23 +323,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setProfileSyncState((current) => ({
           userId,
           hasReceivedProfile: true,
-          profile: current.profile ?? buildProfileFromAuth(activeUser),
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to sync user profile.",
+          profile:
+            current.profile ??
+            readProfileCache(userId) ??
+            buildProfileFromAuth(activeUser),
+          error: null,
+          cloudSyncOffline: true,
         }));
       } finally {
         if (isActive) {
           setProfileSyncing(false);
         }
       }
-
-      if (!isActive) {
-        return;
-      }
-
-      attachProfileListener();
     }
 
     void syncProfile();
@@ -347,48 +361,59 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       await activeUser.getIdToken();
-      const profile = await ensureUserProfile(activeUser);
+      const { profile, syncedToCloud } = await ensureUserProfile(activeUser);
 
       setProfileSyncState({
         userId,
         hasReceivedProfile: true,
         profile,
         error: null,
+        cloudSyncOffline: !syncedToCloud,
       });
 
       profileUnsubscribeRef.current?.();
-      profileUnsubscribeRef.current = subscribeToUserProfile(
-        userId,
-        (nextProfile) => {
-          if (!nextProfile) {
-            return;
-          }
+      profileUnsubscribeRef.current = null;
 
-          setProfileSyncState({
-            userId,
-            hasReceivedProfile: true,
-            profile: nextProfile,
-            error: null,
-          });
-        },
-        (error) => {
-          setProfileSyncState((current) => ({
-            userId,
-            hasReceivedProfile: true,
-            profile: current.profile ?? buildProfileFromAuth(activeUser),
-            error: error.message,
-          }));
-        },
-      );
-    } catch (error: unknown) {
+      if (syncedToCloud) {
+        profileUnsubscribeRef.current = subscribeToUserProfile(
+          userId,
+          (nextProfile) => {
+            if (!nextProfile) {
+              return;
+            }
+
+            setProfileSyncState({
+              userId,
+              hasReceivedProfile: true,
+              profile: nextProfile,
+              error: null,
+              cloudSyncOffline: false,
+            });
+          },
+          () => {
+            setProfileSyncState((current) => ({
+              userId,
+              hasReceivedProfile: true,
+              profile:
+                current.profile ??
+                readProfileCache(userId) ??
+                buildProfileFromAuth(activeUser),
+              error: null,
+              cloudSyncOffline: true,
+            }));
+          },
+        );
+      }
+    } catch {
       setProfileSyncState((current) => ({
         userId,
         hasReceivedProfile: true,
-        profile: current.profile ?? buildProfileFromAuth(activeUser),
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to sync user profile.",
+        profile:
+          current.profile ??
+          readProfileCache(userId) ??
+          buildProfileFromAuth(activeUser),
+        error: null,
+        cloudSyncOffline: true,
       }));
     } finally {
       setProfileSyncing(false);
@@ -422,8 +447,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return profileSyncState.error;
   }, [userId, profileSyncState]);
 
+  const cloudSyncOffline = useMemo(() => {
+    if (
+      !userId ||
+      profileSyncState.userId !== userId ||
+      !profileSyncState.hasReceivedProfile
+    ) {
+      return false;
+    }
+
+    return profileSyncState.cloudSyncOffline;
+  }, [userId, profileSyncState]);
+
   useEffect(() => {
-    if (!user || !profileError) {
+    if (!user || !cloudSyncOffline) {
       return;
     }
 
@@ -433,7 +470,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
-  }, [user, profileError, retryProfileSync]);
+  }, [user, cloudSyncOffline, retryProfileSync]);
 
   const clearAuthError = useCallback(() => {
     setAuthError(null);
@@ -498,12 +535,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(auth.currentUser);
       }
 
-      setProfileSyncState({
+      setProfileSyncState((current) => ({
         userId: user.uid,
         hasReceivedProfile: true,
         profile,
         error: null,
-      });
+        cloudSyncOffline: current.cloudSyncOffline,
+      }));
 
       return profile;
     },
@@ -530,6 +568,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profileLoading,
       profileSyncing,
       profileError,
+      cloudSyncOffline,
       isConfigured: isFirebaseConfigured(),
       isAuthModalOpen,
       authModalMode,
@@ -554,6 +593,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profileLoading,
       profileSyncing,
       profileError,
+      cloudSyncOffline,
       isAuthModalOpen,
       authModalMode,
       openAuthModal,

@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useAuth } from "@/context/AuthContext";
 import Button from "@/components/ui/Button";
+import UserAvatar from "@/components/UserAvatar";
 import {
   AVATAR_ACCEPT,
   DISPLAY_NAME_MAX_LENGTH,
@@ -17,15 +18,22 @@ import {
   validateDisplayName,
 } from "@/lib/profile-utils";
 import { cn } from "@/lib/cn";
+import { isValidPhotoURL } from "@/lib/avatar-utils";
 
 interface ProfileSettingsFormProps {
   displayName: string;
   photoURL: string | null;
+  cloudSyncOffline?: boolean;
+  profileSyncing?: boolean;
+  onRetryCloudSync?: () => void;
 }
 
 export default function ProfileSettingsForm({
   displayName,
   photoURL,
+  cloudSyncOffline = false,
+  profileSyncing = false,
+  onRetryCloudSync,
 }: ProfileSettingsFormProps) {
   const { updateUserProfile, uploadProfilePhoto } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -35,6 +43,7 @@ export default function ProfileSettingsForm({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [removePhoto, setRemovePhoto] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [savePhase, setSavePhase] = useState<"uploading" | "saving" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
@@ -101,16 +110,19 @@ export default function ProfileSettingsForm({
     }
 
     setIsSaving(true);
+    setSavePhase(null);
 
     try {
       let nextPhotoURL: string | null | undefined;
 
       if (selectedFile) {
+        setSavePhase("uploading");
         nextPhotoURL = await uploadProfilePhoto(selectedFile);
       } else if (removePhoto) {
         nextPhotoURL = null;
       }
 
+      setSavePhase("saving");
       await updateUserProfile({
         displayName: normalizedInput,
         ...(nextPhotoURL !== undefined ? { photoURL: nextPhotoURL } : {}),
@@ -123,27 +135,44 @@ export default function ProfileSettingsForm({
       setError(getProfileUpdateErrorMessage(submitError));
     } finally {
       setIsSaving(false);
+      setSavePhase(null);
     }
   }
 
-  const previewInitial = normalizedInput.charAt(0).toUpperCase() || "?";
+  const previewPhotoURL =
+    removePhoto || !avatarPreview || !isValidPhotoURL(avatarPreview)
+      ? null
+      : avatarPreview;
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
+      {cloudSyncOffline ? (
+        <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 text-sm text-amber-800 dark:text-amber-100">
+          <p>
+            Cloud sync is offline. Your changes are saved on this device.
+          </p>
+          {onRetryCloudSync ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onRetryCloudSync}
+              disabled={profileSyncing || isSaving}
+              className="mt-2 px-0 text-amber-700 hover:text-amber-900 dark:text-amber-200 dark:hover:text-white"
+            >
+              {profileSyncing ? "Reconnecting..." : "Try cloud sync again"}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
         <div className="relative shrink-0">
-          {avatarPreview ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={avatarPreview}
-              alt="Profile preview"
-              className="h-24 w-24 rounded-full border border-zinc-200 object-cover dark:border-zinc-700"
-            />
-          ) : (
-            <span className="flex h-24 w-24 items-center justify-center rounded-full bg-zinc-900 text-3xl font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
-              {previewInitial}
-            </span>
-          )}
+          <UserAvatar
+            displayName={normalizedInput || displayName}
+            photoURL={previewPhotoURL}
+            size="xl"
+          />
         </div>
 
         <div className="flex flex-1 flex-col items-center gap-2 sm:items-start">
@@ -165,7 +194,8 @@ export default function ProfileSettingsForm({
             >
               Change photo
             </Button>
-            {(photoURL || avatarPreview) && !removePhoto ? (
+            {(isValidPhotoURL(photoURL) || isValidPhotoURL(avatarPreview)) &&
+            !removePhoto ? (
               <Button
                 type="button"
                 variant="ghost"
@@ -189,7 +219,7 @@ export default function ProfileSettingsForm({
             ) : null}
           </div>
           <p className="text-center text-xs text-zinc-500 dark:text-zinc-400 sm:text-left">
-            JPG, PNG, WebP or GIF. Max 2 MB.
+            JPG, PNG, WebP or GIF. Max 2 MB. Saved to your profile in Firestore.
           </p>
         </div>
       </div>
@@ -241,7 +271,11 @@ export default function ProfileSettingsForm({
         disabled={isSaving || !hasChanges}
         className={cn("w-full sm:w-auto", !hasChanges && "opacity-70")}
       >
-        {isSaving ? "Saving changes..." : "Save profile"}
+        {isSaving
+          ? savePhase === "uploading"
+            ? "Uploading photo..."
+            : "Saving changes..."
+          : "Save profile"}
       </Button>
     </form>
   );

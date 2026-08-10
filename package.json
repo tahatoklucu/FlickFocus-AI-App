@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "firebase:login": "firebase login",
+    "firebase:deploy:firestore": "firebase deploy --only firestore",
+    "firebase:deploy:storage": "firebase deploy --only storage",
+    "firebase:deploy": "firebase deploy --only firestore,storage"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.36",
@@ -24,6 +28,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.3.0",
+    "firebase-tools": "^15.26.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

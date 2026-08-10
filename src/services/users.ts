@@ -11,14 +11,24 @@ import {
   uploadBytes,
 } from "firebase/storage";
 import { updateProfile, type User } from "firebase/auth";
-import { getFirestoreErrorMessage } from "@/lib/errors";
+import {
+  blobToDataUrl,
+  compressAvatarFile,
+  isRemotePhotoUrl,
+  prepareAvatarDataUrl,
+  resolveImageContentType,
+  shouldUseFirebaseStorage,
+} from "@/lib/avatar-utils";
+import { getFirestoreErrorMessage, getStorageErrorMessage } from "@/lib/errors";
 import { withTransientRetry } from "@/lib/retry";
+import { withTimeout } from "@/lib/timeout";
 import {
   normalizeDisplayName,
   validateAvatarFile,
   validateDisplayName,
 } from "@/lib/profile-utils";
 import { getFirebaseDb, getFirebaseStorage } from "@/lib/firebase";
+import { readProfileCache, writeProfileCache } from "@/lib/profile-cache";
 import type { UserProfile } from "@/types/user";
 
 export interface UpdateUserProfileInput {
@@ -64,10 +74,50 @@ function mapUserProfile(
   };
 }
 
+function resolveBaseProfile(user: User): UserProfile {
+  return readProfileCache(user.uid) ?? buildProfileFromAuth(user);
+}
+
+function buildUpdatedProfile(
+  user: User,
+  base: UserProfile,
+  input: UpdateUserProfileInput,
+): UserProfile {
+  return {
+    ...base,
+    uid: user.uid,
+    email: user.email ?? base.email,
+    displayName:
+      input.displayName !== undefined
+        ? normalizeDisplayName(input.displayName)
+        : base.displayName,
+    photoURL:
+      input.photoURL === null
+        ? ""
+        : input.photoURL !== undefined
+          ? input.photoURL
+          : base.photoURL,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+async function persistProfileToFirestore(profile: UserProfile): Promise<UserProfile> {
+  const ref = userDocRef(profile.uid);
+  await setDoc(ref, profile, { merge: true });
+  return profile;
+}
+
+export interface EnsureUserProfileResult {
+  profile: UserProfile;
+  syncedToCloud: boolean;
+}
+
 /** Create the Firestore user document if it does not exist yet. */
-export async function ensureUserProfile(user: User): Promise<UserProfile> {
+export async function ensureUserProfile(
+  user: User,
+): Promise<EnsureUserProfileResult> {
   try {
-    return await withTransientRetry(async () => {
+    const profile = await withTransientRetry(async () => {
       const ref = userDocRef(user.uid);
       const snapshot = await getDoc(ref);
 
@@ -105,10 +155,13 @@ export async function ensureUserProfile(user: User): Promise<UserProfile> {
       await setDoc(ref, profile);
       return profile;
     });
-  } catch (error) {
-    throw new UserProfileError(
-      getFirestoreErrorMessage(error) || "Failed to sync user profile.",
-    );
+
+    writeProfileCache(profile);
+    return { profile, syncedToCloud: true };
+  } catch {
+    const fallback = resolveBaseProfile(user);
+    writeProfileCache(fallback);
+    return { profile: fallback, syncedToCloud: false };
   }
 }
 
@@ -127,7 +180,9 @@ export function subscribeToUserProfile(
           return;
         }
 
-        onUpdate(mapUserProfile(userId, snapshot.data()));
+        const profile = mapUserProfile(userId, snapshot.data());
+        writeProfileCache(profile);
+        onUpdate(profile);
       },
       (error) => {
         onError?.(
@@ -158,26 +213,55 @@ function avatarExtension(contentType: string): string {
   }
 }
 
-/** Upload a profile photo and return its public download URL. */
+/** Store a profile photo in Firestore (free plan) or optionally Firebase Storage. */
 export async function uploadUserAvatar(user: User, file: File): Promise<string> {
   const validationError = validateAvatarFile(file);
   if (validationError) {
     throw new UserProfileError(validationError);
   }
 
-  try {
-    const extension = avatarExtension(file.type);
-    const storageRef = ref(
-      getFirebaseStorage(),
-      `users/${user.uid}/avatar.${extension}`,
-    );
+  if (!shouldUseFirebaseStorage()) {
+    try {
+      return await prepareAvatarDataUrl(file);
+    } catch (error) {
+      throw new UserProfileError(
+        error instanceof Error ? error.message : "Could not process the selected image.",
+      );
+    }
+  }
 
-    await uploadBytes(storageRef, file, { contentType: file.type });
-    return getDownloadURL(storageRef);
+  const contentType = resolveImageContentType(file);
+  let compressedBlob: Blob;
+
+  try {
+    compressedBlob = await compressAvatarFile(file, contentType);
   } catch (error) {
     throw new UserProfileError(
-      getFirestoreErrorMessage(error) || "Failed to upload profile photo.",
+      error instanceof Error ? error.message : "Could not process the selected image.",
     );
+  }
+
+  try {
+    return await withTimeout(
+      async () => {
+        const extension = avatarExtension(contentType);
+        const storageRef = ref(
+          getFirebaseStorage(),
+          `users/${user.uid}/avatar.${extension}`,
+        );
+
+        await uploadBytes(storageRef, compressedBlob, { contentType });
+        return getDownloadURL(storageRef);
+      },
+      20_000,
+      "Photo upload timed out. Check your connection or Firebase Storage setup.",
+    );
+  } catch (storageError) {
+    try {
+      return await blobToDataUrl(compressedBlob);
+    } catch {
+      throw new UserProfileError(getStorageErrorMessage(storageError));
+    }
   }
 }
 
@@ -193,45 +277,43 @@ export async function updateUserProfile(
     }
   }
 
+  const baseProfile = resolveBaseProfile(user);
+  const nextProfile = buildUpdatedProfile(user, baseProfile, input);
+
   try {
     const authUpdates: { displayName?: string; photoURL?: string | null } = {};
 
     if (input.displayName !== undefined) {
-      authUpdates.displayName = normalizeDisplayName(input.displayName);
+      authUpdates.displayName = nextProfile.displayName;
     }
 
     if (input.photoURL !== undefined) {
-      authUpdates.photoURL = input.photoURL;
+      if (input.photoURL === null || isRemotePhotoUrl(input.photoURL)) {
+        authUpdates.photoURL = input.photoURL;
+      }
     }
 
     if (Object.keys(authUpdates).length > 0) {
-      await updateProfile(user, authUpdates);
+      await withTimeout(
+        () => updateProfile(user, authUpdates),
+        15_000,
+        "Profile update timed out. Check your connection and try again.",
+      );
     }
 
-    const ref = userDocRef(user.uid);
-    const snapshot = await getDoc(ref);
-    const existing = snapshot.exists()
-      ? mapUserProfile(user.uid, snapshot.data())
-      : buildProfileFromAuth(user);
+    writeProfileCache(nextProfile);
 
-    const updated: UserProfile = {
-      ...existing,
-      email: user.email ?? existing.email,
-      displayName:
-        input.displayName !== undefined
-          ? normalizeDisplayName(input.displayName)
-          : existing.displayName,
-      photoURL:
-        input.photoURL === null
-          ? ""
-          : input.photoURL !== undefined
-            ? input.photoURL
-            : existing.photoURL,
-      updatedAt: new Date().toISOString(),
-    };
+    try {
+      await withTimeout(
+        () => withTransientRetry(() => persistProfileToFirestore(nextProfile)),
+        20_000,
+        "Could not save your profile to Firestore.",
+      );
+    } catch {
+      // Auth + local cache are updated; cloud sync can retry later.
+    }
 
-    await setDoc(ref, updated, { merge: true });
-    return updated;
+    return nextProfile;
   } catch (error) {
     if (error instanceof UserProfileError) {
       throw error;

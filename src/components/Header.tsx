@@ -7,6 +7,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useFavorites } from "@/context/FavoritesContext";
 import Button from "@/components/ui/Button";
+import UserAvatar, { resolveUserPhotoURL } from "@/components/UserAvatar";
 import { buttonClass } from "@/lib/button-styles";
 import { cn } from "@/lib/cn";
 
@@ -71,6 +72,8 @@ export default function Header() {
     user?.displayName ||
     user?.email?.split("@")[0] ||
     "User";
+
+  const photoURL = resolveUserPhotoURL(userProfile, user);
 
   const closeMenu = () => setIsMenuOpen(false);
 
@@ -183,9 +186,12 @@ export default function Header() {
                   aria-haspopup="menu"
                   aria-label="Open profile menu"
                 >
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 to-violet-700 text-xs font-bold text-white shadow-inner">
-                    {displayName.charAt(0).toUpperCase()}
-                  </span>
+                  <UserAvatar
+                    displayName={displayName}
+                    photoURL={photoURL}
+                    size="sm"
+                    className="shrink-0"
+                  />
                   <span className="hidden max-w-[120px] truncate sm:inline">
                     {displayName}
                   </span>
@@ -212,12 +218,22 @@ export default function Header() {
                     className="absolute right-0 mt-2 w-60 overflow-hidden rounded-xl border border-neutral-800/80 bg-neutral-950/95 py-1 shadow-xl shadow-black/40 backdrop-blur-md"
                   >
                     <div className="border-b border-neutral-800/80 px-4 py-3">
-                      <p className="truncate text-sm font-medium text-white">
-                        {displayName}
-                      </p>
-                      <p className="truncate text-xs text-neutral-500">
-                        {user.email}
-                      </p>
+                      <div className="flex items-center gap-3">
+                        <UserAvatar
+                          displayName={displayName}
+                          photoURL={photoURL}
+                          size="md"
+                          className="shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-medium text-white">
+                            {displayName}
+                          </p>
+                          <p className="truncate text-xs text-neutral-500">
+                            {user.email}
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
                     <div className="py-1">

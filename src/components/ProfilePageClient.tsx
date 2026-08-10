@@ -8,6 +8,7 @@ import { useAuth } from "@/context/AuthContext";
 import { useFavorites } from "@/context/FavoritesContext";
 import Button from "@/components/ui/Button";
 import ProfileSettingsForm from "@/components/ProfileSettingsForm";
+import UserAvatar, { resolveUserPhotoURL } from "@/components/UserAvatar";
 import { buttonClass } from "@/lib/button-styles";
 import type { UserProfile } from "@/types/user";
 
@@ -59,7 +60,7 @@ function resolvePhotoURL(
   user: User,
   userProfile: UserProfile | null,
 ): string | null {
-  return userProfile?.photoURL || user.photoURL || null;
+  return resolveUserPhotoURL(userProfile, user);
 }
 
 export default function ProfilePageClient() {
@@ -68,12 +69,11 @@ export default function ProfilePageClient() {
     user,
     userProfile,
     loading: authLoading,
-    profileError,
     profileSyncing,
+    cloudSyncOffline,
     isConfigured,
     openAuthModal,
     logout,
-    clearProfileError,
     retryProfileSync,
   } = useAuth();
   const { favorites, syncing: favoritesSyncing } = useFavorites();
@@ -172,59 +172,13 @@ export default function ProfilePageClient() {
 
   return (
     <div className="mx-auto grid max-w-3xl gap-6">
-      {profileError && (
-        <div
-          role="alert"
-          className="flex flex-col items-start justify-between gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-200 sm:flex-row sm:items-start"
-        >
-          <div className="min-w-0 space-y-1">
-            <p className="font-medium text-amber-100">
-              Profile sync is offline
-            </p>
-            <p className="break-words text-amber-200/90">
-              Showing your session info for now. {profileError}
-            </p>
-            <p className="text-xs text-amber-200/70">
-              We will retry automatically when your connection is back.
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={() => void retryProfileSync()}
-              disabled={profileSyncing}
-            >
-              {profileSyncing ? "Retrying..." : "Retry sync"}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={clearProfileError}
-              className="uppercase tracking-wide text-amber-100/80 hover:text-white"
-            >
-              Dismiss
-            </Button>
-          </div>
-        </div>
-      )}
-
       <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 sm:p-8">
         <div className="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left">
-          {photoURL ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={photoURL}
-              alt={`${displayName} avatar`}
-              className="h-20 w-20 rounded-full border border-zinc-200 object-cover dark:border-zinc-700"
-            />
-          ) : (
-            <span className="flex h-20 w-20 items-center justify-center rounded-full bg-zinc-900 text-2xl font-bold text-white dark:bg-zinc-100 dark:text-zinc-900">
-              {displayName.charAt(0).toUpperCase()}
-            </span>
-          )}
+          <UserAvatar
+            displayName={displayName}
+            photoURL={photoURL}
+            size="lg"
+          />
 
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
@@ -273,6 +227,9 @@ export default function ProfilePageClient() {
           key={`${displayName}-${photoURL ?? "none"}`}
           displayName={displayName}
           photoURL={photoURL}
+          cloudSyncOffline={cloudSyncOffline}
+          profileSyncing={profileSyncing}
+          onRetryCloudSync={() => void retryProfileSync()}
         />
       </section>
 

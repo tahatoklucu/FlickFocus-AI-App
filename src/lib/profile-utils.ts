@@ -1,9 +1,10 @@
 import { FirebaseError } from "firebase/app";
+import { isImageFile } from "@/lib/avatar-utils";
 
 export const DISPLAY_NAME_MIN_LENGTH = 2;
 export const DISPLAY_NAME_MAX_LENGTH = 50;
 export const AVATAR_MAX_BYTES = 2 * 1024 * 1024;
-export const AVATAR_ACCEPT = "image/jpeg,image/png,image/webp,image/gif";
+export const AVATAR_ACCEPT = "image/jpeg,image/png,image/webp,image/gif,image/*";
 
 export function normalizeDisplayName(value: string): string {
   return value.trim().replace(/\s+/g, " ");
@@ -24,7 +25,7 @@ export function validateDisplayName(value: string): string | null {
 }
 
 export function validateAvatarFile(file: File): string | null {
-  if (!file.type.startsWith("image/")) {
+  if (!isImageFile(file)) {
     return "Please choose a valid image file.";
   }
 
