@@ -2,10 +2,12 @@ import { google } from "@ai-sdk/google";
 import {
   convertToModelMessages,
   createUIMessageStreamResponse,
+  isStepCount,
   streamText,
   toUIMessageStream,
   type UIMessage,
 } from "ai";
+import { flickFocusChatTools } from "@/lib/chat-tools";
 import {
   CHAT_MODEL_ID,
   FLICKFOCUS_CHAT_SYSTEM_PROMPT,
@@ -38,6 +40,8 @@ export async function POST(req: Request) {
       model: google(CHAT_MODEL_ID),
       system: FLICKFOCUS_CHAT_SYSTEM_PROMPT,
       messages: await convertToModelMessages(messages),
+      tools: flickFocusChatTools,
+      stopWhen: isStepCount(5),
       abortSignal: req.signal,
     });
 

@@ -237,3 +237,121 @@ button:disabled {
     radial-gradient(ellipse 50% 40% at 85% 20%, rgb(99 102 241 / 0.12), transparent 50%),
     radial-gradient(ellipse 40% 35% at 10% 30%, rgb(168 85 247 / 0.08), transparent 45%);
 }
+
+@keyframes action-btn-shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  18% {
+    transform: translateX(-4px);
+  }
+
+  36% {
+    transform: translateX(4px);
+  }
+
+  54% {
+    transform: translateX(-3px);
+  }
+
+  72% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes action-btn-success-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.88);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animated-action-btn {
+  position: relative;
+  isolation: isolate;
+  transition:
+    transform 180ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 180ms cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 180ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.animated-action-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.animated-action-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.98);
+}
+
+.animated-action-btn__viewport {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 1.25rem;
+}
+
+.animated-action-btn__layer {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  white-space: nowrap;
+  transition:
+    opacity 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.animated-action-btn__layer--active {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.animated-action-btn__layer--inactive {
+  opacity: 0;
+  transform: scale(0.96);
+  pointer-events: none;
+}
+
+.animated-action-btn--error-shake {
+  animation: action-btn-shake 420ms cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+.animated-action-btn__layer--success.animated-action-btn__layer--active {
+  animation: action-btn-success-pop 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animated-action-btn {
+    transition: opacity 120ms ease;
+  }
+
+  .animated-action-btn:hover:not(:disabled),
+  .animated-action-btn:active:not(:disabled) {
+    transform: none;
+  }
+
+  .animated-action-btn__layer {
+    transition: opacity 120ms ease;
+    transform: none !important;
+    will-change: opacity;
+  }
+
+  .animated-action-btn__layer--inactive {
+    transform: none !important;
+  }
+
+  .animated-action-btn--error-shake,
+  .animated-action-btn__layer--success.animated-action-btn__layer--active {
+    animation: none;
+  }
+}

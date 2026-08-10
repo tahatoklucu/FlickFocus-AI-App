@@ -1,6 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
+import dynamic from "next/dynamic";
 import {
   DefaultChatTransport,
   isReasoningUIPart,
@@ -19,10 +20,22 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from "react";
+import ChatToolInvocation, {
+  getChatToolParts,
+  messageHasToolParts,
+} from "@/components/chat/ChatToolInvocation";
+import AnimatedActionButton from "@/components/ui/AnimatedActionButton";
 import StreamingMarkdownText from "@/components/StreamingMarkdownText";
 import Button from "@/components/ui/Button";
 import { useChatAutoScroll } from "@/hooks/useChatAutoScroll";
+import { ANIMATED_ACTION_BUTTON, type AnimatedActionVisualState } from "@/lib/animated-action-button";
 import { readChatMessages, writeChatMessages, clearChatMessages } from "@/lib/chat-storage";
+import { cn } from "@/lib/cn";
+
+const MovieDetailModal = dynamic(
+  () => import("@/components/MovieDetailModal"),
+  { ssr: false },
+);
 
 type ChatUiPhase = "idle" | "waiting" | "streaming" | "stopping";
 
@@ -105,12 +118,15 @@ function ChatMessageBubble({
   message,
   isActiveAssistant,
   animate,
+  onSelectMovie,
 }: {
   message: UIMessage;
   isActiveAssistant: boolean;
   animate: boolean;
+  onSelectMovie: (imdbID: string) => void;
 }) {
   const isUser = message.role === "user";
+  const hasTools = !isUser && messageHasToolParts(message);
 
   return (
     <div
@@ -119,11 +135,15 @@ function ChatMessageBubble({
       }`}
     >
       <div
-        className={
+        className={cn(
           isUser
             ? "max-w-[92%] rounded-2xl rounded-br-md bg-violet-600 px-4 py-2.5 text-white shadow-md shadow-violet-900/20 sm:max-w-[85%]"
-            : `${ASSISTANT_BUBBLE_CLASS} min-h-[52px]`
-        }
+            : cn(
+                ASSISTANT_BUBBLE_CLASS,
+                "min-h-[52px]",
+                hasTools && "w-full max-w-full border-none bg-transparent p-0 shadow-none sm:max-w-full",
+              ),
+        )}
       >
         {isUser ? (
           <p className="break-words whitespace-pre-wrap text-sm leading-relaxed sm:text-[15px]">
@@ -133,6 +153,7 @@ function ChatMessageBubble({
           <AssistantMessageContent
             message={message}
             isStreaming={isActiveAssistant}
+            onSelectMovie={onSelectMovie}
           />
         )}
       </div>
@@ -143,29 +164,43 @@ function ChatMessageBubble({
 function AssistantMessageContent({
   message,
   isStreaming,
+  onSelectMovie,
 }: {
   message: UIMessage;
   isStreaming: boolean;
+  onSelectMovie: (imdbID: string) => void;
 }) {
   const text = getMessageText(message);
+  const toolParts = getChatToolParts(message);
   const reasoningParts = message.parts.filter(isReasoningUIPart);
   const hasReasoning = hasReasoningContent(message);
   const hasText = text.trim().length > 0;
+  const hasTools = toolParts.length > 0;
   const reasoningStillStreaming = reasoningParts.some(
     (part) => part.state === "streaming",
   );
-  const showThinkingPlaceholder = isStreaming && !hasText;
+  const showThinkingPlaceholder = isStreaming && !hasText && !hasTools;
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-3">
+      {toolParts.map((part) => (
+        <ChatToolInvocation
+          key={part.toolCallId}
+          part={part}
+          onSelectMovie={onSelectMovie}
+        />
+      ))}
+
       {hasReasoning ? (
         <div
-          className={`rounded-lg border border-violet-500/20 bg-violet-500/5 px-3 py-2 text-xs leading-relaxed text-zinc-400 transition-opacity duration-300 motion-reduce:transition-none ${
-            hasText ? "opacity-70" : "opacity-100"
-          }`}
+          className={cn(
+            "rounded-lg border border-violet-500/20 bg-violet-500/5 px-3 py-2 text-xs leading-relaxed text-zinc-400 transition-opacity duration-300 motion-reduce:transition-none",
+            hasTools ? "bg-neutral-900/40" : "",
+            hasText || hasTools ? "opacity-70" : "opacity-100",
+          )}
         >
           <p className="mb-1 font-medium text-violet-300/90">
-            {reasoningStillStreaming && !hasText ? "Thinking…" : "Thought process"}
+            {reasoningStillStreaming && !hasText && !hasTools ? "Thinking…" : "Thought process"}
           </p>
           {reasoningParts.map((part, index) => (
             <p key={index} className="whitespace-pre-wrap italic">
@@ -175,23 +210,32 @@ function AssistantMessageContent({
         </div>
       ) : null}
 
-      <div className="relative min-h-[28px]">
-        {showThinkingPlaceholder && !hasReasoning ? (
-          <div
-            className={`transition-opacity duration-300 motion-reduce:transition-none ${
-              hasText ? "pointer-events-none absolute inset-x-0 opacity-0" : "opacity-100"
-            }`}
-          >
-            <ThinkingIndicator />
-          </div>
-        ) : null}
+      {(hasText || showThinkingPlaceholder) && (
+        <div
+          className={cn(
+            hasTools &&
+              "rounded-2xl rounded-bl-md border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700/60 dark:bg-zinc-800/80",
+          )}
+        >
+          <div className="relative min-h-[28px]">
+            {showThinkingPlaceholder && !hasReasoning ? (
+              <div
+                className={`transition-opacity duration-300 motion-reduce:transition-none ${
+                  hasText ? "pointer-events-none absolute inset-x-0 opacity-0" : "opacity-100"
+                }`}
+              >
+                <ThinkingIndicator />
+              </div>
+            ) : null}
 
-        {hasText ? (
-          <div className="chat-text-reveal motion-reduce:animate-none">
-            <StreamingMarkdownText text={text} isStreaming={isStreaming && hasText} />
+            {hasText ? (
+              <div className="chat-text-reveal motion-reduce:animate-none">
+                <StreamingMarkdownText text={text} isStreaming={isStreaming && hasText} />
+              </div>
+            ) : null}
           </div>
-        ) : null}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -286,7 +330,11 @@ function ChatPageClientLoaded() {
   const [animateFromIndex, setAnimateFromIndex] = useState(initialMessages.length);
   const [input, setInput] = useState("");
   const [stopRequestedAt, setStopRequestedAt] = useState<number | null>(null);
+  const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
+  const [isMovieModalOpen, setIsMovieModalOpen] = useState(false);
+  const [sendSuccessFlash, setSendSuccessFlash] = useState(false);
   const pendingSendRef = useRef<string | null>(null);
+  const prevPhaseRef = useRef<ChatUiPhase>("idle");
 
   const transport = useMemo(
     () => new DefaultChatTransport({ api: "/api/chat" }),
@@ -433,6 +481,33 @@ function ChatPageClientLoaded() {
     lastMessage?.role === "assistant" &&
     Boolean(getMessageText(lastMessage).trim());
 
+  const sendVisualState = useMemo((): AnimatedActionVisualState => {
+    if (error) {
+      return "error";
+    }
+    if (phase === "waiting") {
+      return "loading";
+    }
+    if (sendSuccessFlash) {
+      return "success";
+    }
+    return "idle";
+  }, [error, phase, sendSuccessFlash]);
+
+  useEffect(() => {
+    if (prevPhaseRef.current === "waiting" && phase === "streaming") {
+      setSendSuccessFlash(true);
+      const timeoutId = window.setTimeout(
+        () => setSendSuccessFlash(false),
+        ANIMATED_ACTION_BUTTON.duration.successHold,
+      );
+      prevPhaseRef.current = phase;
+      return () => window.clearTimeout(timeoutId);
+    }
+
+    prevPhaseRef.current = phase;
+  }, [phase]);
+
   const shouldAnimateMessage = useCallback(
     (index: number) => index >= animateFromIndex,
     [animateFromIndex],
@@ -465,6 +540,16 @@ function ChatPageClientLoaded() {
     pinToBottom();
     regenerate();
   }, [canRegenerate, clearError, pinToBottom, regenerate]);
+
+  const handleSelectMovie = useCallback((imdbID: string) => {
+    setSelectedMovieId(imdbID);
+    setIsMovieModalOpen(true);
+  }, []);
+
+  const handleCloseMovieModal = useCallback(() => {
+    setIsMovieModalOpen(false);
+    setSelectedMovieId(null);
+  }, []);
 
   return (
     <div className="flex min-h-[320px] flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60 sm:min-h-0">
@@ -508,8 +593,8 @@ function ChatPageClientLoaded() {
                   Ask about movies
                 </h2>
                 <p className="mt-1 max-w-sm text-sm text-zinc-600 dark:text-zinc-400">
-                  Get recommendations, trivia, and genre picks from your FlickFocus
-                  AI assistant.
+                  Ask for recommendations, search OMDb live, or get ratings — tools
+                  render rich movie cards inline.
                 </p>
               </div>
             ) : (
@@ -525,6 +610,7 @@ function ChatPageClientLoaded() {
                     message={message}
                     isActiveAssistant={isActiveAssistant}
                     animate={shouldAnimateMessage(index)}
+                    onSelectMovie={handleSelectMovie}
                   />
                 );
               })
@@ -629,14 +715,23 @@ function ChatPageClientLoaded() {
                   Regenerate
                 </Button>
               ) : null}
-              <Button
+              <AnimatedActionButton
                 type="submit"
                 variant="violet"
-                disabled={!canSubmit}
+                state={sendVisualState}
+                disabled={
+                  sendVisualState === "success" ||
+                  (sendVisualState === "idle" && !canSubmit)
+                }
+                idleLabel="Send"
+                loadingLabel="Sending"
+                successLabel="Sent"
+                errorLabel="Retry"
+                onRetry={() => clearError()}
+                autoResetSuccess={false}
+                aria-label="Send message"
                 className="chat-control-enter motion-reduce:animate-none shrink-0 motion-reduce:transition-none"
-              >
-                Send
-              </Button>
+              />
             </div>
           )}
         </div>
@@ -644,6 +739,12 @@ function ChatPageClientLoaded() {
           Press Enter to send, Shift+Enter for a new line.
         </p>
       </form>
+
+      <MovieDetailModal
+        imdbID={selectedMovieId}
+        isOpen={isMovieModalOpen}
+        onClose={handleCloseMovieModal}
+      />
     </div>
   );
 }
