@@ -8,23 +8,13 @@ afterEach(() => {
 });
 
 vi.mock("next/image", () => ({
-  default: function MockNextImage({
-    alt,
-    src,
-    priority: _priority,
-    fill: _fill,
-    sizes: _sizes,
-    className,
-    onError,
-  }: {
+  default: function MockNextImage(props: {
     alt: string;
     src: string;
-    priority?: boolean;
-    fill?: boolean;
-    sizes?: string;
     className?: string;
     onError?: () => void;
   }) {
+    const { alt, src, className, onError } = props;
     return createElement("img", { alt, src, className, onError });
   },
 }));

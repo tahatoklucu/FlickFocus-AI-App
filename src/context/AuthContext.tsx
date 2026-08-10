@@ -15,6 +15,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type Dispatch,
   type ReactNode,
   type SetStateAction,
@@ -140,8 +141,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profileSyncState, setProfileSyncState] =
     useState<ProfileSyncState>(initialProfileSyncState);
   const [loading, setLoading] = useState(() => isFirebaseConfigured());
-  const [redirectResolving, setRedirectResolving] = useState(false);
-  const [hasMounted, setHasMounted] = useState(false);
+  const [redirectResolving, setRedirectResolving] = useState(
+    () => isFirebaseConfigured() && isGoogleRedirectPending(),
+  );
+  const hasMounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<AuthModalMode>("signin");
   const [authError, setAuthError] = useState<string | null>(null);
@@ -149,12 +156,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const profileUnsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    setHasMounted(true);
-  }, []);
-
-  useEffect(() => {
     if (!isFirebaseConfigured()) {
-      setLoading(false);
       return;
     }
 
@@ -164,10 +166,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let redirectReady = false;
 
     const wasRedirectPending = isGoogleRedirectPending();
-
-    if (wasRedirectPending) {
-      setRedirectResolving(true);
-    }
 
     function finishInitialization() {
       if (!isActive || !authStateReady || !redirectReady) {

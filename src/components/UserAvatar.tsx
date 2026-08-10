@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { isValidPhotoURL } from "@/lib/avatar-utils";
 import { cn } from "@/lib/cn";
 
@@ -36,19 +36,17 @@ export default function UserAvatar({
   const initial = getInitial(displayName);
   const resolvedPhoto =
     photoURL && isValidPhotoURL(photoURL) ? photoURL.trim() : null;
-  const [imageFailed, setImageFailed] = useState(false);
+  const [failedPhotoUrl, setFailedPhotoUrl] = useState<string | null>(null);
+  const showPhoto = resolvedPhoto !== null && failedPhotoUrl !== resolvedPhoto;
 
-  useEffect(() => {
-    setImageFailed(false);
-  }, [resolvedPhoto]);
-
-  if (resolvedPhoto && !imageFailed) {
+  if (showPhoto) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
+        key={resolvedPhoto}
         src={resolvedPhoto}
         alt={`${displayName || "User"} avatar`}
-        onError={() => setImageFailed(true)}
+        onError={() => setFailedPhotoUrl(resolvedPhoto)}
         className={cn(
           "shrink-0 rounded-full border border-neutral-700/80 bg-neutral-900 object-cover",
           sizeClasses[size],

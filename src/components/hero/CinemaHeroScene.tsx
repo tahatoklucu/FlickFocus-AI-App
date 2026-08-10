@@ -120,11 +120,11 @@ function SceneEnvironment({
   theme: CinemaHeroTheme;
   isMobile: boolean;
 }) {
+  const colors = useThemeColors(theme);
+
   if (!enabled) {
     return null;
   }
-
-  const colors = useThemeColors(theme);
 
   return (
     <Environment

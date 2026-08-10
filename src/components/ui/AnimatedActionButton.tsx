@@ -151,7 +151,6 @@ const AnimatedActionButton = forwardRef<
 ) {
   const [internalState, setInternalState] =
     useState<AnimatedActionVisualState>("idle");
-  const [shakeError, setShakeError] = useState(false);
   const inFlightRef = useRef(false);
   const runIdRef = useRef(0);
   const successTimerRef = useRef<number | null>(null);
@@ -170,20 +169,6 @@ const AnimatedActionButton = forwardRef<
   }, []);
 
   useEffect(() => clearSuccessTimer, [clearSuccessTimer]);
-
-  useEffect(() => {
-    if (visualState !== "error") {
-      setShakeError(false);
-      return;
-    }
-
-    setShakeError(true);
-    const timeoutId = window.setTimeout(
-      () => setShakeError(false),
-      ANIMATED_ACTION_BUTTON.duration.errorShake,
-    );
-    return () => window.clearTimeout(timeoutId);
-  }, [visualState]);
 
   useEffect(() => {
     if (!autoResetSuccess || visualState !== "success" || isControlled) {
@@ -291,7 +276,8 @@ const AnimatedActionButton = forwardRef<
       className={cn(
         "animated-action-btn inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-50 disabled:pointer-events-none disabled:opacity-60 motion-reduce:transition-none dark:focus-visible:ring-offset-zinc-950",
         VARIANT_CLASSES[variant],
-        shakeError && "animated-action-btn--error-shake motion-reduce:animate-none",
+        visualState === "error" &&
+          "animated-action-btn--error-shake motion-reduce:animate-none",
         className,
       )}
       {...props}

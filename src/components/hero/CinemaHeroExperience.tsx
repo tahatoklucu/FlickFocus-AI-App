@@ -3,7 +3,6 @@
 import dynamic from "next/dynamic";
 import CinemaHeroFallback from "@/components/hero/CinemaHeroFallback";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
-import { cn } from "@/lib/cn";
 
 const CinemaHeroCanvas = dynamic(
   () => import("@/components/hero/CinemaHeroCanvas"),

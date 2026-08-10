@@ -3,7 +3,6 @@
 import { Canvas } from "@react-three/fiber";
 import { Suspense } from "react";
 import * as THREE from "three";
-import CinemaHeroFallback from "@/components/hero/CinemaHeroFallback";
 import CinemaHeroScene from "@/components/hero/CinemaHeroScene";
 import { useIsMobileViewport } from "@/hooks/useMediaQuery";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";

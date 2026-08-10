@@ -1,7 +1,6 @@
 "use client";
 
 import { isReasoningUIPart, isTextUIPart, type UIMessage } from "ai";
-import type { ReactNode } from "react";
 import ChatToolInvocation, { getChatToolParts } from "@/components/chat/ChatToolInvocation";
 import StreamingMarkdownText from "@/components/StreamingMarkdownText";
 import { cn } from "@/lib/cn";
