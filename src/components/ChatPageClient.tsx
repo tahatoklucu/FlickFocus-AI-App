@@ -4,8 +4,6 @@ import { useChat } from "@ai-sdk/react";
 import dynamic from "next/dynamic";
 import {
   DefaultChatTransport,
-  isReasoningUIPart,
-  isTextUIPart,
   type ChatStatus,
   type UIMessage,
 } from "ai";
@@ -20,12 +18,13 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from "react";
-import ChatToolInvocation, {
-  getChatToolParts,
-  messageHasToolParts,
-} from "@/components/chat/ChatToolInvocation";
+import {
+  ChatMessageContent,
+  getAssistantMessageText,
+  ThinkingIndicator,
+} from "@/components/chat/ChatAssistantMessage";
+import { messageHasToolParts } from "@/components/chat/ChatToolInvocation";
 import AnimatedActionButton from "@/components/ui/AnimatedActionButton";
-import StreamingMarkdownText from "@/components/StreamingMarkdownText";
 import Button from "@/components/ui/Button";
 import { useChatAutoScroll } from "@/hooks/useChatAutoScroll";
 import { ANIMATED_ACTION_BUTTON, type AnimatedActionVisualState } from "@/lib/animated-action-button";
@@ -57,42 +56,6 @@ function deriveChatUiPhase(status: ChatStatus, stopRequested: boolean): ChatUiPh
 
 const ASSISTANT_BUBBLE_CLASS =
   "max-w-[92%] rounded-2xl rounded-bl-md border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700/60 dark:bg-zinc-800/80 sm:max-w-[85%]";
-
-function ThinkingDots() {
-  return (
-    <span className="inline-flex items-center gap-1 motion-reduce:animate-none" aria-hidden="true">
-      <span className="h-1.5 w-1.5 motion-safe:animate-bounce rounded-full bg-violet-400 [animation-delay:0ms] motion-reduce:animate-none" />
-      <span className="h-1.5 w-1.5 motion-safe:animate-bounce rounded-full bg-violet-400 [animation-delay:150ms] motion-reduce:animate-none" />
-      <span className="h-1.5 w-1.5 motion-safe:animate-bounce rounded-full bg-violet-400 [animation-delay:300ms] motion-reduce:animate-none" />
-    </span>
-  );
-}
-
-function ThinkingIndicator({ label = "Thinking…" }: { label?: string }) {
-  return (
-    <div
-      className="chat-thinking-pulse motion-reduce:animate-none flex min-h-[28px] items-center gap-2 text-sm text-zinc-400 transition-opacity duration-300 motion-reduce:transition-none"
-      aria-live="polite"
-      aria-busy="true"
-    >
-      <ThinkingDots />
-      <span>{label}</span>
-    </div>
-  );
-}
-
-function getMessageText(message: UIMessage) {
-  return message.parts
-    .filter(isTextUIPart)
-    .map((part) => part.text)
-    .join("");
-}
-
-function hasReasoningContent(message: UIMessage) {
-  return message.parts
-    .filter(isReasoningUIPart)
-    .some((part) => part.text.trim().length > 0);
-}
 
 function AssistantMessageShell({
   children,
@@ -146,96 +109,15 @@ function ChatMessageBubble({
         )}
       >
         {isUser ? (
-          <p className="break-words whitespace-pre-wrap text-sm leading-relaxed sm:text-[15px]">
-            {getMessageText(message)}
-          </p>
+          <ChatMessageContent message={message} />
         ) : (
-          <AssistantMessageContent
+          <ChatMessageContent
             message={message}
             isStreaming={isActiveAssistant}
             onSelectMovie={onSelectMovie}
           />
         )}
       </div>
-    </div>
-  );
-}
-
-function AssistantMessageContent({
-  message,
-  isStreaming,
-  onSelectMovie,
-}: {
-  message: UIMessage;
-  isStreaming: boolean;
-  onSelectMovie: (imdbID: string) => void;
-}) {
-  const text = getMessageText(message);
-  const toolParts = getChatToolParts(message);
-  const reasoningParts = message.parts.filter(isReasoningUIPart);
-  const hasReasoning = hasReasoningContent(message);
-  const hasText = text.trim().length > 0;
-  const hasTools = toolParts.length > 0;
-  const reasoningStillStreaming = reasoningParts.some(
-    (part) => part.state === "streaming",
-  );
-  const showThinkingPlaceholder = isStreaming && !hasText && !hasTools;
-
-  return (
-    <div className="space-y-3">
-      {toolParts.map((part) => (
-        <ChatToolInvocation
-          key={part.toolCallId}
-          part={part}
-          onSelectMovie={onSelectMovie}
-        />
-      ))}
-
-      {hasReasoning ? (
-        <div
-          className={cn(
-            "rounded-lg border border-violet-500/20 bg-violet-500/5 px-3 py-2 text-xs leading-relaxed text-zinc-400 transition-opacity duration-300 motion-reduce:transition-none",
-            hasTools ? "bg-neutral-900/40" : "",
-            hasText || hasTools ? "opacity-70" : "opacity-100",
-          )}
-        >
-          <p className="mb-1 font-medium text-violet-300/90">
-            {reasoningStillStreaming && !hasText && !hasTools ? "Thinking…" : "Thought process"}
-          </p>
-          {reasoningParts.map((part, index) => (
-            <p key={index} className="whitespace-pre-wrap italic">
-              {part.text}
-            </p>
-          ))}
-        </div>
-      ) : null}
-
-      {(hasText || showThinkingPlaceholder) && (
-        <div
-          className={cn(
-            hasTools &&
-              "rounded-2xl rounded-bl-md border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700/60 dark:bg-zinc-800/80",
-          )}
-        >
-          <div className="relative min-h-[28px]">
-            {showThinkingPlaceholder && !hasReasoning ? (
-              <div
-                className={`transition-opacity duration-300 motion-reduce:transition-none ${
-                  hasText ? "pointer-events-none absolute inset-x-0 opacity-0" : "opacity-100"
-                }`}
-              >
-                <ThinkingIndicator />
-              </div>
-            ) : null}
-
-            {hasText ? (
-              <div className="chat-text-reveal motion-reduce:animate-none">
-                <StreamingMarkdownText text={text} isStreaming={isStreaming && hasText} />
-              </div>
-            ) : null}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -479,7 +361,7 @@ function ChatPageClientLoaded() {
     phase === "idle" &&
     !error &&
     lastMessage?.role === "assistant" &&
-    Boolean(getMessageText(lastMessage).trim());
+    Boolean(getAssistantMessageText(lastMessage).trim());
 
   const sendVisualState = useMemo((): AnimatedActionVisualState => {
     if (error) {
