@@ -2,11 +2,17 @@ import "server-only";
 
 import { cache } from "react";
 import { FEATURED_MOVIE_IDS } from "@/constants/featuredMovies";
-import type { Movie, MovieSearchResult, SearchParams, SearchResponse } from "@/types";
+import type { GenreChipId } from "@/constants/genreChips";
+import {
+  GENRE_MOVIE_CANDIDATES,
+  GENRE_MOVIE_LIMIT,
+} from "@/constants/genreMovies";
+import { filterMoviesByGenre } from "@/lib/genre-filter";
+import type { FeaturedMovie, Movie, SearchParams, SearchResponse } from "@/types";
 import {
   buildOMDbUrl,
   emptySearchResponse,
-  movieToSearchResult,
+  movieToFeaturedMovie,
   normalizeSearchParams,
   OMDB_REVALIDATE_SECONDS,
   OMDbError,
@@ -84,7 +90,7 @@ export const searchMovies = cache(
 );
 
 export const getFeaturedMovies = cache(
-  async (): Promise<MovieSearchResult[]> => {
+  async (): Promise<FeaturedMovie[]> => {
     const results = await Promise.allSettled(
       FEATURED_MOVIE_IDS.map((imdbID) => getMovieById(imdbID)),
     );
@@ -94,6 +100,33 @@ export const getFeaturedMovies = cache(
         (result): result is PromiseFulfilledResult<Movie> =>
           result.status === "fulfilled",
       )
-      .map((result) => movieToSearchResult(result.value));
+      .map((result) => movieToFeaturedMovie(result.value));
+  },
+);
+
+export const getGenreMovies = cache(
+  async (genreId: GenreChipId): Promise<FeaturedMovie[]> => {
+    const candidates = GENRE_MOVIE_CANDIDATES[genreId];
+    const results = await Promise.allSettled(
+      candidates.map((imdbID) => getMovieById(imdbID)),
+    );
+
+    const movies = results
+      .filter(
+        (result): result is PromiseFulfilledResult<Movie> =>
+          result.status === "fulfilled",
+      )
+      .map((result) => movieToFeaturedMovie(result.value));
+
+    const seen = new Set<string>();
+    const filtered = filterMoviesByGenre(movies, genreId).filter((movie) => {
+      if (seen.has(movie.imdbID)) {
+        return false;
+      }
+      seen.add(movie.imdbID);
+      return true;
+    });
+
+    return filtered.slice(0, GENRE_MOVIE_LIMIT);
   },
 );

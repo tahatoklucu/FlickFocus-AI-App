@@ -205,3 +205,35 @@ button:disabled {
     line-height: 1.25rem;
   }
 }
+
+.scrollbar-dark {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(64 64 64) rgb(10 10 10);
+}
+
+.scrollbar-dark::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-dark::-webkit-scrollbar-track {
+  background: rgb(10 10 10);
+}
+
+.scrollbar-dark::-webkit-scrollbar-thumb {
+  background: rgb(64 64 64);
+  border: 2px solid rgb(10 10 10);
+  border-radius: 9999px;
+}
+
+.scrollbar-dark::-webkit-scrollbar-thumb:hover {
+  background: rgb(82 82 82);
+}
+
+.home-hero-glow {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgb(139 92 246 / 0.22), transparent 55%),
+    radial-gradient(ellipse 50% 40% at 85% 20%, rgb(99 102 241 / 0.12), transparent 50%),
+    radial-gradient(ellipse 40% 35% at 10% 30%, rgb(168 85 247 / 0.08), transparent 45%);
+}

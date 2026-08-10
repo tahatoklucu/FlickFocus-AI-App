@@ -1,30 +1,52 @@
 "use client";
 
-import { FormEvent, useCallback, useState } from "react";
+import { FormEvent, useCallback } from "react";
 import Button from "@/components/ui/Button";
+import { cn } from "@/lib/cn";
 
 interface SearchBarProps {
+  query: string;
+  onQueryChange: (query: string) => void;
   onSearch: (query: string) => void;
   onClear?: () => void;
   isLoading?: boolean;
 }
 
+function SearchIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      aria-hidden="true"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"
+      />
+    </svg>
+  );
+}
+
 export default function SearchBar({
+  query,
+  onQueryChange,
   onSearch,
   onClear,
   isLoading = false,
 }: SearchBarProps) {
-  const [query, setQuery] = useState("");
-
   const handleQueryChange = useCallback(
     (value: string) => {
-      setQuery(value);
+      onQueryChange(value);
 
       if (!value.trim()) {
         onClear?.();
       }
     },
-    [onClear],
+    [onClear, onQueryChange],
   );
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -33,35 +55,34 @@ export default function SearchBar({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="w-full">
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <div className="relative flex-1">
-          <svg
-            className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-zinc-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2}
-            aria-hidden="true"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"
-            />
-          </svg>
+    <form onSubmit={handleSubmit} className="mx-auto w-full max-w-2xl">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div
+          className="hidden shrink-0 sm:flex sm:h-12 sm:w-12 sm:items-center sm:justify-center sm:rounded-2xl sm:border sm:border-white/10 sm:bg-white/[0.06] sm:shadow-lg sm:shadow-violet-950/25 sm:backdrop-blur-md"
+          aria-hidden="true"
+        >
+          <SearchIcon className="h-5 w-5 text-white/75" />
+        </div>
+
+        <div className="relative min-w-0 flex-1">
+          <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-neutral-500 sm:hidden" />
           <input
             type="search"
             value={query}
             onChange={(event) => handleQueryChange(event.target.value)}
             placeholder="Search for a movie..."
             disabled={isLoading}
-            className="min-h-11 w-full rounded-xl border border-zinc-200 bg-white py-3 pl-12 pr-4 text-zinc-900 placeholder:text-zinc-400 shadow-sm transition focus:border-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-200 disabled:cursor-not-allowed disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-50 dark:placeholder:text-zinc-500 dark:focus:border-zinc-500 dark:focus:ring-zinc-800"
+            className={cn(
+              "min-h-12 w-full rounded-xl border border-neutral-800 bg-neutral-900/70 py-3 pr-4 text-neutral-50 shadow-inner shadow-black/20 placeholder:text-neutral-500 backdrop-blur-sm transition focus:border-violet-500/50 focus:outline-none focus:ring-2 focus:ring-violet-500/20 disabled:cursor-not-allowed disabled:opacity-60",
+              "pl-12 sm:pl-4",
+            )}
             aria-label="Search for a movie"
           />
         </div>
+
         <Button
           type="submit"
+          variant="violet"
           disabled={isLoading || !query.trim()}
           className="w-full sm:min-w-[120px] sm:w-auto"
         >

@@ -42,3 +42,8 @@ export interface MovieSearchResult {
   Type: string;
   Poster: string;
 }
+
+/** Featured catalog entry with OMDb genre metadata for local filtering. */
+export interface FeaturedMovie extends MovieSearchResult {
+  Genre: string;
+}

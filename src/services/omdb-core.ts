@@ -87,6 +87,13 @@ export function movieToSearchResult(movie: Movie) {
   };
 }
 
+export function movieToFeaturedMovie(movie: Movie) {
+  return {
+    ...movieToSearchResult(movie),
+    Genre: movie.Genre,
+  };
+}
+
 export function isMovieNotFoundMessage(message: string): boolean {
   const normalized = message.toLowerCase();
   return (

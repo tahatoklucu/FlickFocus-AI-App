@@ -17,6 +17,7 @@ interface MovieListProps {
   showInitialPrompt?: boolean;
   resultLabel?: string;
   priorityCount?: number;
+  hideResultLabel?: boolean;
 }
 
 function MovieList({
@@ -31,10 +32,11 @@ function MovieList({
   showInitialPrompt = true,
   resultLabel,
   priorityCount = 6,
+  hideResultLabel = false,
 }: MovieListProps) {
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 py-20 text-zinc-500 dark:text-zinc-400">
+      <div className="flex flex-col items-center justify-center gap-3 py-20 text-neutral-500">
         <svg
           className="h-8 w-8 animate-spin"
           fill="none"
@@ -75,7 +77,7 @@ function MovieList({
 
   if (!hasSearched && showInitialPrompt) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 py-20 text-center text-zinc-500 dark:text-zinc-400">
+      <div className="flex flex-col items-center justify-center gap-2 py-20 text-center text-neutral-500">
         <svg
           className="mb-2 h-12 w-12 opacity-40"
           fill="none"
@@ -107,17 +109,20 @@ function MovieList({
 
   return (
     <div>
-      <p className="mb-4 text-sm text-zinc-500 dark:text-zinc-400">
-        {resultLabel ??
-          `${movies.length} result${movies.length === 1 ? "" : "s"} found`}
-      </p>
-      <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
+      {!hideResultLabel && (
+        <p className="mb-4 text-sm text-neutral-500">
+          {resultLabel ??
+            `${movies.length} result${movies.length === 1 ? "" : "s"} found`}
+        </p>
+      )}
+      <ul className="grid grid-cols-2 items-stretch gap-3 sm:grid-cols-3 sm:gap-4 md:grid-cols-4 lg:grid-cols-5">
         {movies.map((movie, index) => (
-          <li key={movie.imdbID}>
+          <li key={movie.imdbID} className="flex">
             <MovieCard
               movie={movie}
               onSelect={onMovieSelect}
               priority={index < priorityCount}
+              className="w-full"
             />
           </li>
         ))}

@@ -1,4 +1,5 @@
 import FavoritesPageClient from "@/components/FavoritesPageClient";
+import PageHeroGlow from "@/components/PageHeroGlow";
 import { createPageMetadata } from "@/lib/metadata";
 
 export const metadata = createPageMetadata({
@@ -10,14 +11,19 @@ export const metadata = createPageMetadata({
 
 export default function FavoritesPage() {
   return (
-    <div className="min-h-full bg-zinc-50 dark:bg-zinc-950">
-      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
-        <header className="mb-6 text-center sm:mb-10">
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-3xl lg:text-4xl">
+    <div className="relative flex flex-1 flex-col bg-neutral-950">
+      <PageHeroGlow subdued />
+
+      <div className="relative mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+        <header className="mx-auto mb-8 max-w-xl text-center sm:mb-10">
+          <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-violet-500/25 bg-violet-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-300">
+            Your collection
+          </span>
+          <h1 className="bg-gradient-to-br from-white via-neutral-100 to-neutral-400 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent sm:text-4xl">
             My Favorites
           </h1>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 sm:text-base">
-            Your FlickFocus collection, synced in real time
+          <p className="mt-3 text-sm text-neutral-400 sm:text-base">
+            Your FlickFocus watchlist, synced in real time
           </p>
         </header>
 

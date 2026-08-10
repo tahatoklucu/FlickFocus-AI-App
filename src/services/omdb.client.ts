@@ -1,4 +1,5 @@
-import type { Movie, SearchParams, SearchResponse } from "@/types";
+import type { Movie, SearchParams, SearchResponse, FeaturedMovie } from "@/types";
+import type { GenreChipId } from "@/constants/genreChips";
 import {
   getOMDbErrorMessage,
   OMDbError,
@@ -8,6 +9,7 @@ export { getOMDbErrorMessage, OMDbError };
 
 const movieCache = new Map<string, Movie>();
 const searchCache = new Map<string, SearchResponse>();
+const genreCache = new Map<GenreChipId, FeaturedMovie[]>();
 
 function getSearchCacheKey({ query, page = 1, type = "movie" }: SearchParams) {
   return `${query.trim().toLowerCase()}::${page}::${type}`;
@@ -87,4 +89,21 @@ export async function searchMovies(params: SearchParams): Promise<SearchResponse
   const result = await readJsonResponse<SearchResponse>(response);
   searchCache.set(cacheKey, result);
   return result;
+}
+
+/** Client-side genre catalog fetch with in-memory deduplication. */
+export async function getGenreMovies(genreId: GenreChipId): Promise<FeaturedMovie[]> {
+  const cached = genreCache.get(genreId);
+  if (cached) {
+    return cached;
+  }
+
+  const response = await fetch(`/api/movies/genre/${encodeURIComponent(genreId)}`, {
+    method: "GET",
+    cache: "force-cache",
+  });
+
+  const movies = await readJsonResponse<FeaturedMovie[]>(response);
+  genreCache.set(genreId, movies);
+  return movies;
 }

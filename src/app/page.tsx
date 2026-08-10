@@ -1,7 +1,8 @@
 import HomePageClient from "@/components/HomePageClient";
+import PageHeroGlow from "@/components/PageHeroGlow";
 import { createPageMetadata } from "@/lib/metadata";
 import { getFeaturedMovies } from "@/services/omdb.server";
-import type { MovieSearchResult } from "@/types";
+import type { FeaturedMovie } from "@/types";
 
 export const metadata = createPageMetadata({
   title: "Discover & Save Your Favorite Movies",
@@ -11,7 +12,7 @@ export const metadata = createPageMetadata({
 });
 
 export default async function HomePage() {
-  let featuredMovies: MovieSearchResult[] = [];
+  let featuredMovies: FeaturedMovie[] = [];
 
   try {
     featuredMovies = await getFeaturedMovies();
@@ -20,15 +21,21 @@ export default async function HomePage() {
   }
 
   return (
-    <div className="min-h-full bg-zinc-50 dark:bg-zinc-950">
-      <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
-        <header className="mb-6 text-center sm:mb-10">
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-3xl lg:text-4xl">
+    <div className="relative min-h-full bg-neutral-950">
+      <PageHeroGlow size="lg" />
+
+      <div className="relative mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+        <header className="mx-auto mb-8 max-w-2xl text-center sm:mb-10">
+          <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-violet-500/25 bg-violet-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-300">
+            <span className="h-1.5 w-1.5 rounded-full bg-violet-400" aria-hidden="true" />
+            OMDb powered discovery
+          </span>
+          <h1 className="bg-gradient-to-br from-white via-neutral-100 to-neutral-400 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent sm:text-4xl lg:text-5xl">
             Discover Your Next Favorite Film
           </h1>
-          <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400 sm:text-base">
-            Search the OMDb catalog and save favorites to your FlickFocus
-            collection
+          <p className="mt-3 text-sm leading-relaxed text-neutral-400 sm:text-base">
+            Search the catalog, explore curated classics, and save favorites to
+            your FlickFocus collection
           </p>
         </header>
 

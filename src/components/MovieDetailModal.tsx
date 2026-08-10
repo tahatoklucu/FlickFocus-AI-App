@@ -419,7 +419,7 @@ export default function MovieDetailModal({
         )}
 
         {movie && !isLoading && !error && (
-          <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-x-none">
+          <div className="scrollbar-dark min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-x-none">
             <div className="flex min-w-0 flex-col gap-8 px-5 pb-8 pt-14 sm:flex-row sm:gap-12 sm:px-8 sm:pb-10 sm:pt-16">
               <PosterShowcase
                 poster={movie.Poster}
