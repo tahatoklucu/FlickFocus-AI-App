@@ -2,13 +2,18 @@
 
 import { Environment, Float, Lightformer, Sparkles } from "@react-three/drei";
 import { useFrame, useThree } from "@react-three/fiber";
-import { useCallback, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+import { useCallback, useMemo, useRef, useState, type RefObject } from "react";
 import { BackSide, type Group, type MeshStandardMaterial } from "three";
-import CinemaHeroEffects from "@/components/hero/CinemaHeroEffects";
 import {
   CINEMA_HERO_3D,
   type CinemaHeroTheme,
 } from "@/lib/cinema-hero-3d";
+
+const CinemaHeroEffects = dynamic(
+  () => import("@/components/hero/CinemaHeroEffects"),
+  { ssr: false },
+);
 
 const FRAME_POSITIONS: [number, number, number][] = [
   [1.35, 0.25, 0.15],
@@ -30,22 +35,49 @@ function useThemeColors(theme: CinemaHeroTheme) {
   );
 }
 
-function SceneBackdrop() {
+function usePerfTier(isMobile: boolean) {
+  return useMemo(() => {
+    const tier = CINEMA_HERO_3D.performance;
+    const key = isMobile ? "mobile" : "desktop";
+
+    return {
+      sparkles: tier.sparkles[key],
+      environmentResolution: tier.environmentResolution[key],
+      environmentFrames: tier.environmentFrames[key],
+      filmFrameCount: tier.filmFrames[key],
+      reelTorus: tier.reelTorus[key],
+      shadowCircleSegments: tier.shadowCircleSegments[key],
+      backdropSphere: tier.backdropSphere[key],
+      enableFloat: tier.enableFloat[key],
+      enableParallax: tier.enableParallax[key],
+      enableFilmFramePulse: tier.enableFilmFramePulse[key],
+      frameSkip: tier.frameSkip[key],
+    };
+  }, [isMobile]);
+}
+
+function SceneBackdrop({ segments }: { segments: number }) {
   return (
     <mesh scale={12}>
-      <sphereGeometry args={[1, 32, 32]} />
+      <sphereGeometry args={[1, segments, segments]} />
       <meshBasicMaterial color="#0b0916" side={BackSide} />
     </mesh>
   );
 }
 
-function SceneAtmosphere({ enablePremiumFx }: { enablePremiumFx: boolean }) {
+function SceneAtmosphere({
+  enablePremiumFx,
+  backdropSegments,
+}: {
+  enablePremiumFx: boolean;
+  backdropSegments: number;
+}) {
   const { atmosphere } = CINEMA_HERO_3D;
 
   return (
     <>
       <color attach="background" args={[atmosphere.background]} />
-      <SceneBackdrop />
+      <SceneBackdrop segments={backdropSegments} />
       {enablePremiumFx ? (
         <fogExp2 attach="fog" args={[atmosphere.fogColor, atmosphere.fogDensity]} />
       ) : null}
@@ -114,11 +146,13 @@ function SceneLighting({
 function SceneEnvironment({
   enabled,
   theme,
-  isMobile,
+  resolution,
+  frames,
 }: {
   enabled: boolean;
   theme: CinemaHeroTheme;
-  isMobile: boolean;
+  resolution: number;
+  frames: number;
 }) {
   const colors = useThemeColors(theme);
 
@@ -128,9 +162,9 @@ function SceneEnvironment({
 
   return (
     <Environment
-      resolution={isMobile ? 128 : 512}
-      frames={Infinity}
-      environmentIntensity={isMobile ? 0.38 : 0.55}
+      resolution={resolution}
+      frames={frames}
+      environmentIntensity={resolution >= 256 ? 0.55 : 0.32}
     >
       <Lightformer
         form="rect"
@@ -174,40 +208,37 @@ function FilmFrame({
   hovered,
   enablePremiumFx,
   enableEnvironment,
+  animatePulse,
+  materialRef,
 }: {
   position: [number, number, number];
   theme: CinemaHeroTheme;
   hovered: boolean;
   enablePremiumFx: boolean;
   enableEnvironment: boolean;
+  animatePulse: boolean;
+  materialRef?: RefObject<MeshStandardMaterial | null>;
 }) {
   const colors = useThemeColors(theme);
-  const materialRef = useRef<MeshStandardMaterial>(null);
+  const localMaterialRef = useRef<MeshStandardMaterial>(null);
+  const resolvedRef = materialRef ?? localMaterialRef;
   const pbr = CINEMA_HERO_3D.pbr.filmFrame;
 
-  useFrame(({ clock }) => {
-    if (!materialRef.current) {
-      return;
-    }
-
-    const pulse = (Math.sin(clock.elapsedTime * 1.8 + position[0]) + 1) * 0.5;
-    const target = hovered
+  const emissiveIntensity = animatePulse
+    ? CINEMA_HERO_3D.motion.idleEmissive
+    : hovered
       ? CINEMA_HERO_3D.motion.spotlightEmissive
-      : CINEMA_HERO_3D.motion.idleEmissive + pulse * 0.2;
-
-    materialRef.current.emissiveIntensity +=
-      (target - materialRef.current.emissiveIntensity) * 0.1;
-  });
+      : CINEMA_HERO_3D.motion.idleEmissive;
 
   return (
     <group position={position} rotation={[0.1, position[0] * 0.15, 0]}>
       <mesh>
         <boxGeometry args={[0.38, 0.26, 0.025]} />
         <meshStandardMaterial
-          ref={materialRef}
+          ref={resolvedRef}
           color={colors.frame}
           emissive={colors.emissive}
-          emissiveIntensity={CINEMA_HERO_3D.motion.idleEmissive}
+          emissiveIntensity={emissiveIntensity}
           metalness={pbr.metalness}
           roughness={pbr.roughness}
           envMapIntensity={
@@ -233,23 +264,17 @@ function Clapperboard({
   theme,
   hovered,
   enablePremiumFx,
+  bodyMaterialRef,
 }: {
   theme: CinemaHeroTheme;
   hovered: boolean;
   enablePremiumFx: boolean;
+  bodyMaterialRef?: RefObject<MeshStandardMaterial | null>;
 }) {
   const colors = useThemeColors(theme);
-  const bodyRef = useRef<MeshStandardMaterial>(null);
+  const localBodyRef = useRef<MeshStandardMaterial>(null);
+  const bodyRef = bodyMaterialRef ?? localBodyRef;
   const envScale = enablePremiumFx ? 1 : 0.85;
-
-  useFrame(() => {
-    if (!bodyRef.current) {
-      return;
-    }
-    const target = hovered ? 0.28 : 0.1;
-    bodyRef.current.emissiveIntensity +=
-      (target - bodyRef.current.emissiveIntensity) * 0.1;
-  });
 
   return (
     <group position={[0, 0.92, 0.18]} rotation={[0.08, -0.22, 0]}>
@@ -271,7 +296,7 @@ function Clapperboard({
           ref={bodyRef}
           color="#e4e4e7"
           emissive={colors.emissive}
-          emissiveIntensity={0.1}
+          emissiveIntensity={hovered ? 0.28 : 0.1}
           metalness={CINEMA_HERO_3D.pbr.clapperBody.metalness}
           roughness={CINEMA_HERO_3D.pbr.clapperBody.roughness}
           envMapIntensity={CINEMA_HERO_3D.pbr.clapperBody.envMapIntensity * envScale}
@@ -287,51 +312,33 @@ function InteractiveFilmReel({
   onHoverChange,
   enablePremiumFx,
   enableEnvironment,
+  reelTorus,
+  shadowCircleSegments,
+  ringMaterialRef,
+  hubMaterialRef,
+  groupRef,
+  reelRef,
+  clapperBodyRef,
 }: {
   theme: CinemaHeroTheme;
   onToggleTheme: () => void;
   onHoverChange: (hovered: boolean) => void;
   enablePremiumFx: boolean;
   enableEnvironment: boolean;
+  reelTorus: { radial: number; tubular: number };
+  shadowCircleSegments: number;
+  ringMaterialRef: RefObject<MeshStandardMaterial | null>;
+  hubMaterialRef: RefObject<MeshStandardMaterial | null>;
+  groupRef: RefObject<Group | null>;
+  reelRef: RefObject<Group | null>;
+  clapperBodyRef: RefObject<MeshStandardMaterial | null>;
 }) {
-  const groupRef = useRef<Group>(null);
-  const reelRef = useRef<Group>(null);
   const [hovered, setHovered] = useState(false);
-  const [clicked, setClicked] = useState(false);
   const colors = useThemeColors(theme);
-  const ringMaterialRef = useRef<MeshStandardMaterial>(null);
-  const hubMaterialRef = useRef<MeshStandardMaterial>(null);
   const envScale = enablePremiumFx ? 1 : enableEnvironment ? 0.85 : 0.35;
   const ringPbr = CINEMA_HERO_3D.pbr.reelRing;
   const hubPbr = CINEMA_HERO_3D.pbr.reelHub;
   const spokePbr = CINEMA_HERO_3D.pbr.reelSpoke;
-
-  useFrame(({ clock }) => {
-    if (reelRef.current) {
-      reelRef.current.rotation.z = clock.elapsedTime * 0.4;
-    }
-
-    const targetEmissive = clicked
-      ? CINEMA_HERO_3D.motion.spotlightEmissive
-      : hovered
-        ? CINEMA_HERO_3D.motion.hoverEmissive
-        : CINEMA_HERO_3D.motion.idleEmissive;
-
-    for (const ref of [ringMaterialRef, hubMaterialRef]) {
-      if (!ref.current) {
-        continue;
-      }
-      ref.current.emissiveIntensity +=
-        (targetEmissive - ref.current.emissiveIntensity) * 0.1;
-    }
-
-    if (groupRef.current && clicked) {
-      const scale = 1 + Math.sin(clock.elapsedTime * 5) * 0.02;
-      groupRef.current.scale.setScalar(scale);
-    } else if (groupRef.current) {
-      groupRef.current.scale.setScalar(1);
-    }
-  });
 
   const handlePointerOver = useCallback(() => {
     setHovered(true);
@@ -342,14 +349,13 @@ function InteractiveFilmReel({
     onHoverChange(false);
   }, [onHoverChange]);
   const handleClick = useCallback(() => {
-    setClicked((value) => !value);
     onToggleTheme();
   }, [onToggleTheme]);
 
   return (
     <group ref={groupRef}>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.72, 0]}>
-        <circleGeometry args={[1.05, 64]} />
+        <circleGeometry args={[1.05, shadowCircleSegments]} />
         <meshBasicMaterial color="#000000" transparent opacity={0.42} />
       </mesh>
 
@@ -360,7 +366,7 @@ function InteractiveFilmReel({
         onClick={handleClick}
       >
         <mesh>
-          <torusGeometry args={[0.68, 0.1, 32, 80]} />
+          <torusGeometry args={[0.68, 0.1, reelTorus.tubular, reelTorus.radial]} />
           <meshStandardMaterial
             ref={ringMaterialRef}
             color={colors.ringDark}
@@ -373,7 +379,7 @@ function InteractiveFilmReel({
         </mesh>
 
         <mesh rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.24, 0.24, 0.1, 32]} />
+          <cylinderGeometry args={[0.24, 0.24, 0.1, reelTorus.tubular]} />
           <meshStandardMaterial
             ref={hubMaterialRef}
             color="#0c0c12"
@@ -400,7 +406,7 @@ function InteractiveFilmReel({
         ))}
 
         <mesh rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[0.18, 0.018, 12, 48]} />
+          <torusGeometry args={[0.18, 0.018, 12, Math.min(48, reelTorus.radial)]} />
           <meshStandardMaterial
             color={colors.ring}
             emissive={colors.emissive}
@@ -412,7 +418,12 @@ function InteractiveFilmReel({
         </mesh>
       </group>
 
-      <Clapperboard theme={theme} hovered={hovered} enablePremiumFx={enablePremiumFx} />
+      <Clapperboard
+        theme={theme}
+        hovered={hovered}
+        enablePremiumFx={enablePremiumFx}
+        bodyMaterialRef={clapperBodyRef}
+      />
     </group>
   );
 }
@@ -423,52 +434,142 @@ function SceneRig({
   isMobile,
   enablePremiumFx,
   enableEnvironment,
+  perfTier,
 }: {
   theme: CinemaHeroTheme;
   onToggleTheme: () => void;
   isMobile: boolean;
   enablePremiumFx: boolean;
   enableEnvironment: boolean;
+  perfTier: ReturnType<typeof usePerfTier>;
 }) {
   const rootRef = useRef<Group>(null);
+  const groupRef = useRef<Group>(null);
+  const reelRef = useRef<Group>(null);
+  const ringMaterialRef = useRef<MeshStandardMaterial>(null);
+  const hubMaterialRef = useRef<MeshStandardMaterial>(null);
+  const clapperBodyRef = useRef<MeshStandardMaterial>(null);
+  const filmFrameMaterialRef0 = useRef<MeshStandardMaterial>(null);
+  const filmFrameMaterialRef1 = useRef<MeshStandardMaterial>(null);
+  const filmFrameMaterialRef2 = useRef<MeshStandardMaterial>(null);
+  const filmFrameMaterialRef3 = useRef<MeshStandardMaterial>(null);
+  const filmFrameMaterialRefs = [
+    filmFrameMaterialRef0,
+    filmFrameMaterialRef1,
+    filmFrameMaterialRef2,
+    filmFrameMaterialRef3,
+  ];
+  const frameCounter = useRef(0);
   const { pointer } = useThree();
   const [reelHovered, setReelHovered] = useState(false);
+  const [reelClicked, setReelClicked] = useState(false);
 
-  useFrame((_, delta) => {
-    if (!rootRef.current) {
+  const handleToggleTheme = useCallback(() => {
+    setReelClicked((value) => !value);
+    onToggleTheme();
+  }, [onToggleTheme]);
+
+  useFrame(({ clock }, delta) => {
+    frameCounter.current += 1;
+    if (frameCounter.current % perfTier.frameSkip !== 0) {
       return;
     }
 
-    const strength = isMobile
-      ? CINEMA_HERO_3D.motion.parallaxStrength * 0.4
-      : CINEMA_HERO_3D.motion.parallaxStrength;
+    if (reelRef.current) {
+      reelRef.current.rotation.z = clock.elapsedTime * 0.4;
+    }
 
-    const targetY = pointer.x * strength + 0.15;
-    const targetX = -pointer.y * strength * 0.5 - 0.06;
+    const targetEmissive = reelClicked
+      ? CINEMA_HERO_3D.motion.spotlightEmissive
+      : reelHovered
+        ? CINEMA_HERO_3D.motion.hoverEmissive
+        : CINEMA_HERO_3D.motion.idleEmissive;
 
-    rootRef.current.rotation.y +=
-      (targetY - rootRef.current.rotation.y) * Math.min(delta * 2.5, 1);
-    rootRef.current.rotation.x +=
-      (targetX - rootRef.current.rotation.x) * Math.min(delta * 2.5, 1);
+    for (const ref of [ringMaterialRef, hubMaterialRef]) {
+      if (!ref.current) {
+        continue;
+      }
+      ref.current.emissiveIntensity +=
+        (targetEmissive - ref.current.emissiveIntensity) * 0.1;
+    }
+
+    if (clapperBodyRef.current) {
+      const clapperTarget = reelHovered || reelClicked ? 0.28 : 0.1;
+      clapperBodyRef.current.emissiveIntensity +=
+        (clapperTarget - clapperBodyRef.current.emissiveIntensity) * 0.1;
+    }
+
+    if (perfTier.enableFilmFramePulse) {
+      FRAME_POSITIONS.slice(0, perfTier.filmFrameCount).forEach((position, index) => {
+        const material = filmFrameMaterialRefs[index]?.current;
+        if (!material) {
+          return;
+        }
+
+        const pulse = (Math.sin(clock.elapsedTime * 1.8 + position[0]) + 1) * 0.5;
+        const target = reelHovered
+          ? CINEMA_HERO_3D.motion.spotlightEmissive
+          : CINEMA_HERO_3D.motion.idleEmissive + pulse * 0.2;
+
+        material.emissiveIntensity +=
+          (target - material.emissiveIntensity) * 0.1;
+      });
+    }
+
+    if (groupRef.current && reelClicked) {
+      const scale = 1 + Math.sin(clock.elapsedTime * 5) * 0.02;
+      groupRef.current.scale.setScalar(scale);
+    } else if (groupRef.current) {
+      groupRef.current.scale.setScalar(1);
+    }
+
+    if (perfTier.enableParallax && rootRef.current) {
+      const strength = isMobile
+        ? CINEMA_HERO_3D.motion.parallaxStrength * 0.4
+        : CINEMA_HERO_3D.motion.parallaxStrength;
+
+      const targetY = pointer.x * strength + 0.15;
+      const targetX = -pointer.y * strength * 0.5 - 0.06;
+
+      rootRef.current.rotation.y +=
+        (targetY - rootRef.current.rotation.y) * Math.min(delta * 2.5, 1);
+      rootRef.current.rotation.x +=
+        (targetX - rootRef.current.rotation.x) * Math.min(delta * 2.5, 1);
+    }
   });
+
+  const reel = (
+    <InteractiveFilmReel
+      theme={theme}
+      onToggleTheme={handleToggleTheme}
+      onHoverChange={setReelHovered}
+      enablePremiumFx={enablePremiumFx}
+      enableEnvironment={enableEnvironment}
+      reelTorus={perfTier.reelTorus}
+      shadowCircleSegments={perfTier.shadowCircleSegments}
+      ringMaterialRef={ringMaterialRef}
+      hubMaterialRef={hubMaterialRef}
+      groupRef={groupRef}
+      reelRef={reelRef}
+      clapperBodyRef={clapperBodyRef}
+    />
+  );
 
   return (
     <group ref={rootRef} rotation={[-0.04, 0.22, 0]}>
-      <Float
-        speed={CINEMA_HERO_3D.motion.floatSpeed}
-        rotationIntensity={0.08}
-        floatIntensity={CINEMA_HERO_3D.motion.floatAmplitude}
-      >
-        <InteractiveFilmReel
-          theme={theme}
-          onToggleTheme={onToggleTheme}
-          onHoverChange={setReelHovered}
-          enablePremiumFx={enablePremiumFx}
-          enableEnvironment={enableEnvironment}
-        />
-      </Float>
+      {perfTier.enableFloat ? (
+        <Float
+          speed={CINEMA_HERO_3D.motion.floatSpeed}
+          rotationIntensity={0.08}
+          floatIntensity={CINEMA_HERO_3D.motion.floatAmplitude}
+        >
+          {reel}
+        </Float>
+      ) : (
+        reel
+      )}
 
-      {FRAME_POSITIONS.slice(0, isMobile ? 2 : 4).map((position, index) => (
+      {FRAME_POSITIONS.slice(0, perfTier.filmFrameCount).map((position, index) => (
         <FilmFrame
           key={index}
           position={position}
@@ -476,12 +577,14 @@ function SceneRig({
           hovered={reelHovered}
           enablePremiumFx={enablePremiumFx}
           enableEnvironment={enableEnvironment}
+          animatePulse={perfTier.enableFilmFramePulse}
+          materialRef={filmFrameMaterialRefs[index]}
         />
       ))}
 
-      {enablePremiumFx ? (
+      {perfTier.sparkles > 0 ? (
         <Sparkles
-          count={36}
+          count={perfTier.sparkles}
           scale={[3, 2.2, 1.8]}
           size={2}
           speed={0.18}
@@ -499,6 +602,7 @@ export default function CinemaHeroScene({
   enableEnvironment,
 }: CinemaHeroSceneProps) {
   const [theme, setTheme] = useState<CinemaHeroTheme>("gold");
+  const perfTier = usePerfTier(isMobile);
 
   const toggleTheme = useCallback(() => {
     setTheme((current) => (current === "gold" ? "spotlight" : "gold"));
@@ -506,12 +610,16 @@ export default function CinemaHeroScene({
 
   return (
     <>
-      <SceneAtmosphere enablePremiumFx={enablePremiumFx} />
+      <SceneAtmosphere
+        enablePremiumFx={enablePremiumFx}
+        backdropSegments={perfTier.backdropSphere}
+      />
       <SceneLighting theme={theme} enablePremiumFx={enablePremiumFx} />
       <SceneEnvironment
         enabled={enableEnvironment}
         theme={theme}
-        isMobile={isMobile}
+        resolution={perfTier.environmentResolution}
+        frames={perfTier.environmentFrames}
       />
       <SceneRig
         theme={theme}
@@ -519,6 +627,7 @@ export default function CinemaHeroScene({
         isMobile={isMobile}
         enablePremiumFx={enablePremiumFx}
         enableEnvironment={enableEnvironment}
+        perfTier={perfTier}
       />
       {enablePremiumFx ? <CinemaHeroEffects /> : null}
     </>

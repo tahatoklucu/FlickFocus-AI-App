@@ -271,7 +271,6 @@ const AnimatedActionButton = forwardRef<
       disabled={isDisabled}
       onClick={handleClick}
       aria-busy={visualState === "loading"}
-      aria-live="polite"
       aria-label={computedAriaLabel}
       className={cn(
         "animated-action-btn inline-flex min-h-11 items-center justify-center rounded-xl px-4 text-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-50 disabled:pointer-events-none disabled:opacity-60 motion-reduce:transition-none dark:focus-visible:ring-offset-zinc-950",

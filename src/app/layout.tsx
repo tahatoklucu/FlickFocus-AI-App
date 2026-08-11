@@ -1,19 +1,18 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist } from "next/font/google";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Providers from "@/components/Providers";
+import { CRITICAL_CSS } from "@/lib/critical-css";
 import { rootMetadata } from "@/lib/metadata";
 import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  display: "swap",
+  adjustFontFallback: true,
+  preload: false,
 });
 
 export const metadata: Metadata = rootMetadata;
@@ -22,12 +21,20 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} min-h-dvh antialiased`}
+      className={`${geistSans.variable} min-h-dvh antialiased`}
     >
-      <body className="flex min-h-dvh flex-col overflow-x-hidden">
+      <head>
+        <style dangerouslySetInnerHTML={{ __html: CRITICAL_CSS }} />
+      </head>
+      <body className="flex min-h-dvh flex-col overflow-x-hidden bg-neutral-950 text-neutral-100">
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
         <Providers>
           <Header />
-          <main className="flex flex-1 flex-col">{children}</main>
+          <main id="main-content" className="flex flex-1 flex-col" tabIndex={-1}>
+            {children}
+          </main>
           <Footer />
         </Providers>
       </body>

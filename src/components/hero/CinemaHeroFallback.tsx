@@ -2,18 +2,22 @@ import { cn } from "@/lib/cn";
 
 interface CinemaHeroFallbackProps {
   className?: string;
-  loading?: boolean;
+  /** When true, fills a pre-sized parent shell (homepage hero slot). */
+  embedded?: boolean;
 }
 
+/** SSR-safe static hero — CSS illustration; reserves space before WebGL loads. */
 export default function CinemaHeroFallback({
   className,
-  loading = false,
+  embedded = false,
 }: CinemaHeroFallbackProps) {
   return (
     <figure
       className={cn(
-        "relative mx-auto flex aspect-[4/3] w-full max-w-md items-center justify-center overflow-hidden rounded-2xl border border-violet-500/15 bg-gradient-to-br from-neutral-900 via-neutral-950 to-violet-950/40 shadow-2xl shadow-violet-950/20 ring-1 ring-white/5",
-        loading && "cinema-hero-fallback--loading",
+        "relative flex items-center justify-center overflow-hidden rounded-2xl border border-violet-500/15 bg-gradient-to-br from-neutral-900 via-neutral-950 to-violet-950/40 shadow-2xl shadow-violet-950/20 ring-1 ring-white/5",
+        embedded
+          ? "h-full w-full"
+          : "mx-auto aspect-[4/3] w-full max-w-md",
         className,
       )}
       aria-label="Cinematic film reel illustration"
@@ -40,8 +44,7 @@ export default function CinemaHeroFallback({
       </div>
 
       <figcaption className="sr-only">
-        Static cinema hero — interactive 3D scene is unavailable when reduced motion
-        is preferred or while the WebGL canvas loads.
+        Static cinema hero — interactive 3D scene loads on demand when motion is allowed.
       </figcaption>
     </figure>
   );

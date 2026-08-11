@@ -2,6 +2,7 @@
 
 import { memo, useState } from "react";
 import Image from "next/image";
+import { POSTER_QUALITY } from "@/lib/image-config";
 
 export function hasValidPoster(poster: string): boolean {
   return poster !== "N/A" && poster.trim().length > 0;
@@ -12,6 +13,7 @@ interface MoviePosterProps {
   title: string;
   year?: string;
   sizes?: string;
+  quality?: number;
   priority?: boolean;
   className?: string;
   variant?: "card" | "detail";
@@ -22,12 +24,15 @@ function MoviePoster({
   title,
   year,
   sizes = "100vw",
+  quality,
   priority = false,
   className = "object-cover",
   variant = "card",
 }: MoviePosterProps) {
   const [hasError, setHasError] = useState(false);
   const showImage = hasValidPoster(poster) && !hasError;
+  const resolvedQuality =
+    quality ?? (variant === "detail" ? POSTER_QUALITY.detail : POSTER_QUALITY.card);
 
   if (!showImage) {
     return (
@@ -58,6 +63,7 @@ function MoviePoster({
       alt={`${title} poster`}
       fill
       sizes={sizes}
+      quality={resolvedQuality}
       priority={priority}
       fetchPriority={priority ? "high" : "auto"}
       loading={priority ? "eager" : "lazy"}

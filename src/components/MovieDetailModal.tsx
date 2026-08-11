@@ -1,11 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import FavoriteButton from "@/components/FavoriteButton";
 import MovieNotFound from "@/components/MovieNotFound";
 import Button from "@/components/ui/Button";
 import { hasValidPoster } from "@/components/MoviePoster";
+import { POSTER_QUALITY, POSTER_SIZES } from "@/lib/image-config";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { getMovieById, getOMDbErrorMessage } from "@/services/omdb";
 import { isMovieNotFoundMessage } from "@/services/omdb-core";
 import type { Movie } from "@/types";
@@ -180,9 +182,10 @@ function PosterShowcase({
               src={poster}
               alt=""
               fill
-              sizes="270px"
+              sizes={POSTER_SIZES.modal}
+              quality={POSTER_QUALITY.decorative}
               className="scale-125 object-cover"
-              priority
+              loading="lazy"
             />
           </div>
           <div
@@ -193,9 +196,10 @@ function PosterShowcase({
               src={poster}
               alt=""
               fill
-              sizes="270px"
+              sizes={POSTER_SIZES.modal}
+              quality={POSTER_QUALITY.decorative}
               className="object-cover"
-              priority
+              loading="lazy"
             />
           </div>
         </>
@@ -207,7 +211,8 @@ function PosterShowcase({
             src={poster}
             alt={`${title} poster`}
             fill
-            sizes="270px"
+            sizes={POSTER_SIZES.modal}
+            quality={POSTER_QUALITY.detail}
             priority
             className="object-cover object-center"
             onError={() => setHasError(true)}
@@ -275,6 +280,8 @@ export default function MovieDetailModal({
 }: MovieDetailModalProps) {
   const [movie, setMovie] = useState<Movie | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, isOpen);
   const [error, setError] = useState<string | null>(null);
 
   const handleClose = useCallback(() => {
@@ -376,17 +383,24 @@ export default function MovieDetailModal({
       <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" aria-hidden="true" />
 
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="movie-detail-title"
         aria-busy={isLoading}
+        aria-describedby={isLoading ? "movie-detail-loading" : error ? "movie-detail-error" : undefined}
         className="relative z-10 flex max-h-[94dvh] w-full max-w-5xl flex-col overflow-hidden overscroll-x-none rounded-t-2xl border border-neutral-800 bg-neutral-950 shadow-2xl sm:max-h-[90dvh] sm:rounded-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <ModalToolbar onClose={handleClose} movie={movie ?? undefined} showFavorite={showFavorite} />
 
         {isLoading && (
-          <div className="flex min-h-[320px] flex-col items-center justify-center gap-4 px-6 pb-16 pt-16">
+          <div
+            id="movie-detail-loading"
+            role="status"
+            aria-live="polite"
+            className="flex min-h-[320px] flex-col items-center justify-center gap-4 px-6 pb-16 pt-16"
+          >
             <svg className="h-9 w-9 animate-spin text-neutral-400" fill="none" viewBox="0 0 24 24" aria-hidden="true">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />

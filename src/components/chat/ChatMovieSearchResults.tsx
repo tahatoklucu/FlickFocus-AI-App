@@ -1,6 +1,7 @@
 "use client";
 
 import MoviePoster from "@/components/MoviePoster";
+import { POSTER_SIZES } from "@/lib/image-config";
 import type { ChatMovieSearchOutput } from "@/types/chat-tools";
 import { ChatToolLifecycleShell } from "./ChatToolLifecycle";
 
@@ -45,14 +46,15 @@ export default function ChatMovieSearchResults({
               <button
                 type="button"
                 onClick={() => onSelectMovie?.(movie.imdbID)}
-                className="group flex h-full w-full flex-col overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/70 text-left transition hover:border-violet-500/35 hover:shadow-lg hover:shadow-violet-950/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40"
+                aria-label={`View details for ${movie.title}`}
+                className="group flex h-full w-full flex-col overflow-hidden rounded-lg border border-neutral-800 bg-neutral-900/70 text-left transition hover:border-violet-500/35 hover:shadow-lg hover:shadow-violet-950/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40"
               >
                 <div className="relative aspect-[2/3] w-full overflow-hidden bg-neutral-800">
                   <MoviePoster
                     poster={movie.poster}
                     title={movie.title}
                     year={movie.year}
-                    sizes="120px"
+                    sizes={POSTER_SIZES.chatThumb}
                     className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                   />
                 </div>

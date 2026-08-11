@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useRef, useState, type ReactNode } from "react";
+import { memo, useCallback, useRef, useState, type ReactNode } from "react";
 import MovieList from "@/components/MovieList";
 import SearchBar from "@/components/SearchBar";
 import {
@@ -66,10 +66,13 @@ function GenreChip({
   );
 }
 
+const MemoizedGenreChip = memo(GenreChip);
+
 export default function HomePageClient({
   initialFeaturedMovies,
 }: HomePageClientProps) {
   const resultsRef = useRef<HTMLElement>(null);
+  const posterPriorityCount = 0;
   const [searchQuery, setSearchQuery] = useState("");
   const [activeGenre, setActiveGenre] = useState<GenreChipId | null>(null);
   const [movies, setMovies] = useState<MovieSearchResult[]>([]);
@@ -220,7 +223,7 @@ export default function HomePageClient({
         />
         <div className="mx-auto mt-4 flex max-w-2xl flex-wrap justify-center gap-2 sm:justify-start">
           {GENRE_CHIPS.map((genre) => (
-            <GenreChip
+            <MemoizedGenreChip
               key={genre.id}
               label={genre.label}
               active={activeGenre === genre.id}
@@ -252,7 +255,7 @@ export default function HomePageClient({
               hasSearched
               onMovieSelect={handleMovieSelect}
               showInitialPrompt={false}
-              priorityCount={10}
+              priorityCount={posterPriorityCount}
               hideResultLabel
               emptyTitle="No featured movies available"
               emptySubtitle="We couldn't load the curated picks right now. Please refresh or try searching above."
@@ -287,7 +290,7 @@ export default function HomePageClient({
               error={null}
               hasSearched
               onMovieSelect={handleMovieSelect}
-              priorityCount={10}
+              priorityCount={posterPriorityCount}
               resultLabel={resultLabel}
               emptyTitle={
                 searchView === "genre"

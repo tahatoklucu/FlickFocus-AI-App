@@ -1,73 +1,34 @@
 "use client";
 
+import type { User } from "firebase/auth";
 import {
-  createUserWithEmailAndPassword,
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut,
-  type User,
-} from "firebase/auth";
-import {
-  createContext,
+  useSyncExternalStore,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
   type Dispatch,
   type ReactNode,
   type SetStateAction,
 } from "react";
-import { getFirebaseAuth, isFirebaseConfigured } from "@/lib/firebase";
+import {
+  AuthContext,
+  type AuthContextValue,
+  type AuthModalMode,
+} from "@/context/auth-context.shared";
+import {
+  ensureFirebaseAuth,
+  ensureFirebaseDb,
+  getFirebaseAuth,
+} from "@/lib/firebase";
+import { isFirebaseConfigured } from "@/lib/firebase-config";
+import { consumePendingAuthModal } from "@/lib/google-auth-pending";
 import { readProfileCache } from "@/lib/profile-cache";
-import {
-  completeGoogleRedirectSignIn,
-  getGoogleAuthErrorMessage,
-  isGoogleRedirectPending,
-  signInWithGoogle as startGoogleSignIn,
-  type GoogleSignInMethod,
-} from "@/lib/google-auth";
-import {
-  buildProfileFromAuth,
-  ensureUserProfile,
-  subscribeToUserProfile,
-  updateUserProfile as persistUserProfile,
-  uploadUserAvatar,
-  type UpdateUserProfileInput,
-} from "@/services/users";
 import type { UserProfile } from "@/types/user";
 
-export type AuthModalMode = "signin" | "signup";
-
-interface AuthContextValue {
-  user: User | null;
-  userProfile: UserProfile | null;
-  loading: boolean;
-  redirectResolving: boolean;
-  profileLoading: boolean;
-  profileSyncing: boolean;
-  profileError: string | null;
-  cloudSyncOffline: boolean;
-  isConfigured: boolean;
-  isAuthModalOpen: boolean;
-  authModalMode: AuthModalMode;
-  openAuthModal: (mode?: AuthModalMode) => void;
-  closeAuthModal: () => void;
-  signInWithGoogle: () => Promise<GoogleSignInMethod>;
-  signInWithEmail: (email: string, password: string) => Promise<void>;
-  signUpWithEmail: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  authError: string | null;
-  clearAuthError: () => void;
-  clearProfileError: () => void;
-  retryProfileSync: () => Promise<void>;
-  updateUserProfile: (input: UpdateUserProfileInput) => Promise<UserProfile>;
-  uploadProfilePhoto: (file: File) => Promise<string>;
-}
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+export type { AuthModalMode } from "@/context/auth-context.shared";
+export { useAuth } from "@/context/auth-context.shared";
 
 interface ProfileSyncState {
   userId: string | null;
@@ -124,6 +85,7 @@ function applyAuthUser(
   firebaseUser: User,
   setUser: (user: User) => void,
   setProfileSyncState: Dispatch<SetStateAction<ProfileSyncState>>,
+  buildProfileFromAuth: (user: User) => UserProfile,
 ) {
   setUser(firebaseUser);
   setProfileSyncState({
@@ -141,9 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profileSyncState, setProfileSyncState] =
     useState<ProfileSyncState>(initialProfileSyncState);
   const [loading, setLoading] = useState(() => isFirebaseConfigured());
-  const [redirectResolving, setRedirectResolving] = useState(
-    () => isFirebaseConfigured() && isGoogleRedirectPending(),
-  );
+  const [redirectResolving, setRedirectResolving] = useState(false);
   const hasMounted = useSyncExternalStore(
     () => () => {},
     () => true,
@@ -154,89 +114,125 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authError, setAuthError] = useState<string | null>(null);
   const [profileSyncing, setProfileSyncing] = useState(false);
   const profileUnsubscribeRef = useRef<(() => void) | null>(null);
+  const authUnsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (!isFirebaseConfigured()) {
       return;
     }
 
-    const auth = getFirebaseAuth();
     let isActive = true;
-    let authStateReady = false;
-    let redirectReady = false;
 
-    const wasRedirectPending = isGoogleRedirectPending();
+    void (async () => {
+      const [
+        { onAuthStateChanged },
+        auth,
+        { isGoogleRedirectPending, completeGoogleRedirectSignIn, getGoogleAuthErrorMessage },
+        { buildProfileFromAuth },
+      ] = await Promise.all([
+        import("firebase/auth"),
+        ensureFirebaseAuth(),
+        import("@/lib/google-auth"),
+        import("@/services/users"),
+      ]);
 
-    function finishInitialization() {
-      if (!isActive || !authStateReady || !redirectReady) {
-        return;
-      }
+      await ensureFirebaseDb();
 
-      setLoading(false);
-      setRedirectResolving(false);
-    }
-
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (!isActive) {
         return;
       }
 
-      setUser(firebaseUser);
+      let authStateReady = false;
+      let redirectReady = false;
+      const wasRedirectPending = isGoogleRedirectPending();
 
-      if (firebaseUser) {
-        setProfileSyncState({
-          userId: firebaseUser.uid,
-          hasReceivedProfile: true,
-          profile:
-            readProfileCache(firebaseUser.uid) ??
-            buildProfileFromAuth(firebaseUser),
-          error: null,
-          cloudSyncOffline: false,
-        });
-      } else {
-        setProfileSyncState(initialProfileSyncState);
+      function finishInitialization() {
+        if (!isActive || !authStateReady || !redirectReady) {
+          return;
+        }
+
+        setLoading(false);
+        setRedirectResolving(false);
       }
 
-      authStateReady = true;
-      finishInitialization();
-    });
+      const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+        if (!isActive) {
+          return;
+        }
 
-    if (wasRedirectPending) {
-      void completeGoogleRedirectSignIn(auth)
-        .then((result) => {
-          if (!isActive || !result?.user) {
-            return;
-          }
+        setUser(firebaseUser);
 
-          applyAuthUser(result.user, setUser, setProfileSyncState);
-          setAuthError(null);
-          setIsAuthModalOpen(false);
-        })
-        .catch((error: unknown) => {
-          if (!isActive) {
-            return;
-          }
+        if (firebaseUser) {
+          setProfileSyncState({
+            userId: firebaseUser.uid,
+            hasReceivedProfile: true,
+            profile:
+              readProfileCache(firebaseUser.uid) ??
+              buildProfileFromAuth(firebaseUser),
+            error: null,
+            cloudSyncOffline: false,
+          });
+        } else {
+          setProfileSyncState(initialProfileSyncState);
+        }
 
-          setAuthError(getGoogleAuthErrorMessage(error));
-          setAuthModalMode("signin");
-          setIsAuthModalOpen(true);
-        })
-        .finally(() => {
-          if (!isActive) {
-            return;
-          }
+        authStateReady = true;
+        finishInitialization();
+      });
 
-          redirectReady = true;
-          finishInitialization();
-        });
-    } else {
-      redirectReady = true;
-      finishInitialization();
-    }
+      if (wasRedirectPending) {
+        setRedirectResolving(true);
+        void completeGoogleRedirectSignIn(auth)
+          .then((result) => {
+            if (!isActive || !result?.user) {
+              return;
+            }
+
+            applyAuthUser(result.user, setUser, setProfileSyncState, buildProfileFromAuth);
+            setAuthError(null);
+            setIsAuthModalOpen(false);
+          })
+          .catch((error: unknown) => {
+            if (!isActive) {
+              return;
+            }
+
+            void getGoogleAuthErrorMessage(error).then((message) => {
+              if (!isActive) {
+                return;
+              }
+
+              setAuthError(message);
+              setAuthModalMode("signin");
+              setIsAuthModalOpen(true);
+            });
+          })
+          .finally(() => {
+            if (!isActive) {
+              return;
+            }
+
+            redirectReady = true;
+            finishInitialization();
+          });
+      } else {
+        redirectReady = true;
+        finishInitialization();
+      }
+
+      const pendingModal = consumePendingAuthModal();
+      if (pendingModal) {
+        setAuthModalMode(pendingModal);
+        setIsAuthModalOpen(true);
+      }
+
+      authUnsubscribeRef.current = unsubscribe;
+    })();
 
     return () => {
       isActive = false;
-      unsubscribe();
+      authUnsubscribeRef.current?.();
+      authUnsubscribeRef.current = null;
     };
   }, []);
 
@@ -251,44 +247,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const userId = activeUser.uid;
     let isActive = true;
 
-    function attachProfileListener() {
-      profileUnsubscribeRef.current?.();
+    void (async () => {
+      const {
+        buildProfileFromAuth,
+        ensureUserProfile,
+        subscribeToUserProfile,
+      } = await import("@/services/users");
 
-      profileUnsubscribeRef.current = subscribeToUserProfile(
-        userId,
-        (profile) => {
-          if (!isActive || !profile) {
-            return;
-          }
+      function attachProfileListener() {
+        profileUnsubscribeRef.current?.();
 
-          setProfileSyncState({
-            userId,
-            hasReceivedProfile: true,
-            profile,
-            error: null,
-            cloudSyncOffline: false,
-          });
-        },
-        () => {
-          if (!isActive) {
-            return;
-          }
+        profileUnsubscribeRef.current = subscribeToUserProfile(
+          userId,
+          (profile) => {
+            if (!isActive || !profile) {
+              return;
+            }
 
-          setProfileSyncState((current) => ({
-            userId,
-            hasReceivedProfile: true,
-            profile:
-              current.profile ??
-              readProfileCache(userId) ??
-              buildProfileFromAuth(activeUser),
-            error: null,
-            cloudSyncOffline: true,
-          }));
-        },
-      );
-    }
+            setProfileSyncState({
+              userId,
+              hasReceivedProfile: true,
+              profile,
+              error: null,
+              cloudSyncOffline: false,
+            });
+          },
+          () => {
+            if (!isActive) {
+              return;
+            }
 
-    async function syncProfile() {
+            setProfileSyncState((current) => ({
+              userId,
+              hasReceivedProfile: true,
+              profile:
+                current.profile ??
+                readProfileCache(userId) ??
+                buildProfileFromAuth(activeUser),
+              error: null,
+              cloudSyncOffline: true,
+            }));
+          },
+        );
+      }
+
       setProfileSyncing(true);
 
       try {
@@ -302,13 +304,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-          setProfileSyncState({
-            userId,
-            hasReceivedProfile: true,
-            profile,
-            error: null,
-            cloudSyncOffline: !syncedToCloud,
-          });
+        setProfileSyncState({
+          userId,
+          hasReceivedProfile: true,
+          profile,
+          error: null,
+          cloudSyncOffline: !syncedToCloud,
+        });
 
         if (syncedToCloud) {
           attachProfileListener();
@@ -333,9 +335,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setProfileSyncing(false);
         }
       }
-    }
-
-    void syncProfile();
+    })();
 
     return () => {
       isActive = false;
@@ -351,6 +351,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const activeUser = user;
     const userId = activeUser.uid;
+    const {
+      buildProfileFromAuth,
+      ensureUserProfile,
+      subscribeToUserProfile,
+    } = await import("@/services/users");
 
     setProfileSyncing(true);
     setProfileSyncState((current) =>
@@ -491,7 +496,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
-    const method = await startGoogleSignIn(getFirebaseAuth());
+    const [{ signInWithGoogle: startGoogleSignIn }, auth] = await Promise.all([
+      import("@/lib/google-auth"),
+      ensureFirebaseAuth(),
+    ]);
+    const method = await startGoogleSignIn(auth);
 
     if (method === "popup") {
       closeAuthModal();
@@ -502,7 +511,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithEmail = useCallback(
     async (email: string, password: string) => {
-      await signInWithEmailAndPassword(getFirebaseAuth(), email, password);
+      const [{ signInWithEmailAndPassword }, auth] = await Promise.all([
+        import("firebase/auth"),
+        ensureFirebaseAuth(),
+      ]);
+      await signInWithEmailAndPassword(auth, email, password);
       closeAuthModal();
     },
     [closeAuthModal],
@@ -510,22 +523,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signUpWithEmail = useCallback(
     async (email: string, password: string) => {
-      await createUserWithEmailAndPassword(getFirebaseAuth(), email, password);
+      const [{ createUserWithEmailAndPassword }, auth] = await Promise.all([
+        import("firebase/auth"),
+        ensureFirebaseAuth(),
+      ]);
+      await createUserWithEmailAndPassword(auth, email, password);
       closeAuthModal();
     },
     [closeAuthModal],
   );
 
   const logout = useCallback(async () => {
-    await signOut(getFirebaseAuth());
+    const [{ signOut }, auth] = await Promise.all([
+      import("firebase/auth"),
+      ensureFirebaseAuth(),
+    ]);
+    await signOut(auth);
   }, []);
 
   const updateUserProfile = useCallback(
-    async (input: UpdateUserProfileInput) => {
+    async (input: import("@/services/users").UpdateUserProfileInput) => {
       if (!user) {
         throw new Error("You must be signed in to update your profile.");
       }
 
+      const { updateUserProfile: persistUserProfile } = await import("@/services/users");
       const profile = await persistUserProfile(user, input);
       const auth = getFirebaseAuth();
 
@@ -552,6 +574,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error("You must be signed in to upload a profile photo.");
       }
 
+      const { uploadUserAvatar } = await import("@/services/users");
       return uploadUserAvatar(user, file);
     },
     [user],
@@ -623,14 +646,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ) : null}
     </AuthContext.Provider>
   );
-}
-
-export function useAuth(): AuthContextValue {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider.");
-  }
-
-  return context;
 }

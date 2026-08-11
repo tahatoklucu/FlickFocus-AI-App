@@ -65,7 +65,9 @@ export default function SearchBar({
         </div>
 
         <div className="relative min-w-0 flex-1">
-          <SearchIcon className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-neutral-500 sm:hidden" />
+          <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 sm:hidden" aria-hidden="true">
+            <SearchIcon className="h-5 w-5 text-neutral-500" />
+          </span>
           <input
             type="search"
             value={query}

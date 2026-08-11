@@ -31,11 +31,13 @@ function DropdownItem({
   href,
   onClick,
   active,
+  ariaLabel,
   children,
 }: {
   href?: string;
   onClick?: () => void;
   active?: boolean;
+  ariaLabel?: string;
   children: ReactNode;
 }) {
   const className = cn(
@@ -45,7 +47,13 @@ function DropdownItem({
 
   if (href) {
     return (
-      <Link href={href} role="menuitem" onClick={onClick} className={className}>
+      <Link
+        href={href}
+        role="menuitem"
+        onClick={onClick}
+        className={className}
+        aria-label={ariaLabel}
+      >
         {children}
       </Link>
     );
@@ -172,9 +180,9 @@ export default function Header() {
             </Link>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+          <div className="flex h-9 min-w-[7.25rem] shrink-0 items-center justify-end gap-2 sm:min-w-[8.75rem]">
             {!isConfigured ? null : loading ? (
-              <div className="h-9 w-28 animate-pulse rounded-full bg-neutral-800/80" />
+              <div className="h-9 w-28 animate-pulse rounded-full bg-neutral-800/80" aria-hidden="true" />
             ) : user ? (
               <div className="relative" ref={menuRef}>
                 <Button
@@ -241,6 +249,11 @@ export default function Header() {
                         href="/favorites"
                         active={pathname === "/favorites"}
                         onClick={closeMenu}
+                        ariaLabel={
+                          favoritesCount > 0
+                            ? `Favorites, ${favoritesCount} saved`
+                            : "Favorites"
+                        }
                       >
                         <span>Favorites</span>
                         <FavoritesCountBadge count={favoritesCount} />

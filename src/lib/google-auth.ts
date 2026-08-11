@@ -1,26 +1,26 @@
-import { FirebaseError } from "firebase/app";
+import type { Auth, UserCredential } from "firebase/auth";
 import {
-  getRedirectResult,
-  GoogleAuthProvider,
-  signInWithPopup,
-  signInWithRedirect,
-  type Auth,
-  type UserCredential,
-} from "firebase/auth";
+  clearGoogleRedirectPending,
+  isGoogleRedirectPending,
+  markGoogleRedirectPending,
+} from "@/lib/google-auth-pending";
 
 export type GoogleSignInMethod = "popup" | "redirect";
 
-const REDIRECT_PENDING_KEY = "flickfocus.googleRedirectPending";
+export { isGoogleRedirectPending, markGoogleRedirectPending, clearGoogleRedirectPending };
 
 let redirectResultPromise: Promise<UserCredential | null> | null = null;
 
-function createGoogleProvider() {
+function createGoogleProvider(
+  GoogleAuthProvider: typeof import("firebase/auth").GoogleAuthProvider,
+) {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: "select_account" });
   return provider;
 }
 
-function isBenignRedirectError(error: unknown): boolean {
+async function isBenignRedirectError(error: unknown): Promise<boolean> {
+  const { FirebaseError } = await import("firebase/app");
   return (
     error instanceof FirebaseError &&
     (error.code === "auth/argument-error" ||
@@ -28,38 +28,25 @@ function isBenignRedirectError(error: unknown): boolean {
   );
 }
 
-export function markGoogleRedirectPending() {
-  sessionStorage.setItem(REDIRECT_PENDING_KEY, "1");
-}
-
-export function clearGoogleRedirectPending() {
-  sessionStorage.removeItem(REDIRECT_PENDING_KEY);
-}
-
-export function isGoogleRedirectPending(): boolean {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  return sessionStorage.getItem(REDIRECT_PENDING_KEY) === "1";
-}
-
 /**
  * Completes a Google redirect sign-in when returning to the app.
  * Safe to call on every page load — benign errors resolve to null.
  */
-export function completeGoogleRedirectSignIn(
+export async function completeGoogleRedirectSignIn(
   auth: Auth,
 ): Promise<UserCredential | null> {
   if (typeof window === "undefined") {
-    return Promise.resolve(null);
+    return null;
   }
 
-  redirectResultPromise ??= getRedirectResult(auth)
-    .catch((error) => {
+  redirectResultPromise ??= (async () => {
+    const { getRedirectResult } = await import("firebase/auth");
+    return getRedirectResult(auth);
+  })()
+    .catch(async (error) => {
       redirectResultPromise = null;
 
-      if (isBenignRedirectError(error)) {
+      if (await isBenignRedirectError(error)) {
         clearGoogleRedirectPending();
         return null;
       }
@@ -76,10 +63,11 @@ export function completeGoogleRedirectSignIn(
 /**
  * Prefer popup (fast, stays on page). Fall back to redirect when popup fails.
  */
-export async function signInWithGoogle(
-  auth: Auth,
-): Promise<GoogleSignInMethod> {
-  const provider = createGoogleProvider();
+export async function signInWithGoogle(auth: Auth): Promise<GoogleSignInMethod> {
+  const { GoogleAuthProvider, signInWithPopup, signInWithRedirect } =
+    await import("firebase/auth");
+  const { FirebaseError } = await import("firebase/app");
+  const provider = createGoogleProvider(GoogleAuthProvider);
 
   try {
     await signInWithPopup(auth, provider);
@@ -91,7 +79,7 @@ export async function signInWithGoogle(
         error.code === "auth/argument-error")
     ) {
       markGoogleRedirectPending();
-      await signInWithRedirect(auth, createGoogleProvider());
+      await signInWithRedirect(auth, createGoogleProvider(GoogleAuthProvider));
       return "redirect";
     }
 
@@ -99,7 +87,9 @@ export async function signInWithGoogle(
   }
 }
 
-export function getGoogleAuthErrorMessage(error: unknown): string {
+export async function getGoogleAuthErrorMessage(error: unknown): Promise<string> {
+  const { FirebaseError } = await import("firebase/app");
+
   if (error instanceof FirebaseError) {
     switch (error.code) {
       case "auth/unauthorized-domain":

@@ -1,9 +1,10 @@
 "use client";
 
 import { FirebaseError } from "firebase/app";
-import { FormEvent, useEffect, useState, type ReactNode } from "react";
+import { FormEvent, useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth, type AuthModalMode } from "@/context/AuthContext";
 import Button from "@/components/ui/Button";
+import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { cn } from "@/lib/cn";
 
 function getAuthErrorMessage(error: unknown): string {
@@ -358,6 +359,8 @@ function AuthModalForm({ onClose }: AuthModalFormProps) {
 
 export default function AuthModal() {
   const { isAuthModalOpen, closeAuthModal } = useAuth();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, isAuthModalOpen);
 
   useEffect(() => {
     if (!isAuthModalOpen) {
@@ -396,6 +399,7 @@ export default function AuthModal() {
       />
 
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="auth-modal-title"

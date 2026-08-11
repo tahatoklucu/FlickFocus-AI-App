@@ -2,9 +2,7 @@
 
 import type { User } from "firebase/auth";
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -13,18 +11,19 @@ import {
   type ReactNode,
   type SetStateAction,
 } from "react";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/auth-context.shared";
+import {
+  FavoritesContext,
+  type FavoritesContextValue,
+} from "@/context/favorites-context.shared";
 import {
   readFavoritesCache,
   writeFavoritesCache,
 } from "@/lib/favorites-cache";
-import { isFirebaseConfigured } from "@/lib/firebase";
-import {
-  subscribeToFavorites,
-  toggleFavorite as toggleFavoriteService,
-} from "@/services/favorites";
-import { ensureUserProfile } from "@/services/users";
+import { isFirebaseConfigured } from "@/lib/firebase-config";
 import type { AddFavoritePayload, UserFavorite } from "@/types";
+
+export { useFavorites } from "@/context/favorites-context.shared";
 
 interface FavoritesSyncState {
   userId: string | null;
@@ -32,26 +31,11 @@ interface FavoritesSyncState {
   error: string | null;
 }
 
-interface FavoritesContextValue {
-  favorites: UserFavorite[];
-  favoriteIds: Set<string>;
-  loading: boolean;
-  syncing: boolean;
-  error: string | null;
-  isFavorite: (imdbID: string) => boolean;
-  toggleFavorite: (payload: AddFavoritePayload) => void;
-  clearError: () => void;
-}
-
 const initialSyncState: FavoritesSyncState = {
   userId: null,
   favorites: [],
   error: null,
 };
-
-const FavoritesContext = createContext<FavoritesContextValue | undefined>(
-  undefined,
-);
 
 const AUTH_TOKEN_TIMEOUT_MS = 5_000;
 
@@ -112,6 +96,9 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     let unsubscribe = () => {};
 
     async function startSync() {
+      const { subscribeToFavorites } = await import("@/services/favorites");
+      const { ensureUserProfile } = await import("@/services/users");
+
       const cachedFavorites = readFavoritesCache(activeUserId);
       if (cachedFavorites.length > 0 && isActive) {
         setSyncState({
@@ -244,6 +231,11 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
         try {
           await waitForAuthToken(user);
 
+          const { ensureUserProfile } = await import("@/services/users");
+          const { toggleFavorite: toggleFavoriteService } = await import(
+            "@/services/favorites"
+          );
+
           if (profileReadyForUserRef.current !== userId) {
             await ensureUserProfile(user);
             profileReadyForUserRef.current = userId;
@@ -300,14 +292,4 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       {children}
     </FavoritesContext.Provider>
   );
-}
-
-export function useFavorites(): FavoritesContextValue {
-  const context = useContext(FavoritesContext);
-
-  if (!context) {
-    throw new Error("useFavorites must be used within a FavoritesProvider.");
-  }
-
-  return context;
 }

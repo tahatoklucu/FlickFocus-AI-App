@@ -1,9 +1,11 @@
-import HomePageClient from "@/components/HomePageClient";
-import CinemaHeroExperience from "@/components/hero/CinemaHeroExperience";
+import dynamic from "next/dynamic";
+import CinemaHeroSlot from "@/components/hero/CinemaHeroSlot";
 import PageHeroGlow from "@/components/PageHeroGlow";
 import { createPageMetadata } from "@/lib/metadata";
 import { getFeaturedMovies } from "@/services/omdb.server";
 import type { FeaturedMovie } from "@/types";
+
+const HomePageClient = dynamic(() => import("@/components/HomePageClient"));
 
 export const metadata = createPageMetadata({
   title: "Discover & Save Your Favorite Movies",
@@ -41,7 +43,7 @@ export default async function HomePage() {
             </p>
           </div>
 
-          <CinemaHeroExperience className="lg:justify-self-end" />
+          <CinemaHeroSlot />
         </header>
 
         <HomePageClient initialFeaturedMovies={featuredMovies} />

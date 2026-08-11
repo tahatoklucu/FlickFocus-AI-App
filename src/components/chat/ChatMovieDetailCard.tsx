@@ -1,6 +1,7 @@
 "use client";
 
 import MoviePoster from "@/components/MoviePoster";
+import { POSTER_SIZES } from "@/lib/image-config";
 import type { ChatMovieDetailsOutput } from "@/types/chat-tools";
 import { ChatToolLifecycleShell } from "./ChatToolLifecycle";
 
@@ -44,7 +45,8 @@ export default function ChatMovieDetailCard({
             poster={output.poster ?? "N/A"}
             title={output.title}
             year={output.year}
-            sizes="140px"
+            sizes={POSTER_SIZES.chatDetail}
+            variant="detail"
             className="h-full w-full object-cover"
           />
         </div>
@@ -123,7 +125,7 @@ export default function ChatMovieDetailCard({
             <button
               type="button"
               onClick={() => onOpenDetails(output.imdbID)}
-              className="text-xs font-semibold text-violet-300 transition hover:text-violet-200"
+              className="rounded text-xs font-semibold text-violet-300 transition hover:text-violet-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40"
             >
               Open full details →
             </button>

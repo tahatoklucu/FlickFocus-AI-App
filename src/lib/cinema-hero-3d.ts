@@ -60,6 +60,22 @@ export const CINEMA_HERO_3D = {
     bloomThreshold: 0.58,
     bloomSmoothing: 0.85,
   },
+  performance: {
+    sparkles: { desktop: 14, mobile: 0 },
+    environmentResolution: { desktop: 384, mobile: 64 },
+    environmentFrames: { desktop: 24, mobile: 1 },
+    filmFrames: { desktop: 4, mobile: 1 },
+    reelTorus: {
+      desktop: { radial: 80, tubular: 32 },
+      mobile: { radial: 48, tubular: 16 },
+    },
+    shadowCircleSegments: { desktop: 64, mobile: 32 },
+    backdropSphere: { desktop: 32, mobile: 16 },
+    enableFloat: { desktop: true, mobile: false },
+    enableParallax: { desktop: true, mobile: false },
+    enableFilmFramePulse: { desktop: true, mobile: false },
+    frameSkip: { desktop: 1, mobile: 2 },
+  },
 } as const;
 
 export type CinemaHeroTheme = "gold" | "spotlight";

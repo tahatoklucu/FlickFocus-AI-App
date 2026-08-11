@@ -433,8 +433,24 @@ function ChatPageClientLoaded() {
     setSelectedMovieId(null);
   }, []);
 
+  const chatStatusMessage = useMemo(() => {
+    if (phase === "waiting") {
+      return "Waiting for assistant response.";
+    }
+    if (phase === "streaming") {
+      return "Assistant is responding.";
+    }
+    if (phase === "stopping") {
+      return "Stopping generation.";
+    }
+    return "";
+  }, [phase]);
+
   return (
     <div className="flex min-h-[320px] flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60 sm:min-h-0">
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {chatStatusMessage}
+      </div>
       {messages.length > 0 ? (
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-zinc-200 px-3 py-2 dark:border-zinc-800 sm:px-4">
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
@@ -449,8 +465,7 @@ function ChatPageClientLoaded() {
           ref={containerRef}
           onScroll={handleScroll}
           className="relative h-full min-h-0 overflow-y-auto overscroll-contain px-3 py-4 sm:px-5 sm:py-6"
-          aria-live="polite"
-          aria-relevant="additions text"
+          aria-label="Chat messages"
         >
           <div className="space-y-4">
             {messages.length === 0 ? (
@@ -534,7 +549,10 @@ function ChatPageClientLoaded() {
       </div>
 
       {error ? (
-        <div className="chat-control-enter motion-reduce:animate-none shrink-0 border-t border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-300">
+        <div
+          role="alert"
+          className="chat-control-enter motion-reduce:animate-none shrink-0 border-t border-red-500/20 bg-red-500/10 px-4 py-2.5 text-sm text-red-300"
+        >
           <div className="flex flex-wrap items-start justify-between gap-3">
             <p className="min-w-0 flex-1 break-words">{error.message || "Something went wrong. Please try again."}</p>
             <Button
