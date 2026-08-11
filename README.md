@@ -2,11 +2,43 @@
 
 **FlickFocus** is a production-ready movie discovery web app: search the OMDb catalog, save favorites with Firebase Auth, chat with an AI assistant that renders live movie data inline, and explore a cinematic homepage with a GLSL hero shader and optional 3D cinema scene.
 
+<p align="center">
+  <a href="https://flickfocus.vercel.app" target="_blank" rel="noopener noreferrer">
+    <img src="https://img.shields.io/badge/🚀%20Live_Demo-Open_Production_App-8B5CF6?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo — flickfocus.vercel.app" />
+  </a>
+  &nbsp;
+  <a href="https://flickfocus.vercel.app/chat" target="_blank" rel="noopener noreferrer">
+    <img src="https://img.shields.io/badge/AI_Chat-Try_FlickFocus_AI-6366F1?style=for-the-badge&logo=googlegemini&logoColor=white" alt="FlickFocus AI Chat" />
+  </a>
+</p>
+
+<p align="center">
+  <strong>Live Demo / Production URL:</strong>
+  <br />
+  <a href="https://flickfocus.vercel.app"><code>https://flickfocus.vercel.app</code></a>
+</p>
+
 | | |
 | --- | --- |
-| **Live demo** | [https://flickfocus.vercel.app](https://flickfocus.vercel.app) |
 | **Stack** | Next.js 16 (App Router) · Tailwind CSS 4 · Firebase · OMDb · Vercel AI SDK |
 | **Repo name** | `nextjs-ai-app` (internship project: **FlickFocus-AI-App**) |
+| **Status** | Deployed on Vercel · Lighthouse Performance **93+** |
+
+---
+
+## Project Brief
+
+### What problem does it solve?
+
+Choosing what to watch is harder than it should be. Streaming catalogs are vast, recommendation feeds are noisy, and jumping between apps to compare IMDb ratings, cast, and plot details wastes time. FlickFocus addresses the **"what should I watch?"** problem by giving users a fast, focused path from curiosity to a confident pick — with rich OMDb metadata, ratings, and an AI assistant that surfaces live results instead of generic suggestions.
+
+### Who is it for?
+
+FlickFocus is built for **movie lovers**, **series enthusiasts**, and anyone planning a film night who feels overwhelmed by choice. Whether you want a quick genre browse, a deep dive into ratings and cast, or a conversational recommendation, the app meets you where you are.
+
+### Why did we choose this idea?
+
+We wanted to build a **realistic entertainment guide** that combines three things users actually care about: a modern, cinematic interface, AI-powered discovery that pulls real data (not hallucinated titles), and production-grade performance. Movie discovery is a familiar domain with clear UX expectations (search, cards, detail views, watchlists) — making it an ideal capstone to demonstrate full-stack skills, external API integration, auth, and AI tooling in one cohesive product.
 
 ---
 
@@ -202,61 +234,186 @@ For production at scale, consider Vercel KV / Upstash Redis for distributed rate
 
 ---
 
-## How AI tools built this
+## AI Integration & Development Process
 
-This section documents **how AI-assisted development was used** on FlickFocus — transparently, for internship review.
+Artificial intelligence was a **core part of how FlickFocus was built** — not as a replacement for engineering judgment, but as a force multiplier throughout design, implementation, and hardening.
 
-### Tools used
+### How AI was used during development
 
-| Tool | Role |
-| --- | --- |
-| **Cursor IDE + Claude** | Primary pair-programming assistant: architecture, components, debugging, refactors |
-| **Google Gemini** | Runtime model for `/api/chat` (not the IDE assistant) |
-| **Vercel AI SDK** | Streaming chat, tool calling, generative UI message parts |
+Throughout the project, the **Claude + Cursor** ecosystem was used actively to:
 
-### What AI helped build (by area)
+- **Prevent code bloat** — keep components focused, avoid unnecessary abstractions, and favour minimal diffs that solve real problems
+- **Maintain modular architecture** — domain-based folders (`components/movies/`, `lib/chat/`, `lib/firebase/`, etc.) with clear separation between client, server, and shared logic
+- **Optimize file organization** — consolidate scattered utilities into purposeful modules and keep API routes thin
+- **Target Lighthouse performance (93+)** — audit-driven fixes for LCP, caching, lazy loading, hydration safety, and bundle splitting (see [docs/AUDIT.md](./docs/AUDIT.md))
 
-**1. Application scaffold & conventions**  
-AI suggested the App Router layout (`src/app/*`), separation of `services/omdb.server.ts` vs client wrappers, and TypeScript interfaces for OMDb responses. Human decisions: feature scope, naming (FlickFocus), and final file ownership.
+### Role-prompting, not casual prompting
 
-**2. FlickFocus AI Chat & generative UI**  
-AI drafted the chat route, Zod tool definitions (`src/lib/chat/chat-tools.ts`), system prompt, and tool lifecycle UI (`ChatToolLifecycle`, `ChatToolInvocation`, movie result cards). The developer reviewed tool contracts, capped result sets (6 search hits), and wired `stopWhen: isStepCount(5)` for multi-step tool chains.
+AI was approached less like a generic autocomplete and more like a **lead engineer on the project**. Prompts framed context, constraints, and acceptance criteria explicitly — for example: *"Add server-side OMDb tools with Zod schemas; cap results at 6; render generative UI cards, not raw JSON."* That role-prompting discipline produced higher-quality, review-ready output and reduced rework.
 
-**3. UI/UX & responsive design**  
-AI iterated on glassmorphic header, search bar, movie cards, and `MovieDetailModal` aspect ratios. Several rounds of human feedback adjusted spacing, genre chip alignment, hero centering, and mobile breakpoints.
+### Runtime AI vs. development AI
 
-**4. GLSL capstone shader**  
-AI helped author the fragment shader in `src/lib/hero/hero-shader.ts` and the WebGL runtime (`HeroShaderBackground.tsx`): uniforms (`u_time`, `u_resolution`, `u_mouse`), DPR cap, tab visibility pause, and `prefers-reduced-motion` CSS fallback. Documented in [docs/SHADER_CAPSTONE.md](./docs/SHADER_CAPSTONE.md).
+| Layer | Technology | Purpose |
+| --- | --- | --- |
+| **Development** | Cursor IDE + Claude | Architecture, components, refactors, tests, docs |
+| **Runtime (in-app)** | Google Gemini via Vercel AI SDK | Streaming chat with live OMDb tool calls |
+| **Tooling contract** | Zod-validated server tools | `searchMovies`, `getMovieDetails` → generative UI |
 
-**5. 3D cinema hero**  
-AI generated the procedural Three.js scene (R3F + Drei), lazy `dynamic()` loading, device-tier effects, and static CSS fallback — with human tuning of performance budgets.
+### What AI contributed (by area)
 
-**6. Performance & production hardening**  
-AI produced [docs/AUDIT.md](./docs/AUDIT.md) recommendations (Lighthouse, LCP, cache headers). Fixes included: production-only aggressive caching in `next.config.ts`, client-only homepage bundle (`HomePageClientRoot`), poster availability pre-check to avoid console 404s, Firebase lazy hydration, and the rate limiting / input caps in this README.
+| Area | AI role | Human role |
+| --- | --- | --- |
+| App scaffold & OMDb layer | App Router layout, client/server split, TypeScript interfaces | Feature scope, naming, final review |
+| FlickFocus AI Chat | Chat route, tool schemas, lifecycle UI, generative cards | Tool contracts, result caps, multi-step limits |
+| UI / UX | Glassmorphic header, search, movie cards, detail modal | Visual taste, spacing, mobile breakpoints |
+| GLSL capstone shader | Fragment shader + WebGL runtime, DPR cap, reduced-motion fallback | Capstone requirements, performance budgets |
+| 3D cinema hero | Procedural R3F scene, lazy load, CSS fallback | Device-tier tuning |
+| Production hardening | Audit recommendations, rate limits, input caps, poster pre-check | Env setup, deploy checklist, security review |
+| Tests | Vitest unit tests, Playwright specs | CI verification, lint fixes |
 
-**7. Tests & CI**  
-AI added Vitest unit tests (chat tools, poster URL guard, API limits) and Playwright specs; developer ran `npm run lint` / `npm run test` before deploy and fixed ESLint rule violations (e.g. `react-hooks/set-state-in-effect` in `Providers.tsx`).
+Every AI-generated change was **reviewed, edited, and tested** (`npm run lint`, `npm run test`, `npm run build`) before merge — never copy-pasted blindly.
 
-### What remained human-led
+### Representative prompts
 
-- Product goals (movie app + AI chat + internship capstone requirements)
-- API key management and Vercel/Firebase project setup
-- Visual taste and acceptance criteria (“revert old search UI”, “no search icon”, etc.)
-- Final review of security limits, env vars, and deployment checklist
-- Honest documentation (this section)
-
-### Prompting approach (representative)
-
-- *“Add server-side OMDb tools to chat with Zod schemas and generative UI cards.”*
-- *“Fullscreen GLSL hero with u_time, u_resolution, u_mouse; respect reduced motion.”*
-- *“Fix hydration mismatch on homepage after hero refactor.”*
-- *“Add rate limiting and maxDuration before production deploy.”*
-
-AI outputs were **always reviewed, edited, and tested** before merge — not copy-pasted blindly.
+- *"Add server-side OMDb tools to chat with Zod schemas and generative UI cards."*
+- *"Fullscreen GLSL hero with `u_time`, `u_resolution`, `u_mouse`; respect reduced motion."*
+- *"Fix hydration mismatch on homepage after hero refactor."*
+- *"Add rate limiting and maxDuration before production deploy."*
+- *"Reorganize flat components into domain folders without breaking imports."*
 
 ---
 
-## Git commit conventions
+## Error States & Resilience
+
+Error handling and edge cases were treated as first-class requirements — not afterthoughts. The app is designed to **degrade gracefully** when APIs fail, inputs are invalid, or optional services (Firebase, chat) are unavailable.
+
+### API & network resilience
+
+| Scenario | Behaviour |
+| --- | --- |
+| OMDb timeout / failure | Typed `OMDbError` messages; search and detail views show user-friendly errors, not crashes |
+| Invalid search query / page | `400` with clear message; query length and page number clamped server-side |
+| Rate limit exceeded | `429 Too Many Requests` with `Retry-After` header |
+| Chat API misconfigured | `503` when `GOOGLE_GENERATIVE_AI_API_KEY` is missing |
+| Oversized chat payload | Rejected before hitting the model (`400` with validation message) |
+| Invalid IMDb ID | `400` / `404` with safe error body |
+
+### UI-level error states
+
+- **Chat tool failures** — `ChatToolOutputError` renders a red error card; the session continues (no white-screen crash)
+- **Movie not found** — dedicated `MovieNotFound` component inside the detail modal
+- **Missing posters** — availability pre-check via `/api/poster/availability`; placeholder shown instead of broken images
+- **AnimatedActionButton** — explicit `error` / `retry` visual state for failed actions (chat send, profile save)
+- **Global error boundary** — `src/app/error.tsx` for unexpected runtime failures
+- **404 page** — `src/app/not-found.tsx` with branded messaging and navigation
+
+### Optional service degradation
+
+- **Firebase not configured** — lazy load skipped; placeholder auth provider; configuration message instead of crash
+- **3D / WebGL unavailable** — static CSS `CinemaHeroFallback` when `prefers-reduced-motion` is active
+- **GLSL shader** — reduced-motion users get a static gradient backdrop; tab-hidden pauses animation
+
+### Validation & defensive coding
+
+- Zod schemas on AI tool inputs (query length, IMDb ID format)
+- Shared input caps in `src/lib/api/api-limits.ts`
+- Type guards for poster URLs (`isValidPosterUrl`)
+- Firestore / Storage errors mapped to readable messages via `src/lib/errors.ts`
+
+The system is built to **recover and inform**, not fail silently or expose raw stack traces to users.
+
+---
+
+## Testing Evidence
+
+Component tests and critical user-flow tests were written to keep FlickFocus reliable as features evolved. **Detailed test files and coverage scope are documented in the repository** through co-located Vitest/Playwright suites, shared fixtures, and the CI workflow below.
+
+### What is tested
+
+| Layer | Scope | Location |
+| --- | --- | --- |
+| **Unit — chat UI** | Tool lifecycle, generative movie cards, assistant message rendering | `src/components/chat/*.test.tsx` |
+| **Unit — interactions** | `AnimatedActionButton` states (idle, loading, success, error/retry) | `src/components/ui/AnimatedActionButton.test.tsx` |
+| **Unit — AI tools** | OMDb tool `execute` functions, result shaping | `src/lib/chat/chat-tools.test.ts` |
+| **Unit — API guards** | Input caps, IMDb ID validation, rate limiting | `src/lib/api/api-limits.test.ts` |
+| **Unit — posters** | Poster URL validation type guard | `src/lib/poster/poster-url.test.ts` |
+| **E2E — chat flow** | Send message → streamed assistant reply (mocked SSE) | `e2e/chat.spec.ts` |
+| **Fixtures** | Shared chat SSE / tool output mocks | `src/test/fixtures/chat.ts` |
+
+### Current test inventory
+
+```text
+npm run test        → 38 unit tests across 8 files (Vitest + Testing Library)
+npm run test:e2e    → Playwright chat user-flow spec
+npm run lint        → ESLint (runs in CI before tests)
+```
+
+### CI pipeline
+
+Automated checks run on every push/PR via [`.github/workflows/test.yml`](./.github/workflows/test.yml):
+
+1. **Lint** → `npm run lint`
+2. **Unit tests** → `npm run test`
+3. **Production build** → `npm run build`
+4. **E2E** → `npm run test:e2e` (Playwright; report artifact uploaded on failure)
+
+### How to reproduce locally
+
+```bash
+npm run lint
+npm run test          # unit tests — pass/fail output is the primary evidence
+npm run test:e2e      # optional: requires Playwright browser (npm run playwright:install)
+```
+
+> **Note:** Vitest is configured in [`vitest.config.ts`](./vitest.config.ts) with jsdom and path aliases matching the Next.js app. Playwright config: [`playwright.config.ts`](./playwright.config.ts).
+
+---
+
+## Performance & Accessibility Audit
+
+Lighthouse **mobile** audits and accessibility reviews were conducted on a production build. Scores improved from a **Performance 44** baseline to **93+** after targeted optimizations documented in full.
+
+### Lighthouse results (after optimizations)
+
+| Category | Before | After |
+| --- | ---: | ---: |
+| **Performance** | 44 | **93** |
+| **Accessibility** | ~85 | **96** |
+| **Best Practices** | ~90 | **100** |
+| **SEO** | ~92 | **100** |
+
+Key Core Web Vitals gains: **LCP 9.0 s → 3.1 s**, **TBT 3,270 ms → 150 ms**, **CLS ~0.15 → 0.021**.
+
+### Full audit documentation
+
+All concrete improvements, before/after tables, keyboard navigation checklist, and verification commands are recorded in:
+
+**[docs/AUDIT.md](./docs/AUDIT.md)** — official accessibility & performance audit for the FlickFocus capstone
+
+The audit covers:
+
+- 3D hero lazy-loading, Firebase deferral, image/LCP tuning, critical CSS inlining
+- Skip link, focus traps, modal accessibility, chat `aria-live` patterns
+- Local Lighthouse reproduction steps (`npm run build && npm run start`)
+- GLSL capstone shader performance notes (§9)
+
+### Related capstone evidence
+
+| Document | Contents |
+| --- | --- |
+| [docs/AUDIT.md](./docs/AUDIT.md) | Lighthouse scores, CWV metrics, a11y checklist, optimization reference |
+| [docs/SHADER_CAPSTONE.md](./docs/SHADER_CAPSTONE.md) | GLSL hero shader deliverable (uniforms, DPR cap, reduced-motion fallback) |
+
+To regenerate Lighthouse evidence locally:
+
+```bash
+npm run build && npm run start -- -p 3001
+# Chrome DevTools → Lighthouse → Mobile → http://localhost:3001
+```
+
+See **§6 Local Verification** in [docs/AUDIT.md](./docs/AUDIT.md) for CLI commands and detailed steps.
+
+---
 
 Recent history mixes informal messages (`ui update`, `vercel fix`) with occasional descriptive ones. **Going forward**, use [Conventional Commits](https://www.conventionalcommits.org/):
 
@@ -322,7 +479,7 @@ Procedural film reel (no external GLB) via Three.js / R3F / Drei. Lazy-loaded; d
 | --- | --- |
 | Lazy entry | `src/components/hero/CinemaHeroExperience.tsx` |
 | Scene | `src/components/hero/CinemaHeroScene.tsx` |
-| Tokens | `src/lib/cinema-hero-3d.ts` |
+| Tokens | `src/lib/hero/cinema-hero-3d.ts` |
 
 ---
 
