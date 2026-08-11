@@ -34,6 +34,7 @@ function MovieCard({ movie, onSelect, priority = false, className }: MovieCardPr
       >
         <div className="relative aspect-[2/3] w-full shrink-0 overflow-hidden bg-neutral-800">
           <MoviePoster
+            key={`${movie.imdbID}-${movie.Poster}`}
             poster={movie.Poster}
             title={movie.Title}
             year={movie.Year}
