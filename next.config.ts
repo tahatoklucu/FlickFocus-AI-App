@@ -17,35 +17,41 @@ const nextConfig: NextConfig = {
     imageSizes: [96, 128, 160, 192, 256, 320, 384],
     minimumCacheTTL: ONE_MONTH,
   },
-  headers: async () => [
-    {
-      source: "/_next/static/:path*",
-      headers: [
-        {
-          key: "Cache-Control",
-          value: `public, max-age=${ONE_YEAR}, immutable`,
-        },
-      ],
-    },
-    {
-      source: "/_next/image",
-      headers: [
-        {
-          key: "Cache-Control",
-          value: `public, max-age=${ONE_MONTH}, stale-while-revalidate=${ONE_YEAR}`,
-        },
-      ],
-    },
-    {
-      source: "/:path*.svg",
-      headers: [
-        {
-          key: "Cache-Control",
-          value: `public, max-age=${ONE_YEAR}, immutable`,
-        },
-      ],
-    },
-  ],
+  headers: async () => {
+    if (process.env.NODE_ENV !== "production") {
+      return [];
+    }
+
+    return [
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: `public, max-age=${ONE_YEAR}, immutable`,
+          },
+        ],
+      },
+      {
+        source: "/_next/image",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: `public, max-age=${ONE_MONTH}, stale-while-revalidate=${ONE_YEAR}`,
+          },
+        ],
+      },
+      {
+        source: "/:path*.svg",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: `public, max-age=${ONE_YEAR}, immutable`,
+          },
+        ],
+      },
+    ];
+  },
   experimental: {
     cssChunking: "graph",
     inlineCss: true,

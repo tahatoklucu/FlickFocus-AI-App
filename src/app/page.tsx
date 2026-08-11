@@ -1,10 +1,10 @@
 import dynamic from "next/dynamic";
 import PageHeroGlow from "@/components/PageHeroGlow";
+import HomePageClientRoot from "@/components/HomePageClientRoot";
 import { createPageMetadata } from "@/lib/metadata";
 import { getFeaturedMovies } from "@/services/omdb.server";
 import type { FeaturedMovie } from "@/types";
 
-const HomePageClient = dynamic(() => import("@/components/HomePageClient"));
 const CinemaExperienceSection = dynamic(
   () => import("@/components/hero/CinemaExperienceSection"),
 );
@@ -30,7 +30,7 @@ export default async function HomePage() {
       <PageHeroGlow size="lg" />
 
       <div className="relative mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
-        <HomePageClient initialFeaturedMovies={featuredMovies}>
+        <div className="mx-auto max-w-2xl text-center">
           <header className="mb-8 sm:mb-10">
             <span className="mb-4 inline-flex items-center gap-1.5 rounded-full border border-violet-500/25 bg-violet-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-violet-300">
               <span className="h-1.5 w-1.5 rounded-full bg-violet-400" aria-hidden="true" />
@@ -44,7 +44,9 @@ export default async function HomePage() {
               your FlickFocus collection
             </p>
           </header>
-        </HomePageClient>
+        </div>
+
+        <HomePageClientRoot initialFeaturedMovies={featuredMovies} />
       </div>
 
       <CinemaExperienceSection />

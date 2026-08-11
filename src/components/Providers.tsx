@@ -39,9 +39,7 @@ function scheduleFirebaseActivation(onActivate: () => void) {
 }
 
 export default function Providers({ children }: { children: ReactNode }) {
-  const [loadFirebase, setLoadFirebase] = useState(() =>
-    typeof window !== "undefined" && isGoogleRedirectPending(),
-  );
+  const [loadFirebase, setLoadFirebase] = useState(false);
 
   const activateFirebase = useCallback(
     (options?: { openAuthModal?: AuthModalMode }) => {
@@ -56,6 +54,11 @@ export default function Providers({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (loadFirebase) {
+      return;
+    }
+
+    if (isGoogleRedirectPending()) {
+      setLoadFirebase(true);
       return;
     }
 

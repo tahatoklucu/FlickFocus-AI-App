@@ -28,7 +28,6 @@ const MovieDetailModal = dynamic(
 
 interface HomePageClientProps {
   initialFeaturedMovies: FeaturedMovie[];
-  children?: ReactNode;
 }
 
 type SearchView = "featured" | "genre" | "results" | "picks";
@@ -71,7 +70,6 @@ const MemoizedGenreChip = memo(GenreChip);
 
 export default function HomePageClient({
   initialFeaturedMovies,
-  children,
 }: HomePageClientProps) {
   const resultsRef = useRef<HTMLElement>(null);
   const posterPriorityCount = 0;
@@ -216,7 +214,6 @@ export default function HomePageClient({
   return (
     <>
       <div className="mx-auto mb-12 max-w-2xl text-center sm:mb-14">
-        {children}
         <section>
           <SearchBar
             query={searchQuery}
@@ -225,7 +222,7 @@ export default function HomePageClient({
             onClear={resetToFeatured}
             isLoading={isLoading}
           />
-          <div className="mt-4 flex flex-wrap justify-center gap-2">
+          <div className="mt-4 flex flex-wrap justify-start gap-2">
             {GENRE_CHIPS.map((genre) => (
               <MemoizedGenreChip
                 key={genre.id}
