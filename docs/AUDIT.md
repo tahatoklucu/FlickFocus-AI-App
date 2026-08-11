@@ -3,7 +3,7 @@
 **Project:** FlickFocus (Next.js 16 App Router)  
 **Audit date:** August 2026  
 **Scope:** Homepage, chat, favorites, profile, modals, 3D cinema hero, global layout  
-**Test environment:** Production build (`npm run build && npm run start`), Chrome Lighthouse **Mobile** emulation, `http://localhost:3001`
+**Test environment:** Production build (`npm run build && npm run start`), Chrome Lighthouse **Mobile** emulation. Primary audit: `http://localhost:3001`. Live verification: [https://flickfocus.vercel.app](https://flickfocus.vercel.app).
 
 ---
 
@@ -86,6 +86,10 @@ The initial Lighthouse mobile audit was captured before optimizations. A heavy 3
 | Poster-focused `deviceSizes` / `imageSizes` | `next.config.ts` | Amazon CDN images no longer fetched at unnecessary sizes |
 | AVIF/WebP + 30-day image cache | `next.config.ts` | Faster repeat visits |
 | Inline critical CSS | `critical-css.ts`, `layout.tsx`, `experimental.inlineCss` | Render-blocking CSS ↓ |
+| Geist font preload | `layout.tsx` | LCP text paints sooner on throttled mobile |
+| Idle-deferred GLSL shader | `HomeHeroShaderDeferred.tsx` | WebGL JS off critical path |
+| Below-fold 3D section gate | `CinemaExperienceDeferred.tsx` | Three.js chunk loads on scroll |
+| Homepage client SSR + no poster `priority` | `HomePageClientRoot.tsx`, `HomePageClient.tsx` | Hero copy in HTML; posters not LCP candidates |
 
 ### Accessibility
 
@@ -105,7 +109,8 @@ The initial Lighthouse mobile audit was captured before optimizations. A heavy 3
 After optimizations were complete, the Lighthouse mobile audit was run again.
 
 **Test conditions:** Production build, Mobile emulation, throttled network  
-**Report file:** [`localhost_2026-08-11_14-35-39.report.html`](./localhost_2026-08-11_14-35-39.report.html) *(open in a browser to view the full report)*
+**Local report:** [`localhost-after-lcp-fix.report.html`](./localhost-after-lcp-fix.report.html) *(regenerate after deploy — see §6)*  
+**Live report:** [`flickfocus-vercel.report.html`](./flickfocus-vercel.report.html) *(Vercel production URL — pre–LCP-fix baseline: Performance 80, A11y 96)*
 
 ### Lighthouse category scores (After)
 
@@ -140,12 +145,15 @@ After optimizations were complete, the Lighthouse mobile audit was run again.
 | TBT | 3,270 ms | **150 ms** | Main-thread metric |
 | CLS | ~0.15 | **0.021** | Layout stability |
 
-### Audit evidence (project root)
+### Audit evidence (`docs/`)
 
 | File | Description |
 | --- | --- |
-| [`localhost_2026-08-11_14-35-39.report.html`](./localhost_2026-08-11_14-35-39.report.html) | **After** — Lighthouse mobile report (Performance 93, A11y 96). Open in a browser to view category scores, filmstrip, and metric charts. |
+| [`flickfocus-vercel.report.html`](./flickfocus-vercel.report.html) | **Live Vercel** — Mobile Lighthouse on `https://flickfocus.vercel.app` (baseline before idle-shader / font-preload fixes). |
+| Local production build | **93** Performance, **96** A11y — August 2026 run on `localhost:3001` after core optimizations (before live LCP tuning). |
 | Initial run (Before) | Performance **44**, LCP **9.0 s**, TBT **3,270 ms** — August 11, 2026, manual Lighthouse run before optimizations (Chrome DevTools → Mobile). |
+
+> **Localhost vs Vercel:** A local **production build** is the standard reproducible audit method (same optimized bundle). Live Vercel scores can be **5–15 points lower** on Performance because Lighthouse simulates real mobile network latency (LCP is most affected). Capstone reviewers typically accept local prod-build evidence when methodology is documented; redeploy after LCP fixes and re-run against the live URL to close the gap.
 
 > **Note:** Lighthouse HTML reports serve as interactive audit evidence. For submission, open the report in a browser and **Save as PDF** or capture a screenshot (e.g. `docs/audit-after.png`).
 
@@ -176,13 +184,27 @@ npm run test        # 73 unit tests
 npm run test:e2e    # Playwright (optional)
 ```
 
-Lighthouse CLI:
+Lighthouse CLI (local production build):
 
 ```bash
+npm run build && npm run start -- -p 3001
 npx lighthouse http://localhost:3001 \
   --form-factor=mobile \
   --only-categories=performance,accessibility,best-practices,seo \
-  --view
+  --output=html \
+  --output-path=./docs/localhost-after-lcp-fix.report.html \
+  --chrome-flags="--headless=new"
+```
+
+Lighthouse CLI (live Vercel — run after each deploy):
+
+```bash
+npx lighthouse https://flickfocus.vercel.app \
+  --form-factor=mobile \
+  --only-categories=performance,accessibility,best-practices,seo \
+  --output=html \
+  --output-path=./docs/flickfocus-vercel.report.html \
+  --chrome-flags="--headless=new"
 ```
 
 ---

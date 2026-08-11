@@ -13,7 +13,7 @@ const geistSans = Geist({
   subsets: ["latin"],
   display: "swap",
   adjustFontFallback: true,
-  preload: false,
+  preload: true,
 });
 
 export const metadata: Metadata = rootMetadata;

@@ -72,7 +72,7 @@ export default function HomePageClient({
   initialFeaturedMovies,
 }: HomePageClientProps) {
   const resultsRef = useRef<HTMLElement>(null);
-  const posterPriorityCount = 4;
+  const posterPriorityCount = 0;
   const [searchQuery, setSearchQuery] = useState("");
   const [activeGenre, setActiveGenre] = useState<GenreChipId | null>(null);
   const [movies, setMovies] = useState<MovieSearchResult[]>([]);

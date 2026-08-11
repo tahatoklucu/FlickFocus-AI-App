@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import HomeHeroBackdropShell from "@/components/hero/HomeHeroBackdropShell";
-import HomeHeroShaderLayer from "@/components/hero/HomeHeroShaderLayer";
+import HomeHeroShaderDeferred from "@/components/hero/HomeHeroShaderDeferred";
 
 interface HomePageHeroProps {
   children: ReactNode;
@@ -18,7 +18,7 @@ export default function HomePageHero({ children }: HomePageHeroProps) {
     >
       <div className="pointer-events-none absolute inset-0 min-h-[min(100dvh,920px)]">
         <HomeHeroBackdropShell className="min-h-full">
-          <HomeHeroShaderLayer />
+          <HomeHeroShaderDeferred />
         </HomeHeroBackdropShell>
       </div>
 

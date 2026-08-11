@@ -5,7 +5,6 @@ import HomePageLoading from "@/components/home/HomePageLoading";
 import type { FeaturedMovie } from "@/types";
 
 const HomePageClient = dynamic(() => import("@/components/home/HomePageClient"), {
-  ssr: false,
   loading: () => <HomePageLoading />,
 });
 
