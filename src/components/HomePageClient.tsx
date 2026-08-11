@@ -28,6 +28,7 @@ const MovieDetailModal = dynamic(
 
 interface HomePageClientProps {
   initialFeaturedMovies: FeaturedMovie[];
+  children?: ReactNode;
 }
 
 type SearchView = "featured" | "genre" | "results" | "picks";
@@ -70,6 +71,7 @@ const MemoizedGenreChip = memo(GenreChip);
 
 export default function HomePageClient({
   initialFeaturedMovies,
+  children,
 }: HomePageClientProps) {
   const resultsRef = useRef<HTMLElement>(null);
   const posterPriorityCount = 0;
@@ -213,25 +215,28 @@ export default function HomePageClient({
 
   return (
     <>
-      <section className="mb-8 sm:mb-12">
-        <SearchBar
-          query={searchQuery}
-          onQueryChange={handleQueryChange}
-          onSearch={handleSearch}
-          onClear={resetToFeatured}
-          isLoading={isLoading}
-        />
-        <div className="mx-auto mt-4 flex max-w-2xl flex-wrap justify-center gap-2 sm:justify-start">
-          {GENRE_CHIPS.map((genre) => (
-            <MemoizedGenreChip
-              key={genre.id}
-              label={genre.label}
-              active={activeGenre === genre.id}
-              onClick={() => handleGenreSelect(genre.id)}
-            />
-          ))}
-        </div>
-      </section>
+      <div className="mx-auto mb-12 max-w-2xl text-center sm:mb-14">
+        {children}
+        <section>
+          <SearchBar
+            query={searchQuery}
+            onQueryChange={handleQueryChange}
+            onSearch={handleSearch}
+            onClear={resetToFeatured}
+            isLoading={isLoading}
+          />
+          <div className="mt-4 flex flex-wrap justify-center gap-2">
+            {GENRE_CHIPS.map((genre) => (
+              <MemoizedGenreChip
+                key={genre.id}
+                label={genre.label}
+                active={activeGenre === genre.id}
+                onClick={() => handleGenreSelect(genre.id)}
+              />
+            ))}
+          </div>
+        </section>
+      </div>
 
       <section ref={resultsRef} className="scroll-mt-24">
         {isFeaturedView ? (
