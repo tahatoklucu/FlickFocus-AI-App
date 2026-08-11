@@ -10,7 +10,7 @@ export default function CinemaExperienceSection() {
   return (
     <section
       aria-labelledby="cinema-experience-heading"
-      className="relative border-t border-neutral-800/80 bg-neutral-950"
+      className="relative z-0 isolate overflow-hidden border-t border-neutral-800/80 bg-neutral-950"
     >
       <div className="relative mx-auto grid w-full max-w-6xl gap-8 px-4 py-12 sm:px-6 sm:py-16 lg:grid-cols-[minmax(0,1fr)_min(420px,42%)] lg:items-center lg:gap-12 lg:px-8 lg:py-20">
         <div className="max-w-xl text-center lg:text-left">
@@ -53,7 +53,7 @@ export default function CinemaExperienceSection() {
           </ul>
         </div>
 
-        <div className="mx-auto w-full max-w-md lg:mx-0 lg:max-w-none">
+        <div className="relative z-0 mx-auto w-full max-w-md lg:mx-0 lg:max-w-none">
           <CinemaHeroSlot />
         </div>
       </div>

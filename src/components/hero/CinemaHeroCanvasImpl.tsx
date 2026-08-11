@@ -49,7 +49,7 @@ export default function CinemaHeroCanvasImpl({ className }: CinemaHeroCanvasImpl
     <div
       ref={containerRef}
       className={cn(
-        "relative h-full w-full overflow-hidden rounded-2xl border border-violet-500/20 bg-neutral-950 shadow-2xl shadow-violet-950/25 ring-1 ring-white/5",
+        "relative z-0 h-full w-full overflow-hidden rounded-2xl border border-violet-500/20 bg-neutral-950 shadow-2xl shadow-violet-950/25 ring-1 ring-white/5",
         className,
       )}
     >

@@ -14,7 +14,7 @@ export default function HomePageHero({ children }: HomePageHeroProps) {
   return (
     <section
       aria-label="Discover movies"
-      className="relative isolate overflow-hidden"
+      className="relative overflow-hidden"
     >
       <div className="pointer-events-none absolute inset-0 min-h-[min(100dvh,920px)]">
         <HomeHeroBackdropShell className="min-h-full">

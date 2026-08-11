@@ -1,12 +1,14 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import FavoriteButton from "@/components/movies/FavoriteButton";
 import MovieNotFound from "@/components/movies/MovieNotFound";
 import Button from "@/components/ui/Button";
 import { hasValidPoster } from "@/components/movies/MoviePoster";
 import { POSTER_QUALITY, POSTER_SIZES } from "@/lib/image-config";
+import { cn } from "@/lib/cn";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { getMovieById, getOMDbErrorMessage } from "@/services/omdb";
 import { isMovieNotFoundMessage } from "@/services/omdb-core";
@@ -16,6 +18,14 @@ interface MovieDetailModalProps {
   imdbID: string | null;
   isOpen: boolean;
   onClose: () => void;
+}
+
+function useIsClient(): boolean {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
 }
 
 
@@ -139,13 +149,13 @@ function InfoCard({ label, value }: { label: string; value: string | null }) {
   );
 }
 
-function GenreTags({ genres }: { genres: string[] }) {
+function GenreTags({ genres, className }: { genres: string[]; className?: string }) {
   if (genres.length === 0) {
     return null;
   }
 
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className={cn("flex flex-wrap gap-2", className)}>
       {genres.map((genre) => (
         <span
           key={genre}
@@ -171,11 +181,11 @@ function PosterShowcase({
   const showImage = hasValidPoster(poster) && !hasError;
 
   return (
-    <div className="relative mx-auto w-[270px] shrink-0 sm:mx-0">
+    <div className="relative mx-auto w-[min(11rem,46vw)] shrink-0 sm:mx-0 sm:w-40 md:w-48 lg:w-[16.875rem]">
       {showImage && (
         <>
           <div
-            className="pointer-events-none absolute -inset-10 -z-10 opacity-30 blur-[72px]"
+            className="pointer-events-none absolute -inset-6 opacity-30 blur-[48px] sm:-inset-10 sm:blur-[72px]"
             aria-hidden="true"
           >
             <Image
@@ -189,7 +199,7 @@ function PosterShowcase({
             />
           </div>
           <div
-            className="pointer-events-none absolute -inset-4 -z-10 rounded-[2rem] opacity-50 blur-2xl"
+            className="pointer-events-none absolute -inset-3 opacity-50 blur-xl sm:-inset-4 sm:blur-2xl"
             aria-hidden="true"
           >
             <Image
@@ -280,6 +290,7 @@ export default function MovieDetailModal({
 }: MovieDetailModalProps) {
   const [movie, setMovie] = useState<Movie | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const isClient = useIsClient();
   const dialogRef = useRef<HTMLDivElement>(null);
   useFocusTrap(dialogRef, isOpen);
   const [error, setError] = useState<string | null>(null);
@@ -357,7 +368,7 @@ export default function MovieDetailModal({
     };
   }, [isOpen, imdbID]);
 
-  if (!isOpen) {
+  if (!isOpen || !isClient) {
     return null;
   }
 
@@ -374,9 +385,9 @@ export default function MovieDetailModal({
   const genres = splitList(displayValue(movie?.Genre));
   const showFavorite = Boolean(movie && !isLoading && !error);
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center overflow-x-hidden p-0 sm:items-center sm:p-6"
+      className="fixed inset-0 z-[100] flex items-end justify-center overflow-x-hidden p-0 sm:items-center sm:p-4 md:p-6"
       role="presentation"
       onClick={handleClose}
     >
@@ -434,19 +445,19 @@ export default function MovieDetailModal({
 
         {movie && !isLoading && !error && (
           <div className="scrollbar-dark min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-x-none">
-            <div className="flex min-w-0 flex-col gap-8 px-5 pb-8 pt-14 sm:flex-row sm:gap-12 sm:px-8 sm:pb-10 sm:pt-16">
+            <div className="flex min-w-0 flex-col items-center gap-6 px-4 pb-6 pt-14 sm:flex-row sm:items-start sm:gap-8 sm:px-6 sm:pb-8 sm:pt-16 md:gap-10 md:px-8 md:pb-10">
               <PosterShowcase
                 poster={movie.Poster}
                 title={movie.Title}
                 year={movie.Year}
               />
 
-              <div className="min-w-0 flex-1 space-y-6">
-                <header className="space-y-4">
+              <div className="min-w-0 w-full flex-1 space-y-4 sm:space-y-5 md:space-y-6">
+                <header className="space-y-3 text-center sm:space-y-4 sm:text-left">
                   <div>
                     <h2
                       id="movie-detail-title"
-                      className="break-words text-2xl font-extrabold leading-tight tracking-tight text-white sm:text-3xl lg:text-4xl"
+                      className="break-words text-2xl font-extrabold leading-tight tracking-tight text-white sm:text-2xl md:text-3xl lg:text-4xl"
                     >
                       {movie.Title}
                     </h2>
@@ -457,13 +468,13 @@ export default function MovieDetailModal({
                     )}
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                  <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 sm:justify-start">
                     {year && <MetaItem icon={<CalendarIcon className="h-4 w-4" />} label="Year" value={year} />}
                     {runtime && <MetaItem icon={<ClockIcon className="h-4 w-4" />} label="Runtime" value={runtime} />}
                   </div>
 
                   {(imdbRating || rottenTomatoesRating || metascore) && (
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
                       {imdbRating && (
                         <RatingPill
                           label="IMDb"
@@ -488,7 +499,7 @@ export default function MovieDetailModal({
                     </div>
                   )}
 
-                  <GenreTags genres={genres} />
+                  <GenreTags genres={genres} className="justify-center sm:justify-start" />
                 </header>
 
                 {plot && (
@@ -502,7 +513,7 @@ export default function MovieDetailModal({
                   </section>
                 )}
 
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
                   <InfoCard label="Director" value={displayValue(movie.Director)} />
                   <InfoCard label="Cast" value={displayValue(movie.Actors)} />
                   <InfoCard label="Released" value={displayValue(movie.Released)} />
@@ -513,6 +524,7 @@ export default function MovieDetailModal({
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

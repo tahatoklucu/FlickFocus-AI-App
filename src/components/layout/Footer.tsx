@@ -77,21 +77,21 @@ export default function Footer() {
   }
 
   return (
-    <footer className="border-t border-neutral-800/60 bg-neutral-950/80 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-6 px-4 py-6 sm:flex-row sm:px-6 sm:py-8 lg:px-8">
-        <div className="flex flex-col items-center gap-2 sm:items-start">
+    <footer className="relative z-0 border-t border-neutral-800/60 bg-neutral-950/80 backdrop-blur-md">
+      <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
+        <div className="min-w-0 shrink-0 text-left">
           <Link
             href="/"
             className="bg-gradient-to-r from-white to-neutral-400 bg-clip-text text-sm font-bold tracking-tight text-transparent transition hover:opacity-80"
           >
             FlickFocus
           </Link>
-          <p className="text-xs text-neutral-500" suppressHydrationWarning>
+          <p className="mt-1 text-xs text-neutral-500" suppressHydrationWarning>
             &copy; {new Date().getFullYear()} Built by Taha Toklucu
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2 sm:gap-3">
           <SocialLink href={GITHUB_REPO_URL} label="View FlickFocus on GitHub">
             <GitHubIcon />
           </SocialLink>
