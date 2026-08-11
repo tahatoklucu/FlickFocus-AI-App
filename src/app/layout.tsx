@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import ConsoleGuard from "@/components/ConsoleGuard";
 import Providers from "@/components/Providers";
 import { CRITICAL_CSS } from "@/lib/critical-css";
 import { rootMetadata } from "@/lib/metadata";
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           Skip to main content
         </a>
         <Providers>
+          <ConsoleGuard />
           <Header />
           <main id="main-content" className="flex flex-1 flex-col" tabIndex={-1}>
             {children}

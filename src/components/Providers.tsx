@@ -15,12 +15,12 @@ const FirebaseProviders = dynamic(
 );
 
 function scheduleFirebaseActivation(onActivate: () => void) {
+  const activate = () => onActivate();
+
   if (isGoogleRedirectPending()) {
-    onActivate();
+    queueMicrotask(activate);
     return;
   }
-
-  const activate = () => onActivate();
 
   const onInteraction = () => activate();
 
@@ -54,11 +54,6 @@ export default function Providers({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (loadFirebase) {
-      return;
-    }
-
-    if (isGoogleRedirectPending()) {
-      setLoadFirebase(true);
       return;
     }
 

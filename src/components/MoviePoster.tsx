@@ -3,9 +3,10 @@
 import { memo, useState } from "react";
 import Image from "next/image";
 import { POSTER_QUALITY } from "@/lib/image-config";
+import { isValidPosterUrl } from "@/lib/poster-url";
 
 export function hasValidPoster(poster: string): boolean {
-  return poster !== "N/A" && poster.trim().length > 0;
+  return isValidPosterUrl(poster);
 }
 
 interface MoviePosterProps {
@@ -30,6 +31,7 @@ function MoviePoster({
   variant = "card",
 }: MoviePosterProps) {
   const [hasError, setHasError] = useState(false);
+  const [useUnoptimized, setUseUnoptimized] = useState(false);
   const showImage = hasValidPoster(poster) && !hasError;
   const resolvedQuality =
     quality ?? (variant === "detail" ? POSTER_QUALITY.detail : POSTER_QUALITY.card);
@@ -67,8 +69,16 @@ function MoviePoster({
       priority={priority}
       fetchPriority={priority ? "high" : "auto"}
       loading={priority ? "eager" : "lazy"}
+      unoptimized={useUnoptimized}
       className={className}
-      onError={() => setHasError(true)}
+      onError={() => {
+        if (!useUnoptimized) {
+          setUseUnoptimized(true);
+          return;
+        }
+
+        setHasError(true);
+      }}
     />
   );
 }
