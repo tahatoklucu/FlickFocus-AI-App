@@ -257,7 +257,7 @@ For production at scale, consider Vercel KV / Upstash Redis for distributed rate
 - **Distributed rate limiting** via Vercel KV or Upstash Redis
 - **Full WAI-ARIA menu pattern** (arrow-key navigation) on the profile dropdown
 - **Expanded unit tests** for movie components (`SearchBar`, `MovieCard`, `FavoriteButton`) — **done (51% component coverage)**
-- **axe/WAVE audit artifacts** committed alongside [docs/AUDIT.md](./docs/AUDIT.md)
+- **axe/WAVE audit artifacts** — save scans to [`docs/evidence/`](./docs/evidence/) (see [screenshot guide](./docs/evidence/README.md))
 - **`prefers-reduced-data`** tier — skip heavy environment maps and poster pre-checks on slow connections
 
 See also [docs/AUDIT.md §8](./docs/AUDIT.md#8-future-recommendations) for the full audit backlog.
@@ -590,6 +590,7 @@ The biggest surprise was how much **prompt engineering** changed the quality of 
 ## Related docs
 
 - [docs/TEST_COVERAGE.md](./docs/TEST_COVERAGE.md) — Test coverage evidence (51% component files)
+- [docs/evidence/](./docs/evidence/) — Capstone screenshots (axe, terminal coverage) — see [guide](./docs/evidence/README.md)
 - [docs/DEPLOYMENT_CHECKLIST.md](./docs/DEPLOYMENT_CHECKLIST.md) — FE-11 deployment checklist (env, domain, Firebase, smoke tests, rollback)
 - [docs/AUDIT.md](./docs/AUDIT.md) — Performance, accessibility, and SEO audit
 - [docs/SHADER_CAPSTONE.md](./docs/SHADER_CAPSTONE.md) — GLSL capstone deliverable

@@ -13,7 +13,7 @@
 | # | Item | Status | Notes |
 | --- | --- | :---: | --- |
 | 1.1 | `npm run lint` passes locally | ✅ | ESLint clean |
-| 1.2 | `npm run test` passes locally | ✅ | 38 unit tests |
+| 1.2 | `npm run test` passes locally | ✅ | 73 unit tests (26 files) |
 | 1.3 | `npm run build` succeeds locally | ✅ | Next.js 16 production build |
 | 1.4 | `.env.local` never committed | ✅ | Listed in `.gitignore` |
 | 1.5 | Secrets stored in Vercel (not in repo) | ✅ | Server + client vars separated |

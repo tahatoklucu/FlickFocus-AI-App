@@ -172,7 +172,7 @@ npm run build && npm run start -- -p 3001
 # Chrome DevTools → Lighthouse → Mobile → http://localhost:3001
 
 npm run lint
-npm run test        # 31 unit tests
+npm run test        # 73 unit tests
 npm run test:e2e    # Playwright (optional)
 ```
 
