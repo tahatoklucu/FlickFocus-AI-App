@@ -201,6 +201,7 @@ npx lighthouse http://localhost:3001 \
 | Focus trap | `src/hooks/useFocusTrap.ts` |
 | Chat accessibility | `src/components/ChatPageClient.tsx` |
 | CI pipeline | `.github/workflows/test.yml` |
+| **GLSL hero shader (capstone)** | `src/lib/hero-shader.ts`, `src/components/hero/HeroShaderBackground.tsx`, `src/components/hero/HomePageHero.tsx` — see [SHADER_CAPSTONE.md](./SHADER_CAPSTONE.md) |
 
 ---
 
@@ -210,6 +211,24 @@ npx lighthouse http://localhost:3001 \
 - Full WAI-ARIA menu pattern (Arrow keys) on profile dropdown
 - Skip environment map entirely with `prefers-reduced-data`
 - Firebase auth iframe cache TTL — third-party constraint, out of scope
+
+---
+
+## 9. GLSL Hero Shader (Capstone)
+
+The homepage hero uses a **custom WebGL fragment shader** (not CSS-only) as a fullscreen backdrop behind the primary headline and search UI.
+
+| Deliverable | Status | Reference |
+| --- | --- | --- |
+| Custom GLSL shader | ✅ | `src/lib/hero-shader.ts` |
+| Uniforms (`u_time`, `u_resolution`, `u_mouse`) | ✅ All three | `HeroShaderBackground.tsx` |
+| Readable hero copy | ✅ | Vignette + scrim in shader & `HeroShaderScrim` |
+| DPR cap | ✅ | `getHeroShaderDpr()` — 1.25 mobile / 1.75 desktop |
+| Pause when tab hidden | ✅ | `visibilitychange` + RAF cancel |
+| `prefers-reduced-motion` fallback | ✅ | Static gradient via `HomeHeroBackdropShell` |
+| Documented fallback & performance | ✅ | [SHADER_CAPSTONE.md](./SHADER_CAPSTONE.md) |
+
+**Live URL:** Production deployment with `NEXT_PUBLIC_APP_URL` set (Vercel recommended). Full submission checklist in `SHADER_CAPSTONE.md`.
 
 ---
 

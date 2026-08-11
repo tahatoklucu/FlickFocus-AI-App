@@ -10,6 +10,19 @@ FlickFocus is a modern, high-performance web application for discovering movies,
 - **FlickFocus AI Chat:** Streaming assistant with server-side OMDb tools and generative UI (rich movie cards rendered inline in chat).
 - **Advanced SEO Optimization:** Fully configured metadata, Open Graph (OG) tags, Twitter cards, and semantic structure for maximum search engine visibility.
 
+## 🎬 GLSL Hero Shader (Capstone)
+
+FlickFocus includes a **fullscreen GLSL fragment shader** as the homepage hero backdrop (capstone deliverable). See **[SHADER_CAPSTONE.md](./SHADER_CAPSTONE.md)** for:
+
+- Live URL / deployment notes  
+- Shader source location (`src/lib/hero-shader.ts`)  
+- Uniforms: `u_time`, `u_resolution`, `u_mouse`  
+- Performance (DPR cap, tab pause) and `prefers-reduced-motion` fallback  
+
+**Homepage hero stack:** `HomePageHero` → `HomeHeroBackdropShell` + `HeroShaderBackground` → headline & search on top.
+
+---
+
 ## 🛠️ Tech Stack
 
 - **Framework:** Next.js (App Router)
