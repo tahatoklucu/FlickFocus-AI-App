@@ -20,8 +20,9 @@
 
 | | |
 | --- | --- |
+| **Repository** | [github.com/tahatoklucu/FlickFocus-AI-App](https://github.com/tahatoklucu/FlickFocus-AI-App) |
 | **Stack** | Next.js 16 (App Router) · Tailwind CSS 4 · Firebase · OMDb · Vercel AI SDK |
-| **Repo name** | `nextjs-ai-app` (internship project: **FlickFocus-AI-App**) |
+| **Repo folder** | `nextjs-ai-app` (GitHub: **FlickFocus-AI-App**) |
 | **Status** | Deployed on Vercel · Lighthouse Performance **93+** |
 
 ---
@@ -55,8 +56,8 @@ We wanted to build a **realistic entertainment guide** that combines three thing
 ### Install & run
 
 ```bash
-git clone <your-repo-url>
-cd nextjs-ai-app
+git clone https://github.com/tahatoklucu/FlickFocus-AI-App.git
+cd FlickFocus-AI-App
 npm install
 cp .env.example .env.local   # or create .env.local manually (see table below)
 npm run dev
@@ -86,6 +87,8 @@ npm run test:e2e
 3. Deploy. `NEXT_PUBLIC_APP_URL` should match your production URL for correct OG/metadata.
 
 Firebase rules: `npm run firebase:deploy` (Firestore + Storage rules from `firebase.json`).
+
+**Full signed-off checklist:** [docs/DEPLOYMENT_CHECKLIST.md](./docs/DEPLOYMENT_CHECKLIST.md) (FE-11 — env vars, domain, Firebase, smoke tests, rollback).
 
 ---
 
@@ -234,6 +237,39 @@ For production at scale, consider Vercel KV / Upstash Redis for distributed rate
 
 ---
 
+## Known limitations & future improvements
+
+### Current limitations
+
+| Area | Limitation |
+| --- | --- |
+| **OMDb API** | Free-tier daily request cap; search/detail depend on external uptime |
+| **AI chat** | Requires `GOOGLE_GENERATIVE_AI_API_KEY` (Gemini); returns 503 without it — rest of app still works |
+| **Rate limiting** | In-memory, per serverless instance — not a shared Redis/KV store |
+| **Genre browse** | Curated IMDb ID lists per genre, not a full OMDb genre API |
+| **Favorites** | Requires Firebase Auth + Firestore; no offline sync beyond local cache |
+| **Monitoring** | No dedicated APM (Sentry/Datadog); relies on Vercel logs, CI, and `/health-check` |
+| **Test coverage** | Strong on chat UI and API guards; not every component has a co-located unit test yet |
+
+### Planned improvements
+
+- **Lighthouse CI** in GitHub Actions to catch performance regressions on every PR
+- **Distributed rate limiting** via Vercel KV or Upstash Redis
+- **Full WAI-ARIA menu pattern** (arrow-key navigation) on the profile dropdown
+- **Expanded unit tests** for movie components (`SearchBar`, `MovieCard`, `FavoriteButton`) — **done (51% component coverage)**
+- **axe/WAVE audit artifacts** committed alongside [docs/AUDIT.md](./docs/AUDIT.md)
+- **`prefers-reduced-data`** tier — skip heavy environment maps and poster pre-checks on slow connections
+
+See also [docs/AUDIT.md §8](./docs/AUDIT.md#8-future-recommendations) for the full audit backlog.
+
+---
+
+## Rollback plan
+
+If a production deploy breaks a critical flow (search, auth, or chat), roll back immediately via **Vercel → Deployments → select the last known-good build → Promote to Production**. Traffic switches in seconds without a rebuild. After rollback, re-run the smoke tests in [docs/DEPLOYMENT_CHECKLIST.md §6](./docs/DEPLOYMENT_CHECKLIST.md#6-post-deploy-smoke-tests). For code-level fixes, `git revert` the bad commit and push to `main` to trigger a clean redeploy.
+
+---
+
 ## AI Integration & Development Process
 
 Artificial intelligence was a **core part of how FlickFocus was built** — not as a replacement for engineering judgment, but as a force multiplier throughout design, implementation, and hardening.
@@ -332,7 +368,9 @@ Component tests and critical user-flow tests were written to keep FlickFocus rel
 
 | Layer | Scope | Location |
 | --- | --- | --- |
+| **Unit — movies** | Search, favorites, cards, list, poster, not-found | `src/components/movies/*.test.tsx` |
 | **Unit — chat UI** | Tool lifecycle, generative movie cards, assistant message rendering | `src/components/chat/*.test.tsx` |
+| **Unit — layout/home** | Footer, hero glow, loading skeleton, deferred mount | `src/components/layout/*.test.tsx`, etc. |
 | **Unit — interactions** | `AnimatedActionButton` states (idle, loading, success, error/retry) | `src/components/ui/AnimatedActionButton.test.tsx` |
 | **Unit — AI tools** | OMDb tool `execute` functions, result shaping | `src/lib/chat/chat-tools.test.ts` |
 | **Unit — API guards** | Input caps, IMDb ID validation, rate limiting | `src/lib/api/api-limits.test.ts` |
@@ -343,10 +381,14 @@ Component tests and critical user-flow tests were written to keep FlickFocus rel
 ### Current test inventory
 
 ```text
-npm run test        → 38 unit tests across 8 files (Vitest + Testing Library)
-npm run test:e2e    → Playwright chat user-flow spec
-npm run lint        → ESLint (runs in CI before tests)
+npm run test            → 73 unit tests across 26 files
+npm run test:coverage   → Vitest v8 report + docs/coverage-summary.json
+npm run test:e2e        → Playwright chat user-flow spec
+npm run lint            → ESLint (runs in CI before tests)
 ```
+
+**Component file coverage: 23 / 45 (51%)** — meets capstone ≥50% target.  
+Full evidence: **[docs/TEST_COVERAGE.md](./docs/TEST_COVERAGE.md)** · [`docs/coverage-summary.json`](./docs/coverage-summary.json)
 
 ### CI pipeline
 
@@ -361,11 +403,12 @@ Automated checks run on every push/PR via [`.github/workflows/test.yml`](./.gith
 
 ```bash
 npm run lint
-npm run test          # unit tests — pass/fail output is the primary evidence
-npm run test:e2e      # optional: requires Playwright browser (npm run playwright:install)
+npm run test
+npm run test:coverage
+npm run test:e2e        # optional: requires Playwright browser (npm run playwright:install)
 ```
 
-> **Note:** Vitest is configured in [`vitest.config.ts`](./vitest.config.ts) with jsdom and path aliases matching the Next.js app. Playwright config: [`playwright.config.ts`](./playwright.config.ts).
+> **Note:** Vitest is configured in [`vitest.config.ts`](./vitest.config.ts) with jsdom and path aliases matching the Next.js app. Playwright config: [`playwright.config.ts`](./playwright.config.ts). Coverage evidence: [`docs/TEST_COVERAGE.md`](./docs/TEST_COVERAGE.md).
 
 ---
 
@@ -492,16 +535,66 @@ Procedural film reel (no external GLB) via Three.js / R3F / Drei. Lazy-loaded; d
 | `npm run start` | Serve production build |
 | `npm run lint` | ESLint |
 | `npm run test` | Vitest unit tests |
+| `npm run test:coverage` | Unit tests + component coverage report |
 | `npm run test:e2e` | Playwright E2E |
 | `npm run firebase:deploy` | Deploy Firestore + Storage rules |
 
 ---
 
+## Reflection
+
+*Capstone reflection — FlickFocus internship project.*
+
+### Who this project serves
+
+FlickFocus is built for people who want to discover films or series but struggle to decide what to watch. It targets users who feel lost among hundreds of titles and need a fast way to compare IMDb ratings, cast, plot details, and genre context before committing to a movie night. In short, the app addresses the **recommendation and evaluation problem** — helping users move from *"what should I watch?"* to an informed, confident choice.
+
+### How AI shaped the build process
+
+During development, AI (Claude via the Cursor ecosystem) was used deliberately — not to generate code blindly, but to **refine architecture, tighten performance, and keep the codebase lean**. Concrete uses included:
+
+- Deepening feature implementations without unnecessary complexity
+- Driving performance optimizations that contributed to Lighthouse scores of 93+
+- Reorganizing files into a clear, domain-based structure
+- Trimming bloated code paths and keeping components focused
+- Iterating toward stronger UI patterns (layout, spacing, responsive behaviour)
+
+The goal was always the same: a modular, maintainable codebase with a polished user experience — not a pile of AI-generated files nobody could navigate.
+
+### Error handling & resilience
+
+Error states were treated as a first-class requirement throughout the project. API failures, invalid inputs, missing posters, and optional service outages (Firebase, chat) are handled with user-facing messages, safe fallbacks, and graceful degradation. At the time of submission, **error flows behave as intended** — the application recovers and informs rather than crashing or exposing raw failures. See [Error States & Resilience](#error-states--resilience) and [docs/AUDIT.md](./docs/AUDIT.md) for the full picture.
+
+### What was hardest — and why
+
+Two areas stood out:
+
+**1. Performance flow end-to-end**  
+Making the homepage feel cinematic *without* sacrificing Core Web Vitals was genuinely difficult. The GLSL hero shader, lazy-loaded 3D scene, Firebase auth, and image-heavy movie grid all compete for the main thread and GPU budget. Balancing visual impact with LCP, TBT, and CLS required multiple audit cycles — deferring Three.js, inlining critical CSS, capping shader DPR, and pre-checking poster availability before rendering `<Image>` components.
+
+**2. Search UX — text query vs. genre chips**  
+The homepage supports two discovery modes that feel similar to users but behave differently under the hood: **free-text search by title** in the search bar versus **category-based browsing** via genre chip buttons. Wiring both flows cleanly — shared result rendering, distinct API paths, consistent empty/error states, and clear visual hierarchy — took more iteration than expected. Getting the interaction model right (search icon removed, centered layout, left-aligned chips) required several rounds of feedback and refinement.
+
+### What surprised me
+
+The biggest surprise was how much **prompt engineering** changed the quality of AI-assisted development. Early on, I treated Claude like a casual helper — vague requests produced vague code. Once I shifted to **role-prompting** — framing Claude as a lead engineer on the project, with explicit constraints, acceptance criteria, and file boundaries — the output became dramatically more useful. Instead of chatting like a normal user, I structured instructions the way I'd brief a senior teammate: *what*, *why*, *where*, and *what not to touch*. That mindset — engineer-to-engineer, not user-to-chatbot — was the single most valuable skill I picked up during this capstone.
+
+### What I would do differently next time
+
+- **Define search/browse interaction models earlier** — sketch the dual discovery flow (text vs. genre) in wireframes before implementation to reduce UI rework.
+- **Run Lighthouse after every major feature merge** — not just at the end — to catch performance regressions from hero/shader changes sooner.
+- **Add component tests incrementally** — co-locate tests when each feature ships rather than batching them before submission.
+
+---
+
 ## Related docs
 
+- [docs/TEST_COVERAGE.md](./docs/TEST_COVERAGE.md) — Test coverage evidence (51% component files)
+- [docs/DEPLOYMENT_CHECKLIST.md](./docs/DEPLOYMENT_CHECKLIST.md) — FE-11 deployment checklist (env, domain, Firebase, smoke tests, rollback)
 - [docs/AUDIT.md](./docs/AUDIT.md) — Performance, accessibility, and SEO audit
 - [docs/SHADER_CAPSTONE.md](./docs/SHADER_CAPSTONE.md) — GLSL capstone deliverable
 - [CLAUDE.md](./CLAUDE.md) — Developer commands & guidelines
+- **Reflection** — see [Reflection](#reflection) above
 
 ---
 

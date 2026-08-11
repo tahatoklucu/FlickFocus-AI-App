@@ -25,3 +25,16 @@ vi.mock("next/dynamic", () => ({
       return null;
     },
 }));
+
+vi.mock("next/link", () => ({
+  default: function MockLink({
+    href,
+    children,
+    ...props
+  }: {
+    href: string;
+    children: React.ReactNode;
+  }) {
+    return createElement("a", { href, ...props }, children);
+  },
+}));

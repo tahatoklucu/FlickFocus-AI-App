@@ -17,5 +17,15 @@ export default defineConfig({
     globals: true,
     clearMocks: true,
     restoreMocks: true,
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "text-summary", "json-summary"],
+      reportsDirectory: "./coverage",
+      include: ["src/components/**/*.{ts,tsx}"],
+      exclude: [
+        "src/components/**/*.test.{ts,tsx}",
+        "src/components/**/CinemaHeroCanvasImpl.tsx",
+      ],
+    },
   },
 });
