@@ -1,5 +1,5 @@
-import FavoritesPageClient from "@/components/FavoritesPageClient";
-import PageHeroGlow from "@/components/PageHeroGlow";
+import FavoritesPageClient from "@/components/favorites/FavoritesPageClient";
+import PageHeroGlow from "@/components/layout/PageHeroGlow";
 import { createPageMetadata } from "@/lib/metadata";
 
 export const metadata = createPageMetadata({

@@ -1,318 +1,353 @@
 # FlickFocus 🎬
 
-FlickFocus is a modern, high-performance web application for discovering movies, managing custom watchlists, and exploring detailed cinematic data. Built with Next.js App Router, Tailwind CSS, and OMDb API, featuring secure user authentication via Firebase.
+**FlickFocus** is a production-ready movie discovery web app: search the OMDb catalog, save favorites with Firebase Auth, chat with an AI assistant that renders live movie data inline, and explore a cinematic homepage with a GLSL hero shader and optional 3D cinema scene.
 
-## ✨ Features
-
-- **Movie Discovery & Search:** Real-time search powered by the OMDb database with rich filtering and detailed modal views.
-- **Cinematic UI/UX:** Dark-themed, streaming-platform-inspired design (Netflix/Apple TV+ style) featuring glassmorphism elements and responsive layouts.
-- **Personal Watchlist & Favorites:** Secure user authentication allowing users to save and manage favorite movies.
-- **FlickFocus AI Chat:** Streaming assistant with server-side OMDb tools and generative UI (rich movie cards rendered inline in chat).
-- **Advanced SEO Optimization:** Fully configured metadata, Open Graph (OG) tags, Twitter cards, and semantic structure for maximum search engine visibility.
-
-## 🎬 GLSL Hero Shader (Capstone)
-
-FlickFocus includes a **fullscreen GLSL fragment shader** as the homepage hero backdrop (capstone deliverable). See **[SHADER_CAPSTONE.md](./SHADER_CAPSTONE.md)** for:
-
-- Live URL / deployment notes  
-- Shader source location (`src/lib/hero-shader.ts`)  
-- Uniforms: `u_time`, `u_resolution`, `u_mouse`  
-- Performance (DPR cap, tab pause) and `prefers-reduced-motion` fallback  
-
-**Homepage hero stack:** `HomePageHero` → `HomeHeroBackdropShell` + `HeroShaderBackground` → headline & search on top.
-
----
-
-## 🛠️ Tech Stack
-
-- **Framework:** Next.js (App Router)
-- **Styling:** Tailwind CSS
-- **AI:** Vercel AI SDK (`ai`, `@ai-sdk/react`, `@ai-sdk/google`) with Zod-validated server-side tools
-- **Authentication & Database:** Firebase Auth / Firestore
-- **External API:** OMDb API
-- **Deployment:** Vercel
-
-## AI Tool Contract
-
-FlickFocus exposes **server-side AI tools** on `POST /api/chat` via the Vercel AI SDK. Tools fetch live OMDb data during chat and stream results to the client as typed UI message parts (`tool-searchMovies`, `tool-getMovieDetails`). Each tool follows a strict input/output contract defined in `src/lib/chat-tools.ts` and `src/types/chat-tools.ts`.
-
-### Tool lifecycle (client rendering)
-
-Tool parts progress through four states. The chat UI maps each state to a distinct visual treatment in `src/components/chat/ChatToolLifecycle.tsx` (not raw JSON):
-
-| State | UI treatment |
+| | |
 | --- | --- |
-| `input-streaming` | Amber panel — parameters streaming in |
-| `input-available` | Sky panel — confirmed input, server executing |
-| `output-available` | Emerald panel — generative UI result |
-| `output-error` | Red panel — safe error card (`ChatToolOutputError`) |
-
-Orchestration and component routing live in `src/components/chat/ChatToolInvocation.tsx`.
+| **Live demo** | [https://flickfocus.vercel.app](https://flickfocus.vercel.app) |
+| **Stack** | Next.js 16 (App Router) · Tailwind CSS 4 · Firebase · OMDb · Vercel AI SDK |
+| **Repo name** | `nextjs-ai-app` (internship project: **FlickFocus-AI-App**) |
 
 ---
 
-### 1. `searchMovies`
+## Quick start
 
-**Purpose:** Search the OMDb catalog by title or keyword when the user wants to discover or look up films. Returns a ranked, capped result set for generative UI rendering.
+### Prerequisites
 
-**Server registration:** `flickFocusChatTools.searchMovies`  
-**UI message part type:** `tool-searchMovies`
+- **Node.js** 20+
+- **npm** 10+
+- [OMDb API key](http://www.omdbapi.com/apikey.aspx) (free tier)
+- [Firebase project](https://console.firebase.google.com/) (Auth + Firestore; Storage optional)
+- [Google AI API key](https://aistudio.google.com/apikey) for `/chat` (Gemini)
 
-#### Zod input schema
+### Install & run
 
-```typescript
-z.object({
-  query: z
-    .string()
-    .min(1)
-    .describe("Movie title or search keywords, e.g. Inception or sci-fi space"),
-})
+```bash
+git clone <your-repo-url>
+cd nextjs-ai-app
+npm install
+cp .env.example .env.local   # or create .env.local manually (see table below)
+npm run dev
 ```
 
-| Parameter | Type | Required | Description |
+Open [http://localhost:3000](http://localhost:3000).
+
+### Verify before deploy
+
+```bash
+npm run lint
+npm run test
+npm run build
+```
+
+Optional E2E (requires Playwright browser):
+
+```bash
+npm run playwright:install
+npm run test:e2e
+```
+
+### Deploy (Vercel)
+
+1. Push to GitHub and import the repo in [Vercel](https://vercel.com).
+2. Add all environment variables from the table below (Production + Preview).
+3. Deploy. `NEXT_PUBLIC_APP_URL` should match your production URL for correct OG/metadata.
+
+Firebase rules: `npm run firebase:deploy` (Firestore + Storage rules from `firebase.json`).
+
+---
+
+## Environment variables
+
+Create `.env.local` in the project root. **Never commit secrets.**
+
+| Variable | Required | Scope | Description |
 | --- | --- | --- | --- |
-| `query` | `string` | Yes | Search string passed to OMDb (`s=`). Minimum length: 1. |
+| `NEXT_PUBLIC_OMDB_API_KEY` | Yes | Client + Server | OMDb API key for movie search and details |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Yes* | Client | Firebase Web API key |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Yes* | Client | e.g. `your-app.firebaseapp.com` |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Yes* | Client | Firebase project ID |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Yes* | Client | e.g. `your-app.appspot.com` |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Yes* | Client | Firebase messaging sender ID |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Yes* | Client | Firebase app ID |
+| `NEXT_PUBLIC_FIREBASE_USE_STORAGE` | No | Client | Set to `true` to enable avatar uploads to Firebase Storage |
+| `NEXT_PUBLIC_APP_URL` | Recommended | Client | Canonical site URL (metadata, Open Graph). Default: `http://localhost:3000` |
+| `GOOGLE_GENERATIVE_AI_API_KEY` | For chat | **Server only** | Gemini key for `POST /api/chat`. Chat returns 503 if missing |
 
-#### Return shape
-
-```typescript
-interface ChatMovieSearchOutput {
-  query: string;
-  results: ChatMovieSearchItem[];
-  totalResults: number;
-}
-
-interface ChatMovieSearchItem {
-  imdbID: string;
-  title: string;
-  year: string;
-  poster: string;
-  type: string;
-}
-```
-
-| Field | Type | Description |
-| --- | --- | --- |
-| `query` | `string` | Echo of the submitted search query |
-| `results` | `ChatMovieSearchItem[]` | Up to **6** ranked movie hits |
-| `totalResults` | `number` | Total matches reported by OMDb (may exceed `results.length`) |
-
-#### Generative UI component
-
-| Output state | Component | Behavior |
-| --- | --- | --- |
-| `output-available` | `ChatMovieSearchResults` | Responsive poster grid; clicking a card opens `MovieDetailModal` |
-| `output-error` | `ChatToolOutputError` | User-facing error message; chat session continues |
+\*Firebase vars are required for auth, favorites, and profile. The app loads Firebase lazily and shows a configuration message if they are absent.
 
 ---
 
-### 2. `getMovieDetails`
+## Features
 
-**Purpose:** Fetch full movie metadata and ratings for a specific title by IMDb ID. Used after a search or when the user asks for plot, cast, director, or scores.
-
-**Server registration:** `flickFocusChatTools.getMovieDetails`  
-**UI message part type:** `tool-getMovieDetails`
-
-#### Zod input schema
-
-```typescript
-z.object({
-  imdbID: z
-    .string()
-    .min(1)
-    .describe("IMDb ID such as tt0133093 for The Matrix"),
-})
-```
-
-| Parameter | Type | Required | Description |
-| --- | --- | --- | --- |
-| `imdbID` | `string` | Yes | OMDb identifier (e.g. `tt0133093`). Minimum length: 1. |
-
-#### Return shape
-
-```typescript
-interface ChatMovieDetailsOutput {
-  imdbID: string;
-  title: string;
-  year: string;
-  rated: string | null;
-  runtime: string | null;
-  genre: string | null;
-  director: string | null;
-  actors: string | null;
-  plot: string | null;
-  poster: string | null;
-  imdbRating: string | null;
-  rottenTomatoes: string | null;
-  metascore: string | null;
-}
-```
-
-| Field | Type | Description |
-| --- | --- | --- |
-| `imdbID` | `string` | Canonical IMDb ID |
-| `title` | `string` | Movie title |
-| `year` | `string` | Release year |
-| `rated` | `string \| null` | Content rating (e.g. PG-13); `null` if N/A |
-| `runtime` | `string \| null` | Runtime string from OMDb; `null` if N/A |
-| `genre` | `string \| null` | Comma-separated genres; `null` if N/A |
-| `director` | `string \| null` | Director name(s); `null` if N/A |
-| `actors` | `string \| null` | Cast listing; `null` if N/A |
-| `plot` | `string \| null` | Synopsis; `null` if N/A |
-| `poster` | `string \| null` | Poster URL; `null` if N/A |
-| `imdbRating` | `string \| null` | IMDb score; `null` if N/A |
-| `rottenTomatoes` | `string \| null` | Rotten Tomatoes score; `null` if unavailable |
-| `metascore` | `string \| null` | Metacritic score; `null` if N/A |
-
-#### Generative UI component
-
-| Output state | Component | Behavior |
-| --- | --- | --- |
-| `output-available` | `ChatMovieDetailCard` | Poster, rating pills (IMDb / RT / Meta), genre chips, plot excerpt, director/cast info; “Open full details” opens `MovieDetailModal` |
-| `output-error` | `ChatToolOutputError` | User-facing error message; chat session continues |
+- **Movie discovery** — Real-time OMDb search, genre chips, paginated results, detail modal
+- **FlickFocus AI Chat** — Streaming assistant with server-side tools (`searchMovies`, `getMovieDetails`) and generative UI cards
+- **Watchlist & favorites** — Firebase Auth + Firestore per user
+- **Cinematic UI** — Dark glassmorphic layout, responsive grids, micro-interactions
+- **GLSL hero shader** — Fullscreen fragment shader on the homepage hero ([docs/SHADER_CAPSTONE.md](./docs/SHADER_CAPSTONE.md))
+- **3D cinema hero** — Optional procedural Three.js reel (lazy-loaded, reduced-motion fallback)
+- **SEO** — Metadata, Open Graph, Twitter cards via `src/lib/metadata.ts`
+- **Performance & a11y audit** — See [docs/AUDIT.md](./docs/AUDIT.md)
 
 ---
 
-### Implementation reference
+## Architecture overview
+
+```mermaid
+flowchart TB
+  subgraph client [Browser]
+    Pages[App Router pages]
+    ChatUI[Chat + generative UI]
+    Home[Home hero shader / 3D]
+  end
+
+  subgraph next [Next.js server]
+    APIChat["/api/chat"]
+    APIMovies["/api/movies/*"]
+    APIPoster["/api/poster/availability"]
+    OMDbSvc[omdb.server.ts]
+    Limits[api-limits + rate-limit]
+  end
+
+  subgraph external [External services]
+    OMDb[(OMDb API)]
+    Gemini[(Google Gemini)]
+    Firebase[(Firebase Auth / Firestore)]
+  end
+
+  Pages --> APIMovies
+  ChatUI --> APIChat
+  Pages --> Firebase
+  APIChat --> Limits
+  APIMovies --> Limits
+  APIChat --> Gemini
+  APIChat --> OMDbSvc
+  APIMovies --> OMDbSvc
+  OMDbSvc --> OMDb
+  Home --> Pages
+```
+
+### Project structure
+
+```text
+src/
+├── app/                      # Routes, layouts, API handlers
+│   ├── page.tsx              # Homepage (hero + search)
+│   ├── chat/                 # AI chat page
+│   ├── favorites/            # Protected favorites
+│   ├── profile/              # User profile & settings
+│   └── api/                  # chat, movies, poster availability
+├── components/
+│   ├── auth/                 # AuthModal
+│   ├── chat/                 # Chat UI + generative tool cards
+│   ├── common/               # Shared helpers (DeferredMount)
+│   ├── favorites/            # Favorites page client
+│   ├── hero/                 # GLSL shader + 3D cinema scene
+│   ├── home/                 # Homepage client composition
+│   ├── layout/               # Header, Footer, PageHeroGlow
+│   ├── movies/               # MovieCard, SearchBar, modals, posters
+│   ├── profile/              # Profile page + UserAvatar
+│   ├── providers/            # Providers, FirebaseProviders, ConsoleGuard
+│   └── ui/                   # Button, AnimatedActionButton
+├── context/                  # Auth & favorites React context
+├── lib/
+│   ├── api/                  # Rate limits & input caps
+│   ├── chat/                 # AI tools, prompts, streaming markdown
+│   ├── firebase/             # Config, lazy init, Google auth
+│   ├── hero/                 # GLSL source, 3D tokens, critical CSS
+│   ├── poster/               # Poster URL validation & availability
+│   ├── profile/              # Avatar, profile cache, favorites cache
+│   └── *.ts                  # Shared: cn, metadata, site, errors
+├── services/                 # OMDb client/server + Firestore users/favorites
+└── types/                    # Shared TypeScript interfaces
+
+docs/
+├── AUDIT.md                  # Performance & a11y audit
+└── SHADER_CAPSTONE.md        # GLSL capstone deliverable
+```
+
+**Data flow:** Browser components call `/api/*` routes (or client OMDb wrappers). Chat hits Gemini with Zod-validated tools that fetch OMDb on the server. Favorites sync to Firestore after Firebase Auth.
+
+---
+
+## Production security & API hygiene
+
+All API routes export a Vercel **`maxDuration`** ceiling so long-running requests cannot hang serverless workers indefinitely:
+
+| Route | `maxDuration` | Purpose |
+| --- | --- | --- |
+| `POST /api/chat` | 30s | Streaming Gemini + tool calls |
+| `GET /api/movies/search` | 15s | OMDb search proxy |
+| `GET /api/movies/[imdbId]` | 15s | Movie detail proxy |
+| `GET /api/movies/genre/[genreId]` | 15s | Curated genre lists |
+| `GET /api/poster/availability` | 10s | Poster HEAD check |
+
+**Rate limiting** (`src/lib/api/api-rate-limit.ts`): in-memory, per-IP limits (best-effort on serverless — each instance has its own bucket):
+
+| Scope | Limit |
+| --- | --- |
+| Chat (`POST /api/chat`) | 20 requests / minute / IP |
+| Other API routes | 120 requests / minute / IP |
+
+Exceeded limits return **429** with `Retry-After`.
+
+**Input caps** (`src/lib/api/api-limits.ts`):
+
+- Chat: max 40 messages, ~100 KB payload, 4 000 chars per text part
+- Search: query trimmed to 120 chars, page clamped 1–5
+- IMDb IDs: `tt` + 5–10 digits
+- Zod tool schemas mirror the same bounds in `src/lib/chat/chat-tools.ts`
+
+For production at scale, consider Vercel KV / Upstash Redis for distributed rate limits.
+
+---
+
+## How AI tools built this
+
+This section documents **how AI-assisted development was used** on FlickFocus — transparently, for internship review.
+
+### Tools used
+
+| Tool | Role |
+| --- | --- |
+| **Cursor IDE + Claude** | Primary pair-programming assistant: architecture, components, debugging, refactors |
+| **Google Gemini** | Runtime model for `/api/chat` (not the IDE assistant) |
+| **Vercel AI SDK** | Streaming chat, tool calling, generative UI message parts |
+
+### What AI helped build (by area)
+
+**1. Application scaffold & conventions**  
+AI suggested the App Router layout (`src/app/*`), separation of `services/omdb.server.ts` vs client wrappers, and TypeScript interfaces for OMDb responses. Human decisions: feature scope, naming (FlickFocus), and final file ownership.
+
+**2. FlickFocus AI Chat & generative UI**  
+AI drafted the chat route, Zod tool definitions (`src/lib/chat/chat-tools.ts`), system prompt, and tool lifecycle UI (`ChatToolLifecycle`, `ChatToolInvocation`, movie result cards). The developer reviewed tool contracts, capped result sets (6 search hits), and wired `stopWhen: isStepCount(5)` for multi-step tool chains.
+
+**3. UI/UX & responsive design**  
+AI iterated on glassmorphic header, search bar, movie cards, and `MovieDetailModal` aspect ratios. Several rounds of human feedback adjusted spacing, genre chip alignment, hero centering, and mobile breakpoints.
+
+**4. GLSL capstone shader**  
+AI helped author the fragment shader in `src/lib/hero/hero-shader.ts` and the WebGL runtime (`HeroShaderBackground.tsx`): uniforms (`u_time`, `u_resolution`, `u_mouse`), DPR cap, tab visibility pause, and `prefers-reduced-motion` CSS fallback. Documented in [docs/SHADER_CAPSTONE.md](./docs/SHADER_CAPSTONE.md).
+
+**5. 3D cinema hero**  
+AI generated the procedural Three.js scene (R3F + Drei), lazy `dynamic()` loading, device-tier effects, and static CSS fallback — with human tuning of performance budgets.
+
+**6. Performance & production hardening**  
+AI produced [docs/AUDIT.md](./docs/AUDIT.md) recommendations (Lighthouse, LCP, cache headers). Fixes included: production-only aggressive caching in `next.config.ts`, client-only homepage bundle (`HomePageClientRoot`), poster availability pre-check to avoid console 404s, Firebase lazy hydration, and the rate limiting / input caps in this README.
+
+**7. Tests & CI**  
+AI added Vitest unit tests (chat tools, poster URL guard, API limits) and Playwright specs; developer ran `npm run lint` / `npm run test` before deploy and fixed ESLint rule violations (e.g. `react-hooks/set-state-in-effect` in `Providers.tsx`).
+
+### What remained human-led
+
+- Product goals (movie app + AI chat + internship capstone requirements)
+- API key management and Vercel/Firebase project setup
+- Visual taste and acceptance criteria (“revert old search UI”, “no search icon”, etc.)
+- Final review of security limits, env vars, and deployment checklist
+- Honest documentation (this section)
+
+### Prompting approach (representative)
+
+- *“Add server-side OMDb tools to chat with Zod schemas and generative UI cards.”*
+- *“Fullscreen GLSL hero with u_time, u_resolution, u_mouse; respect reduced motion.”*
+- *“Fix hydration mismatch on homepage after hero refactor.”*
+- *“Add rate limiting and maxDuration before production deploy.”*
+
+AI outputs were **always reviewed, edited, and tested** before merge — not copy-pasted blindly.
+
+---
+
+## Git commit conventions
+
+Recent history mixes informal messages (`ui update`, `vercel fix`) with occasional descriptive ones. **Going forward**, use [Conventional Commits](https://www.conventionalcommits.org/):
+
+```text
+feat: add poster availability API
+fix: resolve hydration mismatch on homepage hero
+docs: expand README with env table and AI section
+perf: cap hero shader DPR on mobile
+test: add api-limits unit tests
+```
+
+Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `chore`. Keep subject ≤ 72 chars; add body for *why* when helpful.
+
+---
+
+## GLSL Hero Shader (Capstone)
+
+See **[docs/SHADER_CAPSTONE.md](./docs/SHADER_CAPSTONE.md)** for live URL notes, shader source (`src/lib/hero/hero-shader.ts`), uniforms, and fallbacks.
+
+**Homepage stack:** `HomePageHero` → `HomeHeroBackdropShell` + `HeroShaderBackground` → headline & search on top.
+
+---
+
+## AI tool contract (chat)
+
+FlickFocus exposes **server-side AI tools** on `POST /api/chat`. Tools fetch live OMDb data and stream typed UI parts (`tool-searchMovies`, `tool-getMovieDetails`).
+
+### Tool lifecycle
+
+| State | UI |
+| --- | --- |
+| `input-streaming` | Amber — parameters streaming |
+| `input-available` | Sky — executing |
+| `output-available` | Emerald — generative result |
+| `output-error` | Red — `ChatToolOutputError` |
+
+### Tools
+
+**`searchMovies`** — Input: `query` (string, 1–120 chars). Returns up to 6 hits + `totalResults`. UI: `ChatMovieSearchResults`.
+
+**`getMovieDetails`** — Input: `imdbID` (`tt` + digits). Returns full metadata. UI: `ChatMovieDetailCard`.
 
 | Concern | Location |
 | --- | --- |
-| Tool definitions & `execute` | `src/lib/chat-tools.ts` |
-| Output TypeScript types | `src/types/chat-tools.ts` |
-| Chat API route | `src/app/api/chat/route.ts` |
-| Tool lifecycle UI | `src/components/chat/ChatToolLifecycle.tsx` |
-| Generative UI routing | `src/components/chat/ChatToolInvocation.tsx` |
-| Chat integration | `src/components/ChatPageClient.tsx` |
+| Tool definitions | `src/lib/chat/chat-tools.ts` |
+| Types | `src/types/chat-tools.ts` |
+| Chat API | `src/app/api/chat/route.ts` |
+| Generative UI | `src/components/chat/*` |
 
-**Error handling:** Tool `execute` functions throw on OMDb failures. The AI SDK surfaces these as `output-error` tool parts; the UI renders `ChatToolOutputError` instead of crashing the chat.
-
-**Multi-step calls:** The chat route uses `stopWhen: isStepCount(5)` so the model may chain tools (e.g. `searchMovies` → `getMovieDetails`) within a single turn.
+---
 
 ## Micro-interactions: Animated Action Button
 
-FlickFocus includes a reusable **`AnimatedActionButton`** (`src/components/ui/AnimatedActionButton.tsx`) for stateful CTAs with compositor-friendly motion (transform + opacity only — no layout thrash).
+Reusable **`AnimatedActionButton`** (`src/components/ui/AnimatedActionButton.tsx`) — compositor-friendly states: idle, loading, success, error/retry. Tokens in `src/lib/animated-action-button.ts`; respects `prefers-reduced-motion`.
 
-### Visual states
-
-| State | Behavior |
-| --- | --- |
-| `idle` | Default label; hover/focus lift via CSS (`translateY`, shadow) |
-| `hover` / `focus` | Pseudo-state on `idle` — visible focus ring, subtle lift |
-| `loading` | Cross-fade to spinner + label; clicks ignored (spam-safe) |
-| `success` | Checkmark + label; optional auto-reset to `idle` |
-| `error` | Shake animation, then **Retry** label; click invokes `onRetry` / re-runs `onAction` |
-
-### Animation tokens
-
-Defined in `src/lib/animated-action-button.ts` and implemented in `src/app/globals.css`:
-
-| Token | Value | Usage |
-| --- | --- | --- |
-| State transition | **220ms** | `cubic-bezier(0.22, 1, 0.36, 1)` — layer cross-fades |
-| Hover lift | **180ms** | `cubic-bezier(0.4, 0, 0.2, 1)` — button `translateY` / shadow |
-| Success hold | **1200ms** | Before auto-reset (uncontrolled mode) |
-| Error shake | **420ms** | `cubic-bezier(0.36, 0.07, 0.19, 0.97)` — horizontal `translateX` only |
-
-### Accessibility
-
-- Keyboard focusable with visible `focus-visible` ring
-- `aria-busy` during loading; `aria-live="polite"` for state changes
-- `@media (prefers-reduced-motion: reduce)` disables shake/spinner rotation/hover lift; opacity-only feedback remains
-
-### Integration examples
-
-| Location | Mode | Notes |
-| --- | --- | --- |
-| `/chat` send control | Controlled | Maps chat phase + error to button states |
-| `/profile` demo panel | Controlled + uncontrolled | `AnimatedActionButtonDemo` for QA / capstone review |
+---
 
 ## Web 3D Experience (Cinema Hero)
 
-The homepage (`/`) includes an interactive **3D cinema hero** — a procedural film reel with clapperboard accent — built with **Three.js**, **React Three Fiber**, and **Drei**. The scene ships **no external GLB/GLTF assets**; every mesh is an R3F primitive (torus, cylinder, box, plane).
-
-### Interactions
-
-| Input | Behavior |
-| --- | --- |
-| Cursor move | Parallax rotation of the scene (reduced strength on mobile) |
-| Hover reel | Emissive highlight on reel + floating film frames |
-| Click reel | Toggles **gold ↔ violet spotlight** theme with a subtle pulse |
-
-### Zero external model cost
-
-| Item | Detail |
-| --- | --- |
-| **Asset payload** | **0 KB** — no downloaded models or HDR files |
-| **Geometry** | 100% procedural primitives composed in `CinemaHeroScene.tsx` |
-| **Environment** | Procedural `<Environment>` built from in-scene `Lightformer` lights (no CDN fetch) |
-
-### Performance optimizations
-
-| Concern | Approach |
-| --- | --- |
-| **Lazy-load** | Canvas entry via `next/dynamic` (`ssr: false`) in `CinemaHeroExperience.tsx` — Three.js stays out of the initial bundle |
-| **Dynamic DPR** | Mobile: `1–1.25` · Desktop: `1–1.75` — caps pixel ratio to protect frame budget |
-| **Device-tier FX** | `useMediaQuery` gates heavy effects: desktop gets `FogExp2`, rim light, Bloom, and sparkles; mobile keeps a lighter scene (fewer film frames, no bloom/fog/sparkles) |
-| **Tone mapping** | ACES Filmic exposure tuning for consistent highlights without blown-out emissive |
-| **Target** | Lightweight scene aimed at **60fps** on modern devices |
-
-### Accessibility
-
-When **`prefers-reduced-motion: reduce`** is active, the WebGL canvas is never mounted. Instead, a static **`CinemaHeroFallback`** (pure CSS illustration of reel + clapper) is rendered — same hero slot, no motion, no GPU work. Gated by `usePrefersReducedMotion` in `CinemaHeroExperience.tsx`.
-
-### Visual enhancements
-
-| Layer | Detail |
-| --- | --- |
-| **PBR materials** | `MeshStandardMaterial` with tuned `metalness` / `roughness` / `envMapIntensity` tokens in `cinema-hero-3d.ts` |
-| **Environment reflections** | Drei `<Environment>` + `Lightformer` rig for cinematic specular highlights (gold/violet theme-aware) |
-| **Atmospheric lighting** | Layered ambient, hemisphere, key/fill/accent point lights, rim spot, and `FogExp2` depth falloff (desktop tier) |
-| **Post-processing** | Subtle `@react-three/postprocessing` Bloom on desktop when motion is allowed |
-
-### Implementation reference
+Procedural film reel (no external GLB) via Three.js / R3F / Drei. Lazy-loaded; desktop gets bloom/fog; mobile lighter tier; **`prefers-reduced-motion`** → static `CinemaHeroFallback`.
 
 | Concern | Location |
 | --- | --- |
-| Lazy entry + motion gate | `src/components/hero/CinemaHeroExperience.tsx` |
-| WebGL canvas + DPR | `src/components/hero/CinemaHeroCanvas.tsx` |
-| Scene, PBR & lighting | `src/components/hero/CinemaHeroScene.tsx` |
-| Bloom pass | `src/components/hero/CinemaHeroEffects.tsx` |
-| Static CSS fallback | `src/components/hero/CinemaHeroFallback.tsx` |
-| Tokens & palette | `src/lib/cinema-hero-3d.ts` |
-| Reduced-motion hook | `src/hooks/usePrefersReducedMotion.ts` |
-| Viewport / device tier | `src/hooks/useMediaQuery.ts` |
+| Lazy entry | `src/components/hero/CinemaHeroExperience.tsx` |
+| Scene | `src/components/hero/CinemaHeroScene.tsx` |
+| Tokens | `src/lib/cinema-hero-3d.ts` |
 
-## 🤖 AI-Assisted Development & Prompts
+---
 
-This project was developed independently using AI as an interactive development assistant (Claude / Gemini). Throughout the development process, AI was utilized for:
-- Implementing robust SEO metadata architectures and sharing site constants.
-- Refining complex UI components, such as the `MovieDetailModal` aspect ratios and responsive grid systems.
-- Structuring modern navigation systems with glassmorphic styling and dropdown profile menus.
+## Scripts reference
 
-## 🏗️ System Architecture & Project Structure
+| Command | Description |
+| --- | --- |
+| `npm run dev` | Development server |
+| `npm run build` | Production build |
+| `npm run start` | Serve production build |
+| `npm run lint` | ESLint |
+| `npm run test` | Vitest unit tests |
+| `npm run test:e2e` | Playwright E2E |
+| `npm run firebase:deploy` | Deploy Firestore + Storage rules |
 
-FlickFocus is architected following the modern **Next.js App Router** paradigm, separating server-rendered layouts from interactive client components, with dedicated utility and context layers.
+---
 
-```text
-FlickFocus/
-├── src/
-│   ├── app/                      # Next.js App Router pages & layouts
-│   │   ├── layout.tsx            # Root layout with global SEO metadata & providers
-│   │   ├── page.tsx              # Home / Discovery view
-│   │   ├── favorites/            # Protected user favorites view
-│   │   ├── profile/              # User settings and profile view
-│   │   ├── chat/                 # FlickFocus AI chat (generative UI)
-│   │   └── api/chat/             # Streaming chat API with server-side tools
-│   ├── components/               # Modular UI building blocks
-│   │   ├── chat/                 # Tool lifecycle & generative movie UI
-│   │   ├── ui/                   # Shared UI primitives (AnimatedActionButton, Button)
-│   │   ├── Header.tsx            # Glassmorphic sticky navbar & profile dropdown
-│   │   ├── MovieDetailModal.tsx  # Cinematic detail view with responsive poster framing
-│   │   └── ...                   # Cards, search bars, and shared UI elements
-│   ├── context/                  # Global React Context providers (Auth & Favorites state)
-│   └── lib/                      # Core configuration, API clients, and SEO helpers
-│       ├── chat-tools.ts         # Zod schemas & OMDb tool execute functions
-│       ├── site.ts               # Shared site constants and metadata defaults
-│       └── metadata.ts           # Dynamic Open Graph & Twitter Card generators
-├── public/                       # Static assets and icons
-└── package.json                  # Dependencies and scripts
+## Related docs
+
+- [docs/AUDIT.md](./docs/AUDIT.md) — Performance, accessibility, and SEO audit
+- [docs/SHADER_CAPSTONE.md](./docs/SHADER_CAPSTONE.md) — GLSL capstone deliverable
+- [CLAUDE.md](./CLAUDE.md) — Developer commands & guidelines
+
+---
+
+## License
+
+Private internship / capstone project. All rights reserved unless otherwise specified by your institution.

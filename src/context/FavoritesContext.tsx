@@ -19,8 +19,8 @@ import {
 import {
   readFavoritesCache,
   writeFavoritesCache,
-} from "@/lib/favorites-cache";
-import { isFirebaseConfigured } from "@/lib/firebase-config";
+} from "@/lib/profile/favorites-cache";
+import { isFirebaseConfigured } from "@/lib/firebase";
 import type { AddFavoritePayload, UserFavorite } from "@/types";
 
 export { useFavorites } from "@/context/favorites-context.shared";

@@ -6,7 +6,7 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import { ACESFilmicToneMapping } from "three";
 import { useIsMobileViewport } from "@/hooks/useMediaQuery";
 import { usePrefersReducedMotion } from "@/hooks/usePrefersReducedMotion";
-import { CINEMA_HERO_3D } from "@/lib/cinema-hero-3d";
+import { CINEMA_HERO_3D } from "@/lib/hero/cinema-hero-3d";
 import { cn } from "@/lib/cn";
 
 const CinemaHeroScene = dynamic(

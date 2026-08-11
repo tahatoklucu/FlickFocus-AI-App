@@ -1,6 +1,6 @@
 "use client";
 
-import MoviePoster from "@/components/MoviePoster";
+import MoviePoster from "@/components/movies/MoviePoster";
 import { POSTER_SIZES } from "@/lib/image-config";
 import type { ChatMovieSearchOutput } from "@/types/chat-tools";
 import { ChatToolLifecycleShell } from "./ChatToolLifecycle";

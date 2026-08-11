@@ -1,5 +1,5 @@
-import ChatPageClient from "@/components/ChatPageClient";
-import PageHeroGlow from "@/components/PageHeroGlow";
+import ChatPageClient from "@/components/chat/ChatPageClient";
+import PageHeroGlow from "@/components/layout/PageHeroGlow";
 import { createPageMetadata } from "@/lib/metadata";
 
 export const metadata = createPageMetadata({

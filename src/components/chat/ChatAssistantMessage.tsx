@@ -2,7 +2,7 @@
 
 import { isReasoningUIPart, isTextUIPart, type UIMessage } from "ai";
 import ChatToolInvocation, { getChatToolParts } from "@/components/chat/ChatToolInvocation";
-import StreamingMarkdownText from "@/components/StreamingMarkdownText";
+import StreamingMarkdownText from "@/components/chat/StreamingMarkdownText";
 import { cn } from "@/lib/cn";
 
 function ThinkingDots() {

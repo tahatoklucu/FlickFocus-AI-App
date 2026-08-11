@@ -1,8 +1,16 @@
 import { NextResponse } from "next/server";
-import { isPosterAvailable } from "@/lib/poster-availability.server";
-import { isValidPosterUrl } from "@/lib/poster-url";
+import { isPosterAvailable } from "@/lib/poster/poster-availability.server";
+import { enforceRateLimit } from "@/lib/api/api-rate-limit";
+import { isValidPosterUrl } from "@/lib/poster/poster-url";
+
+export const maxDuration = 10;
 
 export async function GET(request: Request) {
+  const rateLimited = enforceRateLimit(request, "api");
+  if (rateLimited) {
+    return rateLimited;
+  }
+
   const { searchParams } = new URL(request.url);
   const url = searchParams.get("url");
 

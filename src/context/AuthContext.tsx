@@ -21,10 +21,10 @@ import {
   ensureFirebaseAuth,
   ensureFirebaseDb,
   getFirebaseAuth,
+  isFirebaseConfigured,
 } from "@/lib/firebase";
-import { isFirebaseConfigured } from "@/lib/firebase-config";
-import { consumePendingAuthModal } from "@/lib/google-auth-pending";
-import { readProfileCache } from "@/lib/profile-cache";
+import { consumePendingAuthModal } from "@/lib/firebase/google-auth-pending";
+import { readProfileCache } from "@/lib/profile/profile-cache";
 import type { UserProfile } from "@/types/user";
 
 export type { AuthModalMode } from "@/context/auth-context.shared";
@@ -132,7 +132,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ] = await Promise.all([
         import("firebase/auth"),
         ensureFirebaseAuth(),
-        import("@/lib/google-auth"),
+        import("@/lib/firebase/google-auth"),
         import("@/services/users"),
       ]);
 
@@ -497,7 +497,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = useCallback(async () => {
     const [{ signInWithGoogle: startGoogleSignIn }, auth] = await Promise.all([
-      import("@/lib/google-auth"),
+      import("@/lib/firebase/google-auth"),
       ensureFirebaseAuth(),
     ]);
     const method = await startGoogleSignIn(auth);

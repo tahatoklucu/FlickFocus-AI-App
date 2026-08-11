@@ -18,17 +18,17 @@ import {
   prepareAvatarDataUrl,
   resolveImageContentType,
   shouldUseFirebaseStorage,
-} from "@/lib/avatar-utils";
+} from "@/lib/profile/avatar-utils";
 import { getFirestoreErrorMessage, getStorageErrorMessage } from "@/lib/errors";
-import { withTransientRetry } from "@/lib/retry";
+import { withTransientRetry } from "@/lib/firebase/retry";
 import { withTimeout } from "@/lib/timeout";
 import {
   normalizeDisplayName,
   validateAvatarFile,
   validateDisplayName,
-} from "@/lib/profile-utils";
+} from "@/lib/profile/profile-utils";
 import { getFirebaseDb, getFirebaseStorage } from "@/lib/firebase";
-import { readProfileCache, writeProfileCache } from "@/lib/profile-cache";
+import { readProfileCache, writeProfileCache } from "@/lib/profile/profile-cache";
 import type { UserProfile } from "@/types/user";
 
 export interface UpdateUserProfileInput {

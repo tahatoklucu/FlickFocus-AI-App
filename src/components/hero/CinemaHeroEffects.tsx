@@ -1,7 +1,7 @@
 "use client";
 
 import { Bloom, EffectComposer } from "@react-three/postprocessing";
-import { CINEMA_HERO_3D } from "@/lib/cinema-hero-3d";
+import { CINEMA_HERO_3D } from "@/lib/hero/cinema-hero-3d";
 
 export default function CinemaHeroEffects() {
   return (

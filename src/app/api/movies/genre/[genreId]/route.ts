@@ -1,13 +1,21 @@
 import { NextResponse } from "next/server";
 import { isGenreChipId } from "@/constants/genreMovies";
+import { enforceRateLimit } from "@/lib/api/api-rate-limit";
 import { getGenreMovies } from "@/services/omdb.server";
 import { getOMDbErrorMessage, OMDbError } from "@/services/omdb-core";
+
+export const maxDuration = 15;
 
 interface RouteContext {
   params: Promise<{ genreId: string }>;
 }
 
-export async function GET(_request: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
+  const rateLimited = enforceRateLimit(request, "api");
+  if (rateLimited) {
+    return rateLimited;
+  }
+
   const { genreId } = await context.params;
 
   if (!isGenreChipId(genreId)) {

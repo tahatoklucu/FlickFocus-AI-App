@@ -10,7 +10,7 @@ import {
   FavoritesContext,
   type FavoritesContextValue,
 } from "@/context/favorites-context.shared";
-import { isFirebaseConfigured } from "@/lib/firebase-config";
+import { isFirebaseConfigured } from "@/lib/firebase";
 import { useCallback, useMemo } from "react";
 
 export function AuthPlaceholderProvider({

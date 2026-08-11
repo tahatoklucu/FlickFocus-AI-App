@@ -7,7 +7,7 @@ import {
   getHeroShaderDpr,
   HERO_SHADER_FRAGMENT,
   HERO_SHADER_VERTEX,
-} from "@/lib/hero-shader";
+} from "@/lib/hero/hero-shader";
 
 interface HeroShaderBackgroundProps {
   className?: string;

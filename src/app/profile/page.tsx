@@ -1,5 +1,5 @@
-import ProfilePageClient from "@/components/ProfilePageClient";
-import PageHeroGlow from "@/components/PageHeroGlow";
+import ProfilePageClient from "@/components/profile/ProfilePageClient";
+import PageHeroGlow from "@/components/layout/PageHeroGlow";
 import { createPageMetadata } from "@/lib/metadata";
 
 export const metadata = createPageMetadata({

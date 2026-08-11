@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import ConsoleGuard from "@/components/ConsoleGuard";
-import Providers from "@/components/Providers";
-import { CRITICAL_CSS } from "@/lib/critical-css";
+import Header from "@/components/layout/Header";
+import Footer from "@/components/layout/Footer";
+import ConsoleGuard from "@/components/providers/ConsoleGuard";
+import Providers from "@/components/providers/Providers";
+import { CRITICAL_CSS } from "@/lib/hero/critical-css";
 import { rootMetadata } from "@/lib/metadata";
 import "./globals.css";
 

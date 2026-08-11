@@ -1,6 +1,6 @@
 import dynamic from "next/dynamic";
 import HomePageHero from "@/components/hero/HomePageHero";
-import HomePageClientRoot from "@/components/HomePageClientRoot";
+import HomePageClientRoot from "@/components/home/HomePageClientRoot";
 import { createPageMetadata } from "@/lib/metadata";
 import { getFeaturedMovies } from "@/services/omdb.server";
 import type { FeaturedMovie } from "@/types";

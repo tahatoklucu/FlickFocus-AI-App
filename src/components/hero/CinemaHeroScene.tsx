@@ -8,7 +8,7 @@ import { BackSide, type Group, type MeshStandardMaterial } from "three";
 import {
   CINEMA_HERO_3D,
   type CinemaHeroTheme,
-} from "@/lib/cinema-hero-3d";
+} from "@/lib/hero/cinema-hero-3d";
 
 const CinemaHeroEffects = dynamic(
   () => import("@/components/hero/CinemaHeroEffects"),
