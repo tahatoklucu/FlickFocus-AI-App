@@ -181,7 +181,7 @@ function PosterShowcase({
   const showImage = hasValidPoster(poster) && !hasError;
 
   return (
-    <div className="relative mx-auto w-[min(11rem,46vw)] shrink-0 sm:mx-0 sm:w-40 md:w-48 lg:w-[16.875rem]">
+    <div className="relative w-full max-w-[11rem] md:max-w-[16.875rem]">
       {showImage && (
         <>
           <div
@@ -445,19 +445,21 @@ export default function MovieDetailModal({
 
         {movie && !isLoading && !error && (
           <div className="scrollbar-dark min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-x-none">
-            <div className="flex min-w-0 flex-col items-center gap-6 px-4 pb-6 pt-14 sm:flex-row sm:items-start sm:gap-8 sm:px-6 sm:pb-8 sm:pt-16 md:gap-10 md:px-8 md:pb-10">
-              <PosterShowcase
-                poster={movie.Poster}
-                title={movie.Title}
-                year={movie.Year}
-              />
+            <div className="grid grid-cols-1 items-start gap-6 px-4 pb-6 pt-14 max-md:justify-items-center md:grid-cols-[minmax(12rem,16.875rem)_minmax(0,1fr)] md:gap-10 md:px-8 md:pb-10 md:pt-16">
+              <aside className="w-full max-w-[11rem] md:max-w-none">
+                <PosterShowcase
+                  poster={movie.Poster}
+                  title={movie.Title}
+                  year={movie.Year}
+                />
+              </aside>
 
-              <div className="min-w-0 w-full flex-1 space-y-4 sm:space-y-5 md:space-y-6">
-                <header className="space-y-3 text-center sm:space-y-4 sm:text-left">
+              <div className="min-w-0 w-full space-y-4 max-md:text-center md:space-y-6 md:text-left">
+                <header className="space-y-3 md:space-y-4">
                   <div>
                     <h2
                       id="movie-detail-title"
-                      className="break-words text-2xl font-extrabold leading-tight tracking-tight text-white sm:text-2xl md:text-3xl lg:text-4xl"
+                      className="break-words text-2xl font-extrabold leading-tight tracking-tight text-white md:text-3xl lg:text-4xl"
                     >
                       {movie.Title}
                     </h2>
@@ -468,13 +470,13 @@ export default function MovieDetailModal({
                     )}
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 sm:justify-start">
+                  <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 md:justify-start">
                     {year && <MetaItem icon={<CalendarIcon className="h-4 w-4" />} label="Year" value={year} />}
                     {runtime && <MetaItem icon={<ClockIcon className="h-4 w-4" />} label="Runtime" value={runtime} />}
                   </div>
 
                   {(imdbRating || rottenTomatoesRating || metascore) && (
-                    <div className="flex flex-wrap justify-center gap-2 sm:justify-start">
+                    <div className="flex flex-wrap justify-center gap-2 md:justify-start">
                       {imdbRating && (
                         <RatingPill
                           label="IMDb"
@@ -499,7 +501,7 @@ export default function MovieDetailModal({
                     </div>
                   )}
 
-                  <GenreTags genres={genres} className="justify-center sm:justify-start" />
+                  <GenreTags genres={genres} className="max-md:justify-center md:justify-start" />
                 </header>
 
                 {plot && (
@@ -507,13 +509,13 @@ export default function MovieDetailModal({
                     <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
                       Synopsis
                     </h3>
-                    <p className="break-words text-base leading-7 text-neutral-300 sm:text-[17px] sm:leading-8">
+                    <p className="break-words text-base leading-7 text-neutral-300 md:text-[17px] md:leading-8">
                       {plot}
                     </p>
                   </section>
                 )}
 
-                <div className="grid gap-2.5 sm:grid-cols-2 sm:gap-3">
+                <div className="grid gap-2.5 md:grid-cols-2 md:gap-3">
                   <InfoCard label="Director" value={displayValue(movie.Director)} />
                   <InfoCard label="Cast" value={displayValue(movie.Actors)} />
                   <InfoCard label="Released" value={displayValue(movie.Released)} />
