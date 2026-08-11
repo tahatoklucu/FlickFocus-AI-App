@@ -1,2 +1,5 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Exclude Lighthouse HTML reports from GitHub language stats
+*.html linguist-detectable=false
