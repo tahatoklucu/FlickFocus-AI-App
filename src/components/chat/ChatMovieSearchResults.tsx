@@ -40,9 +40,9 @@ export default function ChatMovieSearchResults({
           </p>
         </div>
       ) : (
-        <ul className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+        <ul className="scrollbar-dark flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1">
           {output.results.map((movie) => (
-            <li key={movie.imdbID}>
+            <li key={movie.imdbID} className="w-[108px] shrink-0 snap-start sm:w-[118px]">
               <button
                 type="button"
                 onClick={() => onSelectMovie?.(movie.imdbID)}
@@ -58,7 +58,7 @@ export default function ChatMovieSearchResults({
                     className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                   />
                 </div>
-                <div className="flex flex-1 flex-col p-2.5">
+                <div className="flex flex-1 flex-col p-2">
                   <p className="line-clamp-2 text-xs font-semibold leading-snug text-neutral-50">
                     {movie.title}
                   </p>
