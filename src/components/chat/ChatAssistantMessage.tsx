@@ -64,7 +64,7 @@ export default function ChatAssistantMessage({
   const showThinkingPlaceholder = isStreaming && !hasText && !hasTools;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 min-w-0">
       {toolParts.map((part) => (
         <ChatToolInvocation
           key={part.toolCallId}

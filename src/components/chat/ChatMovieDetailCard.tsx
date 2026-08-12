@@ -39,8 +39,8 @@ export default function ChatMovieDetailCard({
 
   return (
     <ChatToolLifecycleShell toolName="getMovieDetails" state="output-available">
-      <div className="flex flex-col gap-4 sm:flex-row">
-        <div className="relative mx-auto aspect-[2/3] w-[140px] shrink-0 overflow-hidden rounded-xl bg-neutral-800 shadow-lg shadow-black/40 ring-1 ring-white/10 sm:mx-0">
+      <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
+        <div className="relative mx-auto aspect-[2/3] w-[120px] shrink-0 overflow-hidden rounded-xl bg-neutral-800 shadow-lg shadow-black/40 ring-1 ring-white/10 sm:mx-0 sm:w-[140px]">
           <MoviePoster
             poster={output.poster ?? "N/A"}
             title={output.title}
@@ -53,7 +53,7 @@ export default function ChatMovieDetailCard({
 
         <div className="min-w-0 flex-1 space-y-3">
           <div>
-            <h3 className="text-lg font-bold leading-tight text-white sm:text-xl">
+            <h3 className="text-base font-bold leading-tight text-white sm:text-lg md:text-xl">
               {output.title}
             </h3>
             <p className="mt-1 text-sm text-neutral-400">

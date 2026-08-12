@@ -108,26 +108,26 @@ export function ChatToolLifecycleShell({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-xl border backdrop-blur-sm transition-colors duration-300",
+        "max-w-full min-w-0 overflow-hidden rounded-xl border backdrop-blur-sm transition-colors duration-300",
         meta.panelClass,
         className,
       )}
     >
-      <div className="flex items-center gap-3 border-b border-white/5 px-3 py-2.5 sm:px-4">
+      <div className="flex items-center gap-2.5 border-b border-white/5 px-3 py-2 sm:gap-3 sm:px-4 sm:py-2.5">
         <ToolIcon name={toolName} />
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-neutral-100">
+          <p className="truncate text-sm font-semibold text-neutral-100">
             {formatToolName(toolName)}
           </p>
-          <div className="mt-0.5 flex items-center gap-1.5">
-            <span className={cn("h-1.5 w-1.5 rounded-full", meta.dotClass)} aria-hidden="true" />
-            <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-neutral-400">
+          <div className="mt-0.5 flex min-w-0 items-center gap-1.5">
+            <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", meta.dotClass)} aria-hidden="true" />
+            <p className="truncate text-[10px] font-medium uppercase tracking-[0.12em] text-neutral-400 sm:text-[11px]">
               {meta.label}
             </p>
           </div>
         </div>
       </div>
-      <div className="px-3 py-3 sm:px-4 sm:py-4">{children}</div>
+      <div className="min-w-0 px-3 py-3 sm:px-4 sm:py-4">{children}</div>
     </div>
   );
 }

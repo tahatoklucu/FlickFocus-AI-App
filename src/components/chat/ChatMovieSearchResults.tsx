@@ -16,12 +16,12 @@ export default function ChatMovieSearchResults({
 }: ChatMovieSearchResultsProps) {
   return (
     <ChatToolLifecycleShell toolName="searchMovies" state="output-available">
-      <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-[0.14em] text-neutral-500">
+      <div className="mb-2.5 flex min-w-0 flex-wrap items-end justify-between gap-2 sm:mb-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-neutral-500 sm:text-xs">
             OMDb results
           </p>
-          <p className="text-sm text-neutral-300">
+          <p className="break-words text-xs text-neutral-300 sm:text-sm">
             <span className="font-semibold text-white">&ldquo;{output.query}&rdquo;</span>
             {" · "}
             {output.results.length} shown
@@ -40,9 +40,9 @@ export default function ChatMovieSearchResults({
           </p>
         </div>
       ) : (
-        <ul className="scrollbar-dark flex snap-x snap-mandatory gap-2.5 overflow-x-auto pb-1">
+        <ul className="chat-scroll-row scrollbar-dark -mx-1 flex snap-x snap-mandatory gap-2 overflow-x-auto px-1 pb-1 sm:-mx-0 sm:gap-2.5 sm:px-0">
           {output.results.map((movie) => (
-            <li key={movie.imdbID} className="w-[108px] shrink-0 snap-start sm:w-[118px]">
+            <li key={movie.imdbID} className="w-[96px] shrink-0 snap-start sm:w-[112px]">
               <button
                 type="button"
                 onClick={() => onSelectMovie?.(movie.imdbID)}

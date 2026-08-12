@@ -93,18 +93,19 @@ function ChatMessageBubble({
 
   return (
     <div
-      className={`flex ${isUser ? "justify-end" : "justify-start"} ${
+      className={`flex w-full min-w-0 ${isUser ? "justify-end" : "justify-start"} ${
         animate ? "chat-message-enter motion-reduce:animate-none" : ""
       }`}
     >
       <div
         className={cn(
           isUser
-            ? "max-w-[92%] rounded-2xl rounded-br-md bg-violet-600 px-4 py-2.5 text-white shadow-md shadow-violet-900/20 sm:max-w-[85%]"
+            ? "max-w-[min(92%,28rem)] rounded-2xl rounded-br-md bg-violet-600 px-3.5 py-2.5 text-white shadow-md shadow-violet-900/20 sm:max-w-[85%] sm:px-4"
             : cn(
                 ASSISTANT_BUBBLE_CLASS,
                 "min-h-[52px]",
-                hasTools && "w-full max-w-full border-none bg-transparent p-0 shadow-none sm:max-w-full",
+                hasTools &&
+                  "w-full max-w-none min-w-0 border-none bg-transparent p-0 shadow-none sm:max-w-none",
               ),
         )}
       >
@@ -169,7 +170,7 @@ function ClearChatControl({ onConfirm }: { onConfirm: () => void }) {
       variant="secondary"
       size="sm"
       onClick={() => setConfirming(true)}
-      className="gap-1.5"
+      className="gap-1.5 max-sm:px-2.5"
       aria-label="Clear chat history"
     >
       <svg
@@ -186,7 +187,8 @@ function ClearChatControl({ onConfirm }: { onConfirm: () => void }) {
           d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916A2.25 2.25 0 0012.75 3h-1.5a2.25 2.25 0 00-2.25 2.25v.916m7.5 0a48.667 48.667 0 00-7.5 0"
         />
       </svg>
-      Clear chat
+      <span className="sm:hidden">Clear</span>
+      <span className="hidden sm:inline">Clear chat</span>
     </Button>
   );
 }
@@ -200,7 +202,7 @@ export default function ChatPageClient() {
 
   if (!isMounted) {
     return (
-      <div className="flex h-[min(600px,75vh)] max-h-[75vh] min-h-[320px] flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60 sm:h-auto sm:max-h-none sm:min-h-0 sm:flex-1" />
+      <div className="flex h-[min(600px,75vh)] max-h-[75vh] min-h-[280px] min-w-0 flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60 sm:h-auto sm:max-h-none sm:min-h-0 sm:flex-1" />
     );
   }
 
@@ -447,12 +449,12 @@ function ChatPageClientLoaded() {
   }, [phase]);
 
   return (
-    <div className="flex min-h-[320px] flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60 sm:min-h-0">
+    <div className="flex min-h-[280px] min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60 sm:min-h-0">
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {chatStatusMessage}
       </div>
       {messages.length > 0 ? (
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-zinc-200 px-3 py-2 dark:border-zinc-800 sm:px-4">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-zinc-200 px-2.5 py-2 dark:border-zinc-800 sm:gap-3 sm:px-4">
           <p className="text-xs text-zinc-500 dark:text-zinc-400">
             {messages.length} message{messages.length === 1 ? "" : "s"}
           </p>
@@ -464,10 +466,10 @@ function ChatPageClientLoaded() {
         <div
           ref={containerRef}
           onScroll={handleScroll}
-          className="relative h-full min-h-0 overflow-y-auto overscroll-contain px-3 py-4 sm:px-5 sm:py-6"
+          className="relative h-full min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain px-2.5 py-3 sm:px-5 sm:py-6"
           aria-label="Chat messages"
         >
-          <div className="space-y-4">
+          <div className="min-w-0 space-y-3 sm:space-y-4">
             {messages.length === 0 ? (
               <div className="flex min-h-[240px] flex-col items-center justify-center px-4 py-12 text-center">
                 <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-400">
@@ -526,7 +528,7 @@ function ChatPageClientLoaded() {
             type="button"
             variant="float"
             onClick={() => scrollToBottom("smooth")}
-            className="chat-control-enter motion-reduce:animate-none absolute bottom-4 left-1/2 z-[25] -translate-x-1/2 rounded-full px-4 py-2 motion-reduce:transition-none"
+            className="chat-control-enter motion-reduce:animate-none absolute bottom-3 left-1/2 z-[25] max-w-[calc(100%-1.5rem)] -translate-x-1/2 rounded-full px-3 py-1.5 text-xs motion-reduce:transition-none sm:bottom-4 sm:px-4 sm:py-2 sm:text-sm"
             aria-label="Jump to latest message"
           >
             <svg
@@ -543,7 +545,8 @@ function ChatPageClientLoaded() {
                 d="M19.5 8.25l-7.5 7.5-7.5-7.5"
               />
             </svg>
-            Jump to latest
+            <span className="sm:hidden">Latest</span>
+            <span className="hidden sm:inline">Jump to latest</span>
           </Button>
         ) : null}
       </div>
@@ -570,9 +573,9 @@ function ChatPageClientLoaded() {
 
       <form
         onSubmit={handleSubmit}
-        className="shrink-0 border-t border-zinc-200 bg-zinc-50/80 p-3 dark:border-zinc-800 dark:bg-zinc-950/40 sm:p-4"
+        className="shrink-0 border-t border-zinc-200 bg-zinc-50/80 p-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] dark:border-zinc-800 dark:bg-zinc-950/40 sm:p-4"
       >
-        <div className="flex items-center gap-2 sm:items-end sm:gap-3">
+        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
           <label htmlFor="chat-input" className="sr-only">
             Message
           </label>
@@ -588,7 +591,7 @@ function ChatPageClientLoaded() {
             autoCorrect="on"
             spellCheck
             disabled={isInputDisabled}
-            className="chat-input block max-h-32 min-h-11 flex-1 resize-none rounded-xl border border-zinc-300 bg-white px-3 py-[11px] text-zinc-900 placeholder:text-zinc-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/30 disabled:cursor-not-allowed disabled:opacity-60 sm:py-2.5 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+            className="chat-input block max-h-32 min-h-11 w-full min-w-0 flex-1 resize-none rounded-xl border border-zinc-300 bg-white px-3 py-[11px] text-zinc-900 placeholder:text-zinc-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/30 disabled:cursor-not-allowed disabled:opacity-60 sm:py-2.5 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
           />
 
           {showStopButton ? (
@@ -596,23 +599,29 @@ function ChatPageClientLoaded() {
               key="stop-control"
               type="button"
               variant="secondary"
+              size="sm"
               onClick={handleStop}
-              className="chat-control-enter motion-reduce:animate-none shrink-0 motion-reduce:transition-none"
+              className="chat-control-enter motion-reduce:animate-none w-full shrink-0 motion-reduce:transition-none sm:w-auto"
               aria-label="Stop generating"
             >
               Stop
             </Button>
           ) : (
-            <div key="send-controls" className="flex shrink-0 items-end gap-2">
+            <div
+              key="send-controls"
+              className="flex w-full shrink-0 items-center justify-end gap-2 sm:w-auto"
+            >
               {canRegenerate ? (
                 <Button
                   type="button"
                   variant="secondary"
+                  size="sm"
                   onClick={handleRegenerate}
-                  className="chat-control-enter motion-reduce:animate-none motion-reduce:transition-none"
+                  className="chat-control-enter motion-reduce:animate-none max-sm:px-2.5 motion-reduce:transition-none"
                   aria-label="Regenerate last response"
                 >
-                  Regenerate
+                  <span className="sm:hidden">Retry</span>
+                  <span className="hidden sm:inline">Regenerate</span>
                 </Button>
               ) : null}
               <AnimatedActionButton
@@ -630,7 +639,7 @@ function ChatPageClientLoaded() {
                 onRetry={() => clearError()}
                 autoResetSuccess={false}
                 aria-label="Send message"
-                className="chat-control-enter motion-reduce:animate-none shrink-0 motion-reduce:transition-none"
+                className="chat-control-enter motion-reduce:animate-none min-w-[4.5rem] shrink-0 motion-reduce:transition-none max-sm:min-h-10 max-sm:px-3 max-sm:text-xs"
               />
             </div>
           )}
