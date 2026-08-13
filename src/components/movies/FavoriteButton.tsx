@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, type MouseEvent } from "react";
-import { useAuth } from "@/context/AuthContext";
-import { useFavorites } from "@/context/FavoritesContext";
+import { useAuth } from "@/context/auth-context.shared";
+import { useFavorites } from "@/context/favorites-context.shared";
 import { buttonClass } from "@/lib/button-styles";
 import { cn } from "@/lib/cn";
 import type { AddFavoritePayload } from "@/types";

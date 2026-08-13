@@ -2,7 +2,7 @@
 
 import { FirebaseError } from "firebase/app";
 import { FormEvent, useEffect, useRef, useState, type ReactNode } from "react";
-import { useAuth, type AuthModalMode } from "@/context/AuthContext";
+import { useAuth, type AuthModalMode } from "@/context/auth-context.shared";
 import Button from "@/components/ui/Button";
 import { useFocusTrap } from "@/hooks/useFocusTrap";
 import { cn } from "@/lib/cn";

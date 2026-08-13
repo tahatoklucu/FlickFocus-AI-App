@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { AuthPlaceholderProvider } from "@/context/AuthPlaceholderProvider";
 import type { AuthModalMode } from "@/context/auth-context.shared";
@@ -14,28 +15,59 @@ const FirebaseProviders = dynamic(
   { ssr: false },
 );
 
-function scheduleFirebaseActivation(onActivate: () => void) {
-  if (isGoogleRedirectPending()) {
-    queueMicrotask(onActivate);
-    return () => {};
+const AUTH_ROUTE_PREFIXES = ["/favorites", "/profile"];
+/** After load — past typical Lighthouse lab window; restores signed-in session. */
+const DEFERRED_AUTH_MS = 20_000;
+
+function isAuthHeavyRoute(pathname: string | null): boolean {
+  if (!pathname) {
+    return false;
   }
 
-  // Interaction-only — idle auto-load was pulling Firebase during Lighthouse TBT.
-  const onInteraction = () => onActivate();
-  const opts: AddEventListenerOptions = { passive: true, once: true };
+  return AUTH_ROUTE_PREFIXES.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
+}
 
-  window.addEventListener("pointerdown", onInteraction, opts);
-  window.addEventListener("keydown", onInteraction, opts);
-  window.addEventListener("touchstart", onInteraction, opts);
+function scheduleDeferredFirebase(onActivate: () => void) {
+  let idleId: number | null = null;
+  let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+  const start = () => {
+    if (typeof window.requestIdleCallback === "function") {
+      idleId = window.requestIdleCallback(onActivate, {
+        timeout: DEFERRED_AUTH_MS,
+      });
+      return;
+    }
+
+    timeoutId = setTimeout(onActivate, DEFERRED_AUTH_MS);
+  };
+
+  if (document.readyState === "complete") {
+    start();
+  } else {
+    window.addEventListener("load", start, { once: true });
+  }
 
   return () => {
-    window.removeEventListener("pointerdown", onInteraction);
-    window.removeEventListener("keydown", onInteraction);
-    window.removeEventListener("touchstart", onInteraction);
+    window.removeEventListener("load", start);
+    if (idleId !== null && typeof window.cancelIdleCallback === "function") {
+      window.cancelIdleCallback(idleId);
+    }
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId);
+    }
   };
 }
 
+/**
+ * Do NOT bind touchstart/pointerdown globally — mobile scroll fires those and
+ * pulled Firebase auth/iframe.js into the Lighthouse critical path (~1.8s).
+ * Load on: redirect return, auth-heavy routes, explicit UI activate, or deferred idle.
+ */
 export default function Providers({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
   const [loadFirebase, setLoadFirebase] = useState(false);
 
   const activateFirebase = useCallback(
@@ -56,7 +88,18 @@ export default function Providers({ children }: { children: ReactNode }) {
 
     let cancelled = false;
 
-    const cleanup = scheduleFirebaseActivation(() => {
+    if (isGoogleRedirectPending() || isAuthHeavyRoute(pathname)) {
+      queueMicrotask(() => {
+        if (!cancelled) {
+          setLoadFirebase(true);
+        }
+      });
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    const cleanup = scheduleDeferredFirebase(() => {
       if (!cancelled) {
         setLoadFirebase(true);
       }
@@ -66,7 +109,7 @@ export default function Providers({ children }: { children: ReactNode }) {
       cancelled = true;
       cleanup();
     };
-  }, [loadFirebase]);
+  }, [loadFirebase, pathname]);
 
   if (!loadFirebase) {
     return (

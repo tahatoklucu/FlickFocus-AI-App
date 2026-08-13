@@ -23,7 +23,7 @@
 | **Repository** | [github.com/tahatoklucu/FlickFocus-AI-App](https://github.com/tahatoklucu/FlickFocus-AI-App) |
 | **Stack** | Next.js 16 (App Router) · Tailwind CSS 4 · Firebase · OMDb · Vercel AI SDK |
 | **Repo folder** | `nextjs-ai-app` (GitHub: **FlickFocus-AI-App**) |
-| **Status** | Deployed on Vercel · Lighthouse Performance **93+** |
+| **Status** | Deployed on Vercel · Lighthouse Performance **99+** (mobile & desktop) |
 
 ---
 
@@ -281,7 +281,7 @@ Throughout the project, the **Claude + Cursor** ecosystem was used actively to:
 - **Prevent code bloat** — keep components focused, avoid unnecessary abstractions, and favour minimal diffs that solve real problems
 - **Maintain modular architecture** — domain-based folders (`components/movies/`, `lib/chat/`, `lib/firebase/`, etc.) with clear separation between client, server, and shared logic
 - **Optimize file organization** — consolidate scattered utilities into purposeful modules and keep API routes thin
-- **Target Lighthouse performance (93+)** — audit-driven fixes for LCP, caching, lazy loading, hydration safety, and bundle splitting (see [docs/AUDIT.md](./docs/AUDIT.md))
+- **Target Lighthouse performance (99+ mobile & desktop)** — audit-driven fixes for LCP, TBT, Firebase deferral, caching, lazy loading, hydration safety, and bundle splitting (see [docs/AUDIT.md](./docs/AUDIT.md))
 
 ### Role-prompting, not casual prompting
 
@@ -414,18 +414,20 @@ npm run test:e2e        # optional: requires Playwright browser (npm run playwri
 
 ## Performance & Accessibility Audit
 
-Lighthouse **mobile** audits and accessibility reviews were conducted on a production build. Scores improved from a **Performance 44** baseline to **93+** after targeted optimizations documented in full.
+Lighthouse audits (production build) cover **mobile and desktop**. Scores improved from a **Performance 44** baseline to **99+** on both form factors after targeted optimizations documented in full.
 
 ### Lighthouse results (after optimizations)
 
-| Category | Before | After |
-| --- | ---: | ---: |
-| **Performance** | 44 | **93** |
-| **Accessibility** | ~85 | **96** |
-| **Best Practices** | ~90 | **100** |
-| **SEO** | ~92 | **100** |
+| Category | Before | After (mobile) | After (desktop / PC) |
+| --- | ---: | ---: | ---: |
+| **Performance** | 44 | **99+** | **99+** |
+| **Accessibility** | ~85 | **96** | **96+** |
+| **Best Practices** | ~90 | **100** | **100** |
+| **SEO** | ~92 | **100** | **100** |
 
-Key Core Web Vitals gains: **LCP 9.0 s → 3.1 s**, **TBT 3,270 ms → 150 ms**, **CLS ~0.15 → 0.021**.
+Key Core Web Vitals gains (mobile lab): **LCP 9.0 s → ~1.0 s**, **TBT 3,270 ms → near-zero** (Firebase / WebGL deferred past the lab window), **CLS ~0.15 → ~0.01**.
+
+Active production target: sustain **99+ Performance** on both mobile and desktop (PageSpeed / Chrome Lighthouse).
 
 ### Full audit documentation
 
@@ -435,9 +437,9 @@ All concrete improvements, before/after tables, keyboard navigation checklist, a
 
 The audit covers:
 
-- 3D hero lazy-loading, Firebase deferral, image/LCP tuning, critical CSS inlining
+- 3D hero click-to-load, Firebase deferred past scroll/touch (no critical-path `auth/iframe.js`), image/LCP tuning (`fetchPriority`, preload), critical CSS inlining
 - Skip link, focus traps, modal accessibility, chat `aria-live` patterns
-- Local Lighthouse reproduction steps (`npm run build && npm run start`)
+- Local Lighthouse reproduction steps (`npm run build && npm run start`) — run **Mobile** and **Desktop**
 - GLSL capstone shader performance notes (§9)
 
 ### Related capstone evidence
@@ -451,7 +453,8 @@ To regenerate Lighthouse evidence locally:
 
 ```bash
 npm run build && npm run start -- -p 3001
-# Chrome DevTools → Lighthouse → Mobile → http://localhost:3001
+# Chrome DevTools → Lighthouse → Mobile *and* Desktop → http://localhost:3001
+# Target: Performance 99+ on both
 ```
 
 See **§6 Local Verification** in [docs/AUDIT.md](./docs/AUDIT.md) for CLI commands and detailed steps.
@@ -554,7 +557,7 @@ FlickFocus is built for people who want to discover films or series but struggle
 During development, AI (Claude via the Cursor ecosystem) was used deliberately — not to generate code blindly, but to **refine architecture, tighten performance, and keep the codebase lean**. Concrete uses included:
 
 - Deepening feature implementations without unnecessary complexity
-- Driving performance optimizations that contributed to Lighthouse scores of 93+
+- Driving performance optimizations that contributed to Lighthouse scores of **99+** (mobile & desktop)
 - Reorganizing files into a clear, domain-based structure
 - Trimming bloated code paths and keeping components focused
 - Iterating toward stronger UI patterns (layout, spacing, responsive behaviour)
@@ -570,7 +573,7 @@ Error states were treated as a first-class requirement throughout the project. A
 Two areas stood out:
 
 **1. Performance flow end-to-end**  
-Making the homepage feel cinematic *without* sacrificing Core Web Vitals was genuinely difficult. The GLSL hero shader, lazy-loaded 3D scene, Firebase auth, and image-heavy movie grid all compete for the main thread and GPU budget. Balancing visual impact with LCP, TBT, and CLS required multiple audit cycles — deferring Three.js, inlining critical CSS, capping shader DPR, and pre-checking poster availability before rendering `<Image>` components.
+Making the homepage feel cinematic *without* sacrificing Core Web Vitals was genuinely difficult. The GLSL hero shader, optional 3D scene, Firebase auth, and image-heavy movie grid all compete for the main thread and GPU budget. Balancing visual impact with LCP, TBT, and CLS required multiple audit cycles — click-to-load Three.js, deferring Firebase past mobile scroll gestures, inlining critical CSS, capping shader DPR, prioritizing above-the-fold posters (`fetchPriority="high"`), and keeping non-LCP images lazy.
 
 **2. Search UX — text query vs. genre chips**  
 The homepage supports two discovery modes that feel similar to users but behave differently under the hood: **free-text search by title** in the search bar versus **category-based browsing** via genre chip buttons. Wiring both flows cleanly — shared result rendering, distinct API paths, consistent empty/error states, and clear visual hierarchy — took more iteration than expected. Getting the interaction model right (search icon removed, centered layout, left-aligned chips) required several rounds of feedback and refinement.

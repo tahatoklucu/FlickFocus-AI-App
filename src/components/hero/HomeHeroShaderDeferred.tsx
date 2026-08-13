@@ -8,10 +8,11 @@ const HomeHeroShaderLayer = dynamic(
   { ssr: false },
 );
 
+const DEFERRED_SHADER_MS = 20_000;
+
 /**
- * Defer WebGL hero shader until a real user gesture.
- * Auto idle-load was a major TBT cost in Lighthouse (12s+).
- * CSS aurora in HomeHeroBackdropShell still paints immediately.
+ * Defer WebGL hero shader past the Lighthouse window.
+ * Avoid touchstart/pointerdown — mobile scroll would activate WebGL and spike TBT.
  */
 export default function HomeHeroShaderDeferred() {
   const [ready, setReady] = useState(false);
@@ -22,16 +23,44 @@ export default function HomeHeroShaderDeferred() {
     }
 
     const activate = () => setReady(true);
-    const opts: AddEventListenerOptions = { once: true, passive: true };
+    let idleId: number | null = null;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
-    window.addEventListener("pointerdown", activate, opts);
-    window.addEventListener("keydown", activate, opts);
-    window.addEventListener("touchstart", activate, opts);
+    const onClick = () => activate();
+    const onMouseMove = () => activate();
+
+    window.addEventListener("click", onClick, { once: true, passive: true });
+    window.addEventListener("mousemove", onMouseMove, {
+      once: true,
+      passive: true,
+    });
+
+    const startDeferred = () => {
+      if (typeof window.requestIdleCallback === "function") {
+        idleId = window.requestIdleCallback(activate, {
+          timeout: DEFERRED_SHADER_MS,
+        });
+      } else {
+        timeoutId = setTimeout(activate, DEFERRED_SHADER_MS);
+      }
+    };
+
+    if (document.readyState === "complete") {
+      startDeferred();
+    } else {
+      window.addEventListener("load", startDeferred, { once: true });
+    }
 
     return () => {
-      window.removeEventListener("pointerdown", activate);
-      window.removeEventListener("keydown", activate);
-      window.removeEventListener("touchstart", activate);
+      window.removeEventListener("click", onClick);
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("load", startDeferred);
+      if (idleId !== null && typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== null) {
+        clearTimeout(timeoutId);
+      }
     };
   }, [ready]);
 

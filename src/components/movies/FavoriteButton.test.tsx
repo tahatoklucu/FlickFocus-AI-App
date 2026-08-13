@@ -1,14 +1,14 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import FavoriteButton from "@/components/movies/FavoriteButton";
-import { useAuth } from "@/context/AuthContext";
-import { useFavorites } from "@/context/FavoritesContext";
+import { useAuth } from "@/context/auth-context.shared";
+import { useFavorites } from "@/context/favorites-context.shared";
 
-vi.mock("@/context/AuthContext", () => ({
+vi.mock("@/context/auth-context.shared", () => ({
   useAuth: vi.fn(),
 }));
 
-vi.mock("@/context/FavoritesContext", () => ({
+vi.mock("@/context/favorites-context.shared", () => ({
   useFavorites: vi.fn(),
 }));
 
@@ -54,14 +54,14 @@ describe("FavoriteButton", () => {
     const toggleFavorite = vi.fn();
 
     vi.mocked(useFavorites).mockReturnValue({
-      isFavorite: vi.fn(() => true),
+      isFavorite: vi.fn(() => false),
       toggleFavorite,
       error: null,
     } as ReturnType<typeof useFavorites>);
 
     render(<FavoriteButton movie={movie} />);
 
-    await user.click(screen.getByRole("button", { name: "Remove from favorites" }));
+    await user.click(screen.getByRole("button", { name: "Add to favorites" }));
 
     expect(toggleFavorite).toHaveBeenCalledWith(movie);
   });
