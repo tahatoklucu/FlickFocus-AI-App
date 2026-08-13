@@ -15,27 +15,24 @@ const FirebaseProviders = dynamic(
 );
 
 function scheduleFirebaseActivation(onActivate: () => void) {
-  const activate = () => onActivate();
-
   if (isGoogleRedirectPending()) {
-    queueMicrotask(activate);
-    return;
+    queueMicrotask(onActivate);
+    return () => {};
   }
 
-  const onInteraction = () => activate();
+  // Interaction-only — idle auto-load was pulling Firebase during Lighthouse TBT.
+  const onInteraction = () => onActivate();
+  const opts: AddEventListenerOptions = { passive: true, once: true };
 
-  window.addEventListener("pointerdown", onInteraction, { passive: true });
-  window.addEventListener("keydown", onInteraction, { passive: true });
+  window.addEventListener("pointerdown", onInteraction, opts);
+  window.addEventListener("keydown", onInteraction, opts);
+  window.addEventListener("touchstart", onInteraction, opts);
 
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      if ("requestIdleCallback" in window) {
-        window.requestIdleCallback(activate, { timeout: 8000 });
-      } else {
-        setTimeout(activate, 5000);
-      }
-    });
-  });
+  return () => {
+    window.removeEventListener("pointerdown", onInteraction);
+    window.removeEventListener("keydown", onInteraction);
+    window.removeEventListener("touchstart", onInteraction);
+  };
 }
 
 export default function Providers({ children }: { children: ReactNode }) {
@@ -59,7 +56,7 @@ export default function Providers({ children }: { children: ReactNode }) {
 
     let cancelled = false;
 
-    scheduleFirebaseActivation(() => {
+    const cleanup = scheduleFirebaseActivation(() => {
       if (!cancelled) {
         setLoadFirebase(true);
       }
@@ -67,6 +64,7 @@ export default function Providers({ children }: { children: ReactNode }) {
 
     return () => {
       cancelled = true;
+      cleanup();
     };
   }, [loadFirebase]);
 

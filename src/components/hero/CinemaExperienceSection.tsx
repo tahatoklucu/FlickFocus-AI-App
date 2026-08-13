@@ -48,7 +48,7 @@ export default function CinemaExperienceSection() {
                 className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-violet-400"
                 aria-hidden="true"
               />
-              Lazy-loaded — zero WebGL cost until in view
+              Click-to-load WebGL — zero Three.js cost until you opt in
             </li>
           </ul>
         </div>

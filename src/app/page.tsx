@@ -1,5 +1,6 @@
 import HomePageHero from "@/components/hero/HomePageHero";
 import CinemaExperienceDeferred from "@/components/hero/CinemaExperienceDeferred";
+import FeaturedPosterPreloads from "@/components/home/FeaturedPosterPreloads";
 import HomePageClientRoot from "@/components/home/HomePageClientRoot";
 import { createPageMetadata } from "@/lib/metadata";
 import { getFeaturedMovies } from "@/services/omdb.server";
@@ -23,6 +24,7 @@ export default async function HomePage() {
 
   return (
     <div className="relative min-h-full bg-neutral-950">
+      <FeaturedPosterPreloads movies={featuredMovies} />
       <HomePageHero>
         <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">

@@ -196,6 +196,8 @@ function PosterShowcase({
               quality={POSTER_QUALITY.decorative}
               className="scale-125 object-cover"
               loading="lazy"
+              fetchPriority="low"
+              decoding="async"
             />
           </div>
           <div
@@ -210,6 +212,8 @@ function PosterShowcase({
               quality={POSTER_QUALITY.decorative}
               className="object-cover"
               loading="lazy"
+              fetchPriority="low"
+              decoding="async"
             />
           </div>
         </>
@@ -224,6 +228,9 @@ function PosterShowcase({
             sizes={POSTER_SIZES.modal}
             quality={POSTER_QUALITY.detail}
             priority
+            fetchPriority="high"
+            loading="eager"
+            decoding="async"
             className="object-cover object-center"
             onError={() => setHasError(true)}
           />

@@ -46,6 +46,9 @@ export default function UserAvatar({
         key={resolvedPhoto}
         src={resolvedPhoto}
         alt={`${displayName || "User"} avatar`}
+        loading="lazy"
+        decoding="async"
+        fetchPriority="low"
         onError={() => setFailedPhotoUrl(resolvedPhoto)}
         className={cn(
           "shrink-0 rounded-full border border-neutral-700/80 bg-neutral-900 object-cover",

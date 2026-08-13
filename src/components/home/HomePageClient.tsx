@@ -72,7 +72,8 @@ export default function HomePageClient({
   initialFeaturedMovies,
 }: HomePageClientProps) {
   const resultsRef = useRef<HTMLElement>(null);
-  const posterPriorityCount = 0;
+  /** First desktop row (5 cols) — covers Lighthouse LCP (often Interstellar @ index 2). */
+  const posterPriorityCount = 5;
   const [searchQuery, setSearchQuery] = useState("");
   const [activeGenre, setActiveGenre] = useState<GenreChipId | null>(null);
   const [movies, setMovies] = useState<MovieSearchResult[]>([]);

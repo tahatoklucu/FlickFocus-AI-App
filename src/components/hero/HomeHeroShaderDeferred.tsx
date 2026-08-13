@@ -8,33 +8,32 @@ const HomeHeroShaderLayer = dynamic(
   { ssr: false },
 );
 
-/** Defer WebGL hero JS until after first paint / idle to protect LCP on slow networks. */
+/**
+ * Defer WebGL hero shader until a real user gesture.
+ * Auto idle-load was a major TBT cost in Lighthouse (12s+).
+ * CSS aurora in HomeHeroBackdropShell still paints immediately.
+ */
 export default function HomeHeroShaderDeferred() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    let cancelled = false;
-
-    const activate = () => {
-      if (!cancelled) {
-        setReady(true);
-      }
-    };
-
-    if ("requestIdleCallback" in window) {
-      const idleId = window.requestIdleCallback(activate, { timeout: 4000 });
-      return () => {
-        cancelled = true;
-        window.cancelIdleCallback(idleId);
-      };
+    if (ready) {
+      return;
     }
 
-    const timeoutId = setTimeout(activate, 2000);
+    const activate = () => setReady(true);
+    const opts: AddEventListenerOptions = { once: true, passive: true };
+
+    window.addEventListener("pointerdown", activate, opts);
+    window.addEventListener("keydown", activate, opts);
+    window.addEventListener("touchstart", activate, opts);
+
     return () => {
-      cancelled = true;
-      clearTimeout(timeoutId);
+      window.removeEventListener("pointerdown", activate);
+      window.removeEventListener("keydown", activate);
+      window.removeEventListener("touchstart", activate);
     };
-  }, []);
+  }, [ready]);
 
   if (!ready) {
     return null;

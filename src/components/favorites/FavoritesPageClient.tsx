@@ -166,7 +166,7 @@ export default function FavoritesPageClient() {
           emptyTitle="No favorites yet"
           emptySubtitle="Search for movies and tap the heart icon to save them here."
           resultLabel={resultLabel}
-          priorityCount={6}
+          priorityCount={5}
         />
 
         {!favoritesError && !favoritesSyncing && movies.length === 0 && (

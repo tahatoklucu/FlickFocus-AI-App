@@ -20,8 +20,42 @@ describe("MoviePoster", () => {
     expect(screen.getByLabelText("Inception poster unavailable")).toBeInTheDocument();
   });
 
-  it("renders image when poster is available", async () => {
+  it("renders image immediately without waiting for availability", () => {
     vi.mocked(checkPosterAvailability).mockResolvedValue(true);
+
+    render(
+      <MoviePoster
+        poster="https://m.media-amazon.com/images/M/example.jpg"
+        title="Inception"
+        year="2010"
+      />,
+    );
+
+    expect(
+      screen.getByRole("img", { name: "Inception poster" }),
+    ).toBeInTheDocument();
+  });
+
+  it("skips availability probe for priority/LCP posters", () => {
+    vi.mocked(checkPosterAvailability).mockResolvedValue(false);
+
+    render(
+      <MoviePoster
+        poster="https://m.media-amazon.com/images/M/example.jpg"
+        title="Inception"
+        year="2010"
+        priority
+      />,
+    );
+
+    expect(
+      screen.getByRole("img", { name: "Inception poster" }),
+    ).toBeInTheDocument();
+    expect(checkPosterAvailability).not.toHaveBeenCalled();
+  });
+
+  it("switches to placeholder when availability probe fails", async () => {
+    vi.mocked(checkPosterAvailability).mockResolvedValue(false);
 
     render(
       <MoviePoster
@@ -33,7 +67,7 @@ describe("MoviePoster", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByRole("img", { name: "Inception poster" }),
+        screen.getByLabelText("Inception poster unavailable"),
       ).toBeInTheDocument();
     });
   });

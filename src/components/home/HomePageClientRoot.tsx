@@ -1,17 +1,13 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import HomePageLoading from "@/components/home/HomePageLoading";
+import HomePageClient from "@/components/home/HomePageClient";
 import type { FeaturedMovie } from "@/types";
-
-const HomePageClient = dynamic(() => import("@/components/home/HomePageClient"), {
-  loading: () => <HomePageLoading />,
-});
 
 interface HomePageClientRootProps {
   initialFeaturedMovies: FeaturedMovie[];
 }
 
+/** Static client import so featured posters SSR into the initial HTML (LCP discovery). */
 export default function HomePageClientRoot({
   initialFeaturedMovies,
 }: HomePageClientRootProps) {

@@ -10,14 +10,13 @@ export function hasValidPoster(poster: string): boolean {
   return isValidPosterUrl(poster);
 }
 
-type PosterStatus = "checking" | "available" | "unavailable";
-
 interface MoviePosterProps {
   poster: string;
   title: string;
   year?: string;
   sizes?: string;
   quality?: number;
+  /** Above-the-fold LCP candidate — eager + fetchPriority high. */
   priority?: boolean;
   className?: string;
   variant?: "card" | "detail";
@@ -64,41 +63,34 @@ function MoviePoster({
   className = "object-cover",
   variant = "card",
 }: MoviePosterProps) {
-  const [status, setStatus] = useState<PosterStatus>("checking");
+  const [failedPoster, setFailedPoster] = useState<string | null>(null);
   const isPosterUrlValid = hasValidPoster(poster);
+  const unavailable = failedPoster === poster;
 
   const resolvedQuality =
     quality ?? (variant === "detail" ? POSTER_QUALITY.detail : POSTER_QUALITY.card);
 
   useEffect(() => {
-    if (!isPosterUrlValid) {
+    if (!isPosterUrlValid || priority) {
+      // Priority/LCP posters must not wait on an availability round-trip.
       return;
     }
 
     let cancelled = false;
 
     checkPosterAvailability(poster).then((available) => {
-      if (!cancelled) {
-        setStatus(available ? "available" : "unavailable");
+      if (!cancelled && !available) {
+        setFailedPoster(poster);
       }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [poster, isPosterUrlValid]);
+  }, [poster, isPosterUrlValid, priority]);
 
-  if (!isPosterUrlValid || status === "unavailable") {
+  if (!isPosterUrlValid || unavailable) {
     return <PosterPlaceholder title={title} year={year} variant={variant} />;
-  }
-
-  if (status === "checking") {
-    return (
-      <div
-        className="absolute inset-0 animate-pulse bg-neutral-800"
-        aria-hidden="true"
-      />
-    );
   }
 
   return (
@@ -109,10 +101,11 @@ function MoviePoster({
       sizes={sizes}
       quality={resolvedQuality}
       priority={priority}
-      fetchPriority={priority ? "high" : "auto"}
+      fetchPriority={priority ? "high" : "low"}
       loading={priority ? "eager" : "lazy"}
+      decoding="async"
       className={className}
-      onError={() => setStatus("unavailable")}
+      onError={() => setFailedPoster(poster)}
     />
   );
 }

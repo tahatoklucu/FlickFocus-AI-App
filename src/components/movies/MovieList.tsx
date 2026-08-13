@@ -31,7 +31,7 @@ function MovieList({
   emptySubtitle = "Try a different search term",
   showInitialPrompt = true,
   resultLabel,
-  priorityCount = 6,
+  priorityCount = 5,
   hideResultLabel = false,
 }: MovieListProps) {
   if (isLoading) {
