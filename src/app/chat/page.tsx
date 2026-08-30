@@ -14,7 +14,7 @@ export default function ChatPage() {
     <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-neutral-950">
       <PageHeroGlow subdued />
 
-      <div className="relative mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-3 py-2 sm:px-6 sm:py-4 lg:px-8">
+      <div className="relative mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col px-3 py-2 sm:px-6 sm:py-4 lg:px-8">
         <header className="mb-2 flex shrink-0 items-center justify-center gap-2.5 text-center max-sm:justify-start sm:mb-4 sm:flex-col sm:gap-0">
           <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-violet-500/25 bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-violet-300 sm:mb-3 sm:px-3 sm:py-1 sm:text-[11px]">
             <span className="h-1.5 w-1.5 rounded-full bg-violet-400" aria-hidden="true" />

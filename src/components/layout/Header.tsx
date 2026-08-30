@@ -128,13 +128,13 @@ export default function Header() {
   return (
     <>
       <header
-        className={`sticky top-0 z-40 shrink-0 border-b transition-all duration-300 ease-out ${
+        className={`sticky top-0 z-40 h-16 shrink-0 border-b transition-all duration-300 ease-out ${
           isScrolled
             ? "border-neutral-800/50 bg-neutral-950/80 shadow-lg shadow-black/20 backdrop-blur-md"
             : "border-transparent bg-neutral-950/50 backdrop-blur-sm"
         }`}
       >
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-full max-w-6xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
           <div className="flex min-w-0 items-center gap-4 sm:gap-8">
             <Link
               href="/"

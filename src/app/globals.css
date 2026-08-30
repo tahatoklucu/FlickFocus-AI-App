@@ -1,8 +1,16 @@
 @import "tailwindcss";
 
+/*
+ * FlickFocus ships a single dark theme, so `dark:` utilities must apply
+ * regardless of the OS color scheme. Without this, light-mode visitors get
+ * light chat surfaces underneath the app's dark shell.
+ */
+@custom-variant dark (&);
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -10,13 +18,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {

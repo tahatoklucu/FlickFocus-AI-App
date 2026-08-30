@@ -34,7 +34,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Providers>
           <ConsoleGuard />
           <Header />
-          <main id="main-content" className="flex flex-1 flex-col" tabIndex={-1}>
+          <main id="main-content" className="flex min-h-0 flex-1 flex-col" tabIndex={-1}>
             {children}
           </main>
           <Footer />

@@ -65,7 +65,7 @@ function SendIcon({ className = "h-4 w-4" }: { className?: string }) {
 }
 
 const ASSISTANT_BUBBLE_CLASS =
-  "max-w-[92%] rounded-2xl rounded-bl-md border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700/60 dark:bg-zinc-800/80 sm:max-w-[85%]";
+  "max-w-[92%] rounded-2xl rounded-bl-md border border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-700/60 dark:bg-zinc-800/80 sm:max-w-[80%] lg:max-w-[72%]";
 
 function AssistantMessageShell({
   children,
@@ -110,10 +110,9 @@ function ChatMessageBubble({
       <div
         className={cn(
           isUser
-            ? "max-w-[min(92%,28rem)] rounded-2xl rounded-br-md bg-violet-600 px-3.5 py-2.5 text-white shadow-md shadow-violet-900/20 sm:max-w-[85%] sm:px-4"
+            ? "max-w-[min(92%,32rem)] rounded-2xl rounded-br-md bg-violet-600 px-3.5 py-2.5 text-white shadow-md shadow-violet-900/20 sm:px-4"
             : cn(
                 ASSISTANT_BUBBLE_CLASS,
-                "min-h-[52px]",
                 hasTools &&
                   "w-full max-w-none min-w-0 border-none bg-transparent p-0 shadow-none sm:max-w-none",
               ),
@@ -223,7 +222,7 @@ export default function ChatPageClient() {
 
   if (!isMounted) {
     return (
-      <div className="flex h-[min(600px,75vh)] max-h-[75vh] min-h-[280px] min-w-0 flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60 sm:h-auto sm:max-h-none sm:min-h-0 sm:flex-1" />
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60" />
     );
   }
 
@@ -484,7 +483,7 @@ function ChatPageClientLoaded() {
   }, [phase]);
 
   return (
-    <div className="flex min-h-[280px] min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60 sm:min-h-0">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
       <div className="sr-only" aria-live="polite" aria-atomic="true">
         {chatStatusMessage}
       </div>
@@ -533,12 +532,12 @@ function ChatPageClientLoaded() {
         <div
           ref={containerRef}
           onScroll={handleScroll}
-          className="relative h-full min-h-0 scroll-pb-6 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-4 sm:px-5 sm:py-6"
+          className="absolute inset-0 scroll-pb-6 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-4 sm:px-5 sm:py-6"
           aria-label="Chat messages"
         >
           <div className="min-w-0 space-y-4 pb-12 sm:space-y-5">
             {messages.length === 0 ? (
-              <div className="flex min-h-[240px] flex-col items-center justify-center px-4 py-12 text-center">
+              <div className="flex min-h-[16rem] flex-col items-center justify-center px-4 py-10 text-center sm:min-h-[20rem]">
                 <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-400">
                   <svg
                     className="h-6 w-6"
