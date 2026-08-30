@@ -34,10 +34,12 @@ export async function GET(request: Request, context: RouteContext) {
     );
   } catch (error) {
     if (error instanceof TrailerError) {
+      // An empty result here means "unavailable right now" (missing key or no
+      // TMDB match), so it must never be cached as if it were real data.
       if (error.status === 404 || error.status === 501) {
         return NextResponse.json<MovieTrailerResponse>(
           { trailers: [] },
-          { headers: { "Cache-Control": "public, s-maxage=3600" } },
+          { headers: { "Cache-Control": "no-store" } },
         );
       }
 

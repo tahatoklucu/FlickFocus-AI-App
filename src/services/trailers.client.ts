@@ -26,6 +26,12 @@ export async function getTrailersByImdbId(imdbID: string): Promise<MovieTrailer[
 
   const payload = (await response.json()) as MovieTrailerResponse;
   const trailers = payload.trailers ?? [];
-  trailerCache.set(trimmedId, trailers);
+
+  // Only memoize real results; an empty list may just mean the provider was
+  // briefly unavailable, and caching it would hide trailers for the session.
+  if (trailers.length > 0) {
+    trailerCache.set(trimmedId, trailers);
+  }
+
   return trailers;
 }
