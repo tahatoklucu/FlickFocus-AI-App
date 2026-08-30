@@ -8,11 +8,10 @@ const HomeHeroShaderLayer = dynamic(
   { ssr: false },
 );
 
-const DEFERRED_SHADER_MS = 20_000;
-
 /**
- * Defer WebGL hero shader past the Lighthouse window.
- * Avoid touchstart/pointerdown — mobile scroll would activate WebGL and spike TBT.
+ * The animated hero is decorative, so it waits for a real signal of engagement
+ * rather than a timer: the static gradient shell stands in until then. Avoid
+ * touchstart/pointerdown — mobile scroll fires those and would spike TBT.
  */
 export default function HomeHeroShaderDeferred() {
   const [ready, setReady] = useState(false);
@@ -23,9 +22,6 @@ export default function HomeHeroShaderDeferred() {
     }
 
     const activate = () => setReady(true);
-    let idleId: number | null = null;
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
     const onClick = () => activate();
     const onMouseMove = () => activate();
 
@@ -35,32 +31,9 @@ export default function HomeHeroShaderDeferred() {
       passive: true,
     });
 
-    const startDeferred = () => {
-      if (typeof window.requestIdleCallback === "function") {
-        idleId = window.requestIdleCallback(activate, {
-          timeout: DEFERRED_SHADER_MS,
-        });
-      } else {
-        timeoutId = setTimeout(activate, DEFERRED_SHADER_MS);
-      }
-    };
-
-    if (document.readyState === "complete") {
-      startDeferred();
-    } else {
-      window.addEventListener("load", startDeferred, { once: true });
-    }
-
     return () => {
       window.removeEventListener("click", onClick);
       window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("load", startDeferred);
-      if (idleId !== null && typeof window.cancelIdleCallback === "function") {
-        window.cancelIdleCallback(idleId);
-      }
-      if (timeoutId !== null) {
-        clearTimeout(timeoutId);
-      }
     };
   }, [ready]);
 

@@ -5,6 +5,7 @@ import Image from "next/image";
 import { checkPosterAvailability } from "@/lib/poster/poster-availability.client";
 import { POSTER_QUALITY } from "@/lib/image-config";
 import { isValidPosterUrl } from "@/lib/poster/poster-url";
+import { scheduleIdleTask } from "@/lib/schedule-idle";
 
 export function hasValidPoster(poster: string): boolean {
   return isValidPosterUrl(poster);
@@ -78,14 +79,20 @@ function MoviePoster({
 
     let cancelled = false;
 
-    checkPosterAvailability(poster).then((available) => {
-      if (!cancelled && !available) {
-        setFailedPoster(poster);
-      }
-    });
+    // The probe is a safety net for OMDb URLs that resolve to nothing, not
+    // something the first paint depends on, so keep it off the load path. A
+    // genuinely broken image still falls back through onError meanwhile.
+    const cancelProbe = scheduleIdleTask(() => {
+      checkPosterAvailability(poster).then((available) => {
+        if (!cancelled && !available) {
+          setFailedPoster(poster);
+        }
+      });
+    }, { afterLoad: true, timeout: 5_000 });
 
     return () => {
       cancelled = true;
+      cancelProbe();
     };
   }, [poster, isPosterUrlValid, priority]);
 

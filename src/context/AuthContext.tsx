@@ -23,6 +23,10 @@ import {
   getFirebaseAuth,
   isFirebaseConfigured,
 } from "@/lib/firebase";
+import {
+  clearAuthSessionHint,
+  markAuthSessionHint,
+} from "@/lib/firebase/auth-session-hint";
 import { consumePendingAuthModal } from "@/lib/firebase/google-auth-pending";
 import { readProfileCache } from "@/lib/profile/profile-cache";
 import type { UserProfile } from "@/types/user";
@@ -161,6 +165,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         setUser(firebaseUser);
+
+        if (firebaseUser) {
+          markAuthSessionHint();
+        } else {
+          clearAuthSessionHint();
+        }
 
         if (firebaseUser) {
           setProfileSyncState({

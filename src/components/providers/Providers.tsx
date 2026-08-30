@@ -5,10 +5,12 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { AuthPlaceholderProvider } from "@/context/AuthPlaceholderProvider";
 import type { AuthModalMode } from "@/context/auth-context.shared";
+import { hasAuthSessionHint } from "@/lib/firebase/auth-session-hint";
 import {
   isGoogleRedirectPending,
   markPendingAuthModal,
 } from "@/lib/firebase/google-auth-pending";
+import { scheduleIdleTask } from "@/lib/schedule-idle";
 
 const FirebaseProviders = dynamic(
   () => import("@/components/providers/FirebaseProviders"),
@@ -16,8 +18,6 @@ const FirebaseProviders = dynamic(
 );
 
 const AUTH_ROUTE_PREFIXES = ["/favorites", "/profile"];
-/** After load — past typical Lighthouse lab window; restores signed-in session. */
-const DEFERRED_AUTH_MS = 20_000;
 
 function isAuthHeavyRoute(pathname: string | null): boolean {
   if (!pathname) {
@@ -29,42 +29,12 @@ function isAuthHeavyRoute(pathname: string | null): boolean {
   );
 }
 
-function scheduleDeferredFirebase(onActivate: () => void) {
-  let idleId: number | null = null;
-  let timeoutId: ReturnType<typeof setTimeout> | null = null;
-
-  const start = () => {
-    if (typeof window.requestIdleCallback === "function") {
-      idleId = window.requestIdleCallback(onActivate, {
-        timeout: DEFERRED_AUTH_MS,
-      });
-      return;
-    }
-
-    timeoutId = setTimeout(onActivate, DEFERRED_AUTH_MS);
-  };
-
-  if (document.readyState === "complete") {
-    start();
-  } else {
-    window.addEventListener("load", start, { once: true });
-  }
-
-  return () => {
-    window.removeEventListener("load", start);
-    if (idleId !== null && typeof window.cancelIdleCallback === "function") {
-      window.cancelIdleCallback(idleId);
-    }
-    if (timeoutId !== null) {
-      clearTimeout(timeoutId);
-    }
-  };
-}
-
 /**
- * Do NOT bind touchstart/pointerdown globally — mobile scroll fires those and
- * pulled Firebase auth/iframe.js into the Lighthouse critical path (~1.8s).
- * Load on: redirect return, auth-heavy routes, explicit UI activate, or deferred idle.
+ * Firebase Auth (~93 KB plus a getProjectConfig round trip) only loads when it
+ * can actually do something: a returning signed-in visitor, an auth-only route,
+ * a redirect coming back, or an explicit tap on a sign-in control. Anonymous
+ * first loads never pay for it — a blanket timer used to pull it in for
+ * everyone and dominated main-thread time.
  */
 export default function Providers({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -99,15 +69,24 @@ export default function Providers({ children }: { children: ReactNode }) {
       };
     }
 
-    const cleanup = scheduleDeferredFirebase(() => {
-      if (!cancelled) {
-        setLoadFirebase(true);
-      }
-    });
+    if (!hasAuthSessionHint()) {
+      return;
+    }
+
+    // Returning signed-in visitor: restore the session once the page is idle so
+    // the header stops showing the signed-out state, without blocking load.
+    const cancelIdle = scheduleIdleTask(
+      () => {
+        if (!cancelled) {
+          setLoadFirebase(true);
+        }
+      },
+      { afterLoad: true, timeout: 3_000 },
+    );
 
     return () => {
       cancelled = true;
-      cleanup();
+      cancelIdle();
     };
   }, [loadFirebase, pathname]);
 

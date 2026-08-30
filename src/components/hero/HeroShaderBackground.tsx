@@ -13,6 +13,9 @@ interface HeroShaderBackgroundProps {
   className?: string;
 }
 
+/** ~40 fps is indistinguishable for a slow ambient gradient. */
+const MIN_FRAME_INTERVAL_MS = 1000 / 40;
+
 /** Readability scrim — sits above the canvas, below page content. */
 function HeroShaderScrim({ className }: HeroShaderBackgroundProps) {
   return (
@@ -86,6 +89,8 @@ export default function HeroShaderBackground({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const mouseRef = useRef({ x: 0, y: 0, targetX: 0, targetY: 0 });
   const visibleRef = useRef(true);
+  const tabVisibleRef = useRef(true);
+  const inViewRef = useRef(true);
 
   useEffect(() => {
     if (prefersReducedMotion) {
@@ -138,6 +143,7 @@ export default function HeroShaderBackground({
     const startTime = performance.now();
     let totalPausedMs = 0;
     let pauseStartedAt: number | null = null;
+    let lastFrameAt = 0;
     let width = 0;
     let height = 0;
 
@@ -170,28 +176,55 @@ export default function HeroShaderBackground({
         (rect.height - (event.clientY - rect.top)) * dpr;
     };
 
-    const handleVisibility = () => {
-      const isVisible = document.visibilityState === "visible";
-      visibleRef.current = isVisible;
-
-      if (!isVisible) {
-        pauseStartedAt = performance.now();
-        cancelAnimationFrame(animationFrame);
+    const pause = () => {
+      if (pauseStartedAt !== null) {
         return;
       }
 
+      pauseStartedAt = performance.now();
+      cancelAnimationFrame(animationFrame);
+    };
+
+    const resume = () => {
       if (pauseStartedAt !== null) {
         totalPausedMs += performance.now() - pauseStartedAt;
         pauseStartedAt = null;
       }
 
+      cancelAnimationFrame(animationFrame);
       animationFrame = requestAnimationFrame(render);
+    };
+
+    /** Runs only while the hero is both on screen and in the foreground tab. */
+    const syncPlayback = () => {
+      const shouldRun = tabVisibleRef.current && inViewRef.current;
+      visibleRef.current = shouldRun;
+
+      if (shouldRun) {
+        resume();
+      } else {
+        pause();
+      }
+    };
+
+    const handleVisibility = () => {
+      tabVisibleRef.current = document.visibilityState === "visible";
+      syncPlayback();
     };
 
     const render = (now: number) => {
       if (!visibleRef.current) {
         return;
       }
+
+      // Cap the draw rate: this is an ambient background, so extra frames only
+      // steal main-thread time from scrolling and hydration.
+      if (now - lastFrameAt < MIN_FRAME_INTERVAL_MS) {
+        animationFrame = requestAnimationFrame(render);
+        return;
+      }
+
+      lastFrameAt = now;
 
       const elapsed = (now - startTime - totalPausedMs) / 1000;
 
@@ -215,8 +248,17 @@ export default function HeroShaderBackground({
     mouseRef.current.y = height * 0.5;
 
     const resizeObserver = new ResizeObserver(resize);
+    const intersectionObserver = new IntersectionObserver(
+      ([entry]) => {
+        inViewRef.current = entry?.isIntersecting ?? true;
+        syncPlayback();
+      },
+      { threshold: 0 },
+    );
+
     if (canvas.parentElement) {
       resizeObserver.observe(canvas.parentElement);
+      intersectionObserver.observe(canvas.parentElement);
     }
 
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
@@ -226,6 +268,7 @@ export default function HeroShaderBackground({
     return () => {
       cancelAnimationFrame(animationFrame);
       resizeObserver.disconnect();
+      intersectionObserver.disconnect();
       window.removeEventListener("pointermove", handlePointerMove);
       document.removeEventListener("visibilitychange", handleVisibility);
       gl.deleteProgram(program);

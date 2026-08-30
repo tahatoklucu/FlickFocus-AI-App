@@ -86,13 +86,29 @@ export default function Header() {
   const closeMenu = () => setIsMenuOpen(false);
 
   useEffect(() => {
-    function handleScroll() {
+    let frame: number | null = null;
+
+    function readScrollPosition() {
+      frame = null;
       setIsScrolled(window.scrollY > 12);
     }
 
-    handleScroll();
+    // Coalesce to one read per frame; the raw scroll event can fire far more
+    // often and each call risks a header re-render.
+    function handleScroll() {
+      if (frame === null) {
+        frame = requestAnimationFrame(readScrollPosition);
+      }
+    }
+
+    readScrollPosition();
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (frame !== null) {
+        cancelAnimationFrame(frame);
+      }
+    };
   }, []);
 
   useEffect(() => {
