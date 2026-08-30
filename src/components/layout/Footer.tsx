@@ -86,7 +86,7 @@ export default function Footer() {
           >
             FlickFocus
           </Link>
-          <p className="mt-1 text-xs text-neutral-500" suppressHydrationWarning>
+          <p className="mt-1 text-xs text-neutral-400" suppressHydrationWarning>
             &copy; {new Date().getFullYear()} Built by Taha Toklucu
           </p>
         </div>

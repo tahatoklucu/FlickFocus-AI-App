@@ -47,7 +47,7 @@ function MovieCard({ movie, onSelect, priority = false, className }: MovieCardPr
           <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-neutral-50">
             {movie.Title}
           </h3>
-          <p className="mt-1 text-sm text-neutral-500">{movie.Year}</p>
+          <p className="mt-1 text-sm text-neutral-400">{movie.Year}</p>
           <div className="flex-1" aria-hidden="true" />
         </div>
       </button>

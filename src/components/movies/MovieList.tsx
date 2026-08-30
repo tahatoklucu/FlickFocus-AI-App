@@ -36,7 +36,7 @@ function MovieList({
 }: MovieListProps) {
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 py-20 text-neutral-500">
+      <div className="flex flex-col items-center justify-center gap-3 py-20 text-neutral-400">
         <svg
           className="h-8 w-8 animate-spin"
           fill="none"
@@ -77,7 +77,7 @@ function MovieList({
 
   if (!hasSearched && showInitialPrompt) {
     return (
-      <div className="flex flex-col items-center justify-center gap-2 py-20 text-center text-neutral-500">
+      <div className="flex flex-col items-center justify-center gap-2 py-20 text-center text-neutral-400">
         <svg
           className="mb-2 h-12 w-12 opacity-40"
           fill="none"
@@ -110,7 +110,7 @@ function MovieList({
   return (
     <div>
       {!hideResultLabel && (
-        <p className="mb-4 text-sm text-neutral-500">
+        <p className="mb-4 text-sm text-neutral-400">
           {resultLabel ??
             `${movies.length} result${movies.length === 1 ? "" : "s"} found`}
         </p>

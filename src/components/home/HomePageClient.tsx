@@ -246,7 +246,7 @@ export default function HomePageClient({
               <h2 className="text-xl font-bold tracking-tight text-neutral-50 sm:text-2xl">
                 Featured Movies
               </h2>
-              <p className="mt-1 max-w-lg text-sm text-neutral-500">
+              <p className="mt-1 max-w-lg text-sm text-neutral-400">
                 Hand-picked classics to get you started — tap a genre or search
                 above
               </p>
@@ -284,7 +284,7 @@ export default function HomePageClient({
                     : "Top Picks"}
               </h2>
               {listSubtitle ? (
-                <p className="mt-1 text-sm text-neutral-500">{listSubtitle}</p>
+                <p className="mt-1 text-sm text-neutral-400">{listSubtitle}</p>
               ) : null}
             </div>
             <MovieList

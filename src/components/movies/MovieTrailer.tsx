@@ -62,7 +62,7 @@ export default function MovieTrailer({ imdbID, title, className }: MovieTrailerP
   if (isLoading) {
     return (
       <section className={className} aria-busy="true">
-        <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
+        <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
           Trailer
         </h3>
         <div className="aspect-video w-full animate-pulse rounded-xl bg-neutral-900 ring-1 ring-neutral-800" />
@@ -78,7 +78,7 @@ export default function MovieTrailer({ imdbID, title, className }: MovieTrailerP
 
   return (
     <section className={className}>
-      <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
+      <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
         Trailer
       </h3>
 

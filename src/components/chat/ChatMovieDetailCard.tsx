@@ -109,13 +109,13 @@ export default function ChatMovieDetailCard({
           <dl className="grid gap-2 text-xs sm:grid-cols-2">
             {output.director ? (
               <div className="rounded-lg bg-neutral-900/70 px-3 py-2 ring-1 ring-neutral-800">
-                <dt className="font-semibold uppercase tracking-wide text-neutral-500">Director</dt>
+                <dt className="font-semibold uppercase tracking-wide text-neutral-400">Director</dt>
                 <dd className="mt-1 text-neutral-200">{output.director}</dd>
               </div>
             ) : null}
             {output.actors ? (
               <div className="rounded-lg bg-neutral-900/70 px-3 py-2 ring-1 ring-neutral-800">
-                <dt className="font-semibold uppercase tracking-wide text-neutral-500">Cast</dt>
+                <dt className="font-semibold uppercase tracking-wide text-neutral-400">Cast</dt>
                 <dd className="mt-1 line-clamp-2 text-neutral-200">{output.actors}</dd>
               </div>
             ) : null}

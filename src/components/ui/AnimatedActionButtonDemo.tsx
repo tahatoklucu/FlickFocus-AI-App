@@ -40,7 +40,7 @@ export default function AnimatedActionButtonDemo() {
         <h3 className="text-sm font-semibold text-neutral-100">
           Animated Action Button
         </h3>
-        <p className="mt-1 text-xs text-neutral-500">
+        <p className="mt-1 text-xs text-neutral-400">
           Micro-interaction demo — controlled &amp; uncontrolled modes
         </p>
       </div>

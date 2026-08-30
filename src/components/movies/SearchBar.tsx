@@ -44,7 +44,7 @@ export default function SearchBar({
             onChange={(event) => handleQueryChange(event.target.value)}
             placeholder="Search for a movie..."
             disabled={isLoading}
-            className="min-h-11 w-full rounded-xl border border-neutral-800 bg-neutral-900/80 px-4 py-3 text-neutral-50 shadow-inner shadow-black/20 placeholder:text-neutral-500 transition focus:border-violet-500/50 focus:outline-none focus:ring-2 focus:ring-violet-500/20 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-12 sm:px-5"
+            className="min-h-11 w-full rounded-xl border border-neutral-800 bg-neutral-900/80 px-4 py-3 text-neutral-50 shadow-inner shadow-black/20 placeholder:text-neutral-400 transition focus:border-violet-500/50 focus:outline-none focus:ring-2 focus:ring-violet-500/20 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-12 sm:px-5"
             aria-label="Search for a movie"
           />
         </div>

@@ -106,7 +106,7 @@ function MetaItem({
 }) {
   return (
     <span className="inline-flex items-center gap-2 text-sm text-neutral-300">
-      <span className="text-neutral-500" aria-hidden="true">
+      <span className="text-neutral-400" aria-hidden="true">
         {icon}
       </span>
       <span className="sr-only">{label}: </span>
@@ -142,7 +142,7 @@ function InfoCard({ label, value }: { label: string; value: string | null }) {
 
   return (
     <div className="rounded-lg bg-neutral-900/70 px-4 py-3 ring-1 ring-neutral-800">
-      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-500">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-neutral-400">
         {label}
       </p>
       <p className="mt-1.5 break-words text-sm leading-relaxed text-neutral-200">{value}</p>
@@ -241,7 +241,7 @@ function PosterShowcase({
               {title}
             </p>
             {year && (
-              <p className="mt-2 text-xs font-medium uppercase tracking-widest text-neutral-500">
+              <p className="mt-2 text-xs font-medium uppercase tracking-widest text-neutral-400">
                 {year}
               </p>
             )}
@@ -472,7 +472,7 @@ export default function MovieDetailModal({
                       {movie.Title}
                     </h2>
                     {rated && (
-                      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
+                      <p className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
                         {rated}
                       </p>
                     )}
@@ -516,7 +516,7 @@ export default function MovieDetailModal({
 
                 {plot && (
                   <section>
-                    <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-neutral-500">
+                    <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
                       Synopsis
                     </h3>
                     <p className="break-words text-base leading-7 text-neutral-300 md:text-[17px] md:leading-8">

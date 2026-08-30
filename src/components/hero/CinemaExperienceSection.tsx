@@ -28,7 +28,7 @@ export default function CinemaExperienceSection() {
             explore the spotlight. Loads only when this section enters view to
             keep the homepage fast.
           </p>
-          <ul className="mt-5 space-y-2 text-left text-sm text-neutral-500">
+          <ul className="mt-5 space-y-2 text-left text-sm text-neutral-400">
             <li className="flex items-start gap-2">
               <span
                 className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-violet-400"

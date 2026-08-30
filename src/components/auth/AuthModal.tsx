@@ -78,7 +78,7 @@ function AuthModeToggle({
 
 function FieldIcon({ children }: { children: ReactNode }) {
   return (
-    <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500">
+    <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-400">
       {children}
     </span>
   );
@@ -244,7 +244,7 @@ function AuthModalForm({ onClose }: AuthModalFormProps) {
         <div>
           <label
             htmlFor="auth-email"
-            className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500"
+            className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400"
           >
             Email
           </label>
@@ -271,7 +271,7 @@ function AuthModalForm({ onClose }: AuthModalFormProps) {
         <div>
           <label
             htmlFor="auth-password"
-            className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500"
+            className="mb-2 block text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400"
           >
             Password
           </label>
@@ -315,7 +315,7 @@ function AuthModalForm({ onClose }: AuthModalFormProps) {
           <div className="w-full border-t border-white/10" />
         </div>
         <div className="relative flex justify-center">
-          <span className="bg-zinc-950 px-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-500">
+          <span className="bg-zinc-950 px-3 text-[11px] font-semibold uppercase tracking-[0.22em] text-zinc-400">
             or continue with google
           </span>
         </div>
@@ -350,7 +350,7 @@ function AuthModalForm({ onClose }: AuthModalFormProps) {
       </Button>
 
       {isRedirecting ? (
-        <p className="mt-3 text-center text-xs text-zinc-500">Redirecting to Google…</p>
+        <p className="mt-3 text-center text-xs text-zinc-400">Redirecting to Google…</p>
       ) : null}
       </div>
     </div>

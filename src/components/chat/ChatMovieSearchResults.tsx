@@ -18,7 +18,7 @@ export default function ChatMovieSearchResults({
     <ChatToolLifecycleShell toolName="searchMovies" state="output-available">
       <div className="mb-2.5 flex min-w-0 flex-wrap items-end justify-between gap-2 sm:mb-3">
         <div className="min-w-0">
-          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-neutral-500 sm:text-xs">
+          <p className="text-[10px] font-medium uppercase tracking-[0.14em] text-neutral-400 sm:text-xs">
             OMDb results
           </p>
           <p className="break-words text-xs text-neutral-300 sm:text-sm">
@@ -35,7 +35,7 @@ export default function ChatMovieSearchResults({
       {output.results.length === 0 ? (
         <div className="rounded-lg border border-neutral-800 bg-neutral-900/60 px-4 py-6 text-center">
           <p className="text-sm font-medium text-neutral-300">No movies found</p>
-          <p className="mt-1 text-xs text-neutral-500">
+          <p className="mt-1 text-xs text-neutral-400">
             Try a different title or spelling.
           </p>
         </div>
@@ -62,7 +62,7 @@ export default function ChatMovieSearchResults({
                   <p className="line-clamp-2 text-xs font-semibold leading-snug text-neutral-50">
                     {movie.title}
                   </p>
-                  <p className="mt-0.5 text-[11px] text-neutral-500">{movie.year}</p>
+                  <p className="mt-0.5 text-[11px] text-neutral-400">{movie.year}</p>
                 </div>
               </button>
             </li>

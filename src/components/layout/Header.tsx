@@ -253,7 +253,7 @@ export default function Header() {
                           <p className="truncate text-sm font-medium text-white">
                             {displayName}
                           </p>
-                          <p className="truncate text-xs text-neutral-500">
+                          <p className="truncate text-xs text-neutral-400">
                             {user.email}
                           </p>
                         </div>

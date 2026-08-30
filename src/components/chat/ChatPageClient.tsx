@@ -658,7 +658,7 @@ function ChatPageClientLoaded() {
             autoCorrect="on"
             spellCheck
             disabled={isInputDisabled}
-            className="chat-input block min-h-11 w-full min-w-0 flex-1 resize-none border-0 bg-transparent px-2.5 py-2.5 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+            className="chat-input block min-h-11 w-full min-w-0 flex-1 resize-none border-0 bg-transparent px-2.5 py-2.5 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 dark:text-zinc-100 dark:placeholder:text-zinc-400"
             style={{ maxHeight: COMPOSER_MAX_HEIGHT_PX }}
           />
 
@@ -702,7 +702,7 @@ function ChatPageClientLoaded() {
             />
           )}
         </div>
-        <p className="mt-2 hidden text-xs text-zinc-500 sm:block">
+        <p className="mt-2 hidden text-xs text-zinc-400 sm:block">
           Press Enter to send, Shift+Enter for a new line.
         </p>
       </form>

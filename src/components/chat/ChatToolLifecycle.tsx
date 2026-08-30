@@ -66,7 +66,7 @@ function formatToolName(toolName: string): string {
 function InputPreview({ input }: { input: unknown }) {
   if (!input || typeof input !== "object") {
     return (
-      <p className="text-xs italic text-neutral-500">Waiting for parameters…</p>
+      <p className="text-xs italic text-neutral-400">Waiting for parameters…</p>
     );
   }
 
@@ -76,7 +76,7 @@ function InputPreview({ input }: { input: unknown }) {
 
   if (entries.length === 0) {
     return (
-      <p className="text-xs italic text-neutral-500">Streaming parameters…</p>
+      <p className="text-xs italic text-neutral-400">Streaming parameters…</p>
     );
   }
 
@@ -84,7 +84,7 @@ function InputPreview({ input }: { input: unknown }) {
     <dl className="grid gap-1.5">
       {entries.map(([key, value]) => (
         <div key={key} className="flex flex-wrap gap-x-2 text-xs">
-          <dt className="font-medium uppercase tracking-wide text-neutral-500">{key}</dt>
+          <dt className="font-medium uppercase tracking-wide text-neutral-400">{key}</dt>
           <dd className="break-all text-neutral-200">{String(value)}</dd>
         </div>
       ))}
