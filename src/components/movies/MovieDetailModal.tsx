@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore, type Re
 import { createPortal } from "react-dom";
 import FavoriteButton from "@/components/movies/FavoriteButton";
 import MovieNotFound from "@/components/movies/MovieNotFound";
+import MovieTrailer from "@/components/movies/MovieTrailer";
 import Button from "@/components/ui/Button";
 import { hasValidPoster } from "@/components/movies/MoviePoster";
 import { POSTER_QUALITY, POSTER_SIZES } from "@/lib/image-config";
@@ -510,6 +511,8 @@ export default function MovieDetailModal({
 
                   <GenreTags genres={genres} className="max-md:justify-center md:justify-start" />
                 </header>
+
+                <MovieTrailer imdbID={movie.imdbID} title={movie.Title} className="text-left" />
 
                 {plot && (
                   <section>

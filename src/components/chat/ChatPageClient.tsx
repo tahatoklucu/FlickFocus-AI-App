@@ -38,6 +38,8 @@ const MovieDetailModal = dynamic(
 
 type ChatUiPhase = "idle" | "waiting" | "streaming" | "stopping";
 
+const COMPOSER_MAX_HEIGHT_PX = 160;
+
 function deriveChatUiPhase(status: ChatStatus, stopRequested: boolean): ChatUiPhase {
   if (stopRequested && (status === "submitted" || status === "streaming")) {
     return "stopping";
@@ -52,6 +54,14 @@ function deriveChatUiPhase(status: ChatStatus, stopRequested: boolean): ChatUiPh
   }
 
   return "idle";
+}
+
+function SendIcon({ className = "h-4 w-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M3.4 20.4l17.45-7.48a1 1 0 000-1.84L3.4 3.6a.99.99 0 00-1.39.91L2 9.12c0 .5.37.93.87.99L17 12 2.87 13.88c-.5.07-.87.5-.87 1l.01 4.61c0 .71.73 1.2 1.39.91z" />
+    </svg>
+  );
 }
 
 const ASSISTANT_BUBBLE_CLASS =
@@ -123,8 +133,18 @@ function ChatMessageBubble({
   );
 }
 
-function ClearChatControl({ onConfirm }: { onConfirm: () => void }) {
+function ClearChatControl({
+  onConfirm,
+  onConfirmingChange,
+}: {
+  onConfirm: () => void;
+  onConfirmingChange?: (confirming: boolean) => void;
+}) {
   const [confirming, setConfirming] = useState(false);
+
+  useEffect(() => {
+    onConfirmingChange?.(confirming);
+  }, [confirming, onConfirmingChange]);
 
   useEffect(() => {
     if (!confirming) {
@@ -137,9 +157,10 @@ function ClearChatControl({ onConfirm }: { onConfirm: () => void }) {
 
   if (confirming) {
     return (
-      <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="flex items-center justify-end gap-2">
         <span className="text-xs text-zinc-500 dark:text-zinc-400">
-          Clear all messages?
+          <span className="sm:hidden">Clear?</span>
+          <span className="hidden sm:inline">Clear all messages?</span>
         </span>
         <Button
           type="button"
@@ -217,6 +238,8 @@ function ChatPageClientLoaded() {
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
   const [isMovieModalOpen, setIsMovieModalOpen] = useState(false);
   const [sendSuccessFlash, setSendSuccessFlash] = useState(false);
+  const [isClearConfirming, setIsClearConfirming] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pendingSendRef = useRef<string | null>(null);
   const prevPhaseRef = useRef<ChatUiPhase>("idle");
 
@@ -339,6 +362,18 @@ function ChatPageClientLoaded() {
     [canSubmit, input, phase, status, stop, submitMessage],
   );
 
+  // Grow the composer with its content so long prompts stay readable without
+  // pushing the send button off-screen.
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) {
+      return;
+    }
+
+    textarea.style.height = "auto";
+    textarea.style.height = `${Math.min(textarea.scrollHeight, COMPOSER_MAX_HEIGHT_PX)}px`;
+  }, [input]);
+
   const handleKeyDown = useCallback(
     (event: KeyboardEvent<HTMLTextAreaElement>) => {
       if (event.key === "Enter" && !event.shiftKey) {
@@ -454,11 +489,43 @@ function ChatPageClientLoaded() {
         {chatStatusMessage}
       </div>
       {messages.length > 0 ? (
-        <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-zinc-200 px-2.5 py-2 dark:border-zinc-800 sm:gap-3 sm:px-4">
-          <p className="text-xs text-zinc-500 dark:text-zinc-400">
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-zinc-200 px-3 py-2 dark:border-zinc-800 sm:gap-3 sm:px-4">
+          <p className="truncate text-xs text-zinc-500 dark:text-zinc-400">
             {messages.length} message{messages.length === 1 ? "" : "s"}
           </p>
-          <ClearChatControl onConfirm={handleClearChat} />
+          <div className="flex shrink-0 items-center gap-2">
+            {canRegenerate && !isClearConfirming ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleRegenerate}
+                className="chat-control-enter motion-reduce:animate-none gap-1.5 motion-reduce:transition-none max-sm:px-2.5"
+                aria-label="Regenerate last response"
+              >
+                <svg
+                  className="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M16.023 9.348h4.992V4.356m-.001 4.992-3.181-3.183a8.25 8.25 0 0 0-13.803 3.7M4.031 9.865v4.992m0 0h4.99m-4.99 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7"
+                  />
+                </svg>
+                <span className="sm:hidden">Retry</span>
+                <span className="hidden sm:inline">Regenerate</span>
+              </Button>
+            ) : null}
+            <ClearChatControl
+              onConfirm={handleClearChat}
+              onConfirmingChange={setIsClearConfirming}
+            />
+          </div>
         </div>
       ) : null}
 
@@ -466,10 +533,10 @@ function ChatPageClientLoaded() {
         <div
           ref={containerRef}
           onScroll={handleScroll}
-          className="relative h-full min-h-0 overflow-x-hidden overflow-y-auto overscroll-contain px-2.5 py-3 sm:px-5 sm:py-6"
+          className="relative h-full min-h-0 scroll-pb-6 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-4 sm:px-5 sm:py-6"
           aria-label="Chat messages"
         >
-          <div className="min-w-0 space-y-3 sm:space-y-4">
+          <div className="min-w-0 space-y-4 pb-12 sm:space-y-5">
             {messages.length === 0 ? (
               <div className="flex min-h-[240px] flex-col items-center justify-center px-4 py-12 text-center">
                 <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/10 text-violet-400">
@@ -573,13 +640,14 @@ function ChatPageClientLoaded() {
 
       <form
         onSubmit={handleSubmit}
-        className="shrink-0 border-t border-zinc-200 bg-zinc-50/80 p-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] dark:border-zinc-800 dark:bg-zinc-950/40 sm:p-4"
+        className="shrink-0 border-t border-zinc-200 bg-zinc-50/80 px-2.5 pb-[max(0.625rem,env(safe-area-inset-bottom))] pt-2.5 dark:border-zinc-800 dark:bg-zinc-950/40 sm:px-4 sm:pb-3 sm:pt-3"
       >
-        <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-end sm:gap-3">
+        <div className="flex min-w-0 items-end gap-2 rounded-2xl border border-zinc-300 bg-white p-1.5 transition focus-within:border-violet-500 focus-within:ring-2 focus-within:ring-violet-500/25 dark:border-zinc-700 dark:bg-zinc-900">
           <label htmlFor="chat-input" className="sr-only">
             Message
           </label>
           <textarea
+            ref={textareaRef}
             id="chat-input"
             value={input}
             onChange={(event) => setInput(event.target.value)}
@@ -591,7 +659,8 @@ function ChatPageClientLoaded() {
             autoCorrect="on"
             spellCheck
             disabled={isInputDisabled}
-            className="chat-input block max-h-32 min-h-11 w-full min-w-0 flex-1 resize-none rounded-xl border border-zinc-300 bg-white px-3 py-[11px] text-zinc-900 placeholder:text-zinc-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/30 disabled:cursor-not-allowed disabled:opacity-60 sm:py-2.5 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+            className="chat-input block min-h-11 w-full min-w-0 flex-1 resize-none border-0 bg-transparent px-2.5 py-2.5 text-zinc-900 placeholder:text-zinc-400 focus:outline-none focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60 dark:text-zinc-100 dark:placeholder:text-zinc-500"
+            style={{ maxHeight: COMPOSER_MAX_HEIGHT_PX }}
           />
 
           {showStopButton ? (
@@ -599,49 +668,39 @@ function ChatPageClientLoaded() {
               key="stop-control"
               type="button"
               variant="secondary"
-              size="sm"
               onClick={handleStop}
-              className="chat-control-enter motion-reduce:animate-none w-full shrink-0 motion-reduce:transition-none sm:w-auto"
+              className="chat-control-enter motion-reduce:animate-none h-11 shrink-0 justify-center gap-1.5 motion-reduce:transition-none"
               aria-label="Stop generating"
             >
-              Stop
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <rect x="7" y="7" width="10" height="10" rx="1.5" />
+              </svg>
+              <span className="hidden sm:inline">Stop</span>
             </Button>
           ) : (
-            <div
-              key="send-controls"
-              className="flex w-full shrink-0 items-center justify-end gap-2 sm:w-auto"
-            >
-              {canRegenerate ? (
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  onClick={handleRegenerate}
-                  className="chat-control-enter motion-reduce:animate-none max-sm:px-2.5 motion-reduce:transition-none"
-                  aria-label="Regenerate last response"
-                >
-                  <span className="sm:hidden">Retry</span>
-                  <span className="hidden sm:inline">Regenerate</span>
-                </Button>
-              ) : null}
-              <AnimatedActionButton
-                type="submit"
-                variant="violet"
-                state={sendVisualState}
-                disabled={
-                  sendVisualState === "success" ||
-                  (sendVisualState === "idle" && !canSubmit)
-                }
-                idleLabel="Send"
-                loadingLabel="Sending"
-                successLabel="Sent"
-                errorLabel="Retry"
-                onRetry={() => clearError()}
-                autoResetSuccess={false}
-                aria-label="Send message"
-                className="chat-control-enter motion-reduce:animate-none min-w-[4.5rem] shrink-0 motion-reduce:transition-none max-sm:min-h-10 max-sm:px-3 max-sm:text-xs"
-              />
-            </div>
+            <AnimatedActionButton
+              key="send-control"
+              type="submit"
+              variant="violet"
+              state={sendVisualState}
+              disabled={
+                sendVisualState === "success" ||
+                (sendVisualState === "idle" && !canSubmit)
+              }
+              idleLabel={
+                <>
+                  <SendIcon className="h-4 w-4 sm:hidden" />
+                  <span className="hidden sm:inline">Send</span>
+                </>
+              }
+              loadingLabel={<span className="hidden sm:inline">Sending</span>}
+              successLabel={<span className="hidden sm:inline">Sent</span>}
+              errorLabel={<span className="hidden sm:inline">Retry</span>}
+              onRetry={() => clearError()}
+              autoResetSuccess={false}
+              aria-label="Send message"
+              className="chat-control-enter motion-reduce:animate-none h-11 shrink-0 motion-reduce:transition-none sm:min-w-[5rem]"
+            />
           )}
         </div>
         <p className="mt-2 hidden text-xs text-zinc-500 sm:block">

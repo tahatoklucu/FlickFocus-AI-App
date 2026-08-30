@@ -15,15 +15,15 @@ export default function ChatPage() {
       <PageHeroGlow subdued />
 
       <div className="relative mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-3 py-2 sm:px-6 sm:py-4 lg:px-8">
-        <header className="mb-2 shrink-0 text-center sm:mb-4">
-          <span className="mb-2 inline-flex items-center gap-1.5 rounded-full border border-violet-500/25 bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-violet-300 sm:mb-3 sm:px-3 sm:py-1 sm:text-[11px]">
+        <header className="mb-2 flex shrink-0 items-center justify-center gap-2.5 text-center max-sm:justify-start sm:mb-4 sm:flex-col sm:gap-0">
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-violet-500/25 bg-violet-500/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-violet-300 sm:mb-3 sm:px-3 sm:py-1 sm:text-[11px]">
             <span className="h-1.5 w-1.5 rounded-full bg-violet-400" aria-hidden="true" />
             AI assistant
           </span>
-          <h1 className="bg-gradient-to-br from-white via-neutral-100 to-neutral-400 bg-clip-text text-xl font-extrabold tracking-tight text-transparent sm:text-3xl lg:text-4xl">
+          <h1 className="bg-gradient-to-br from-white via-neutral-100 to-neutral-400 bg-clip-text text-lg font-extrabold tracking-tight text-transparent sm:text-3xl lg:text-4xl">
             FlickFocus AI
           </h1>
-          <p className="mt-1.5 px-2 text-[11px] leading-relaxed text-neutral-400 sm:mt-2 sm:px-0 sm:text-sm lg:text-base">
+          <p className="mt-1.5 hidden px-2 text-[11px] leading-relaxed text-neutral-400 sm:mt-2 sm:block sm:px-0 sm:text-sm lg:text-base">
             Your movie-savvy assistant — streaming responses in real time
           </p>
         </header>
