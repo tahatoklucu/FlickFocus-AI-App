@@ -1,9 +1,18 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import MovieCard from "@/components/movies/MovieCard";
+import { useFavorites } from "@/context/favorites-context.shared";
 
 vi.mock("@/components/movies/FavoriteButton", () => ({
   default: () => <button type="button">Favorite</button>,
+}));
+
+vi.mock("@/components/movies/WatchlistButton", () => ({
+  default: () => <button type="button">Watchlist</button>,
+}));
+
+vi.mock("@/context/favorites-context.shared", () => ({
+  useFavorites: vi.fn(),
 }));
 
 vi.mock("@/components/movies/MoviePoster", () => ({
@@ -21,7 +30,17 @@ const movie = {
   Type: "movie",
 };
 
+function mockLibrary(rating: number | null) {
+  vi.mocked(useFavorites).mockReturnValue({
+    getEntry: () => (rating === null ? null : { rating }),
+  } as unknown as ReturnType<typeof useFavorites>);
+}
+
 describe("MovieCard", () => {
+  beforeEach(() => {
+    mockLibrary(null);
+  });
+
   it("opens details when card is clicked", async () => {
     const user = userEvent.setup();
     const onSelect = vi.fn();
@@ -40,5 +59,14 @@ describe("MovieCard", () => {
 
     expect(screen.getByRole("heading", { name: "Inception" })).toBeInTheDocument();
     expect(screen.getByText("2010")).toBeInTheDocument();
+  });
+
+  it("shows the personal rating when the movie is rated", () => {
+    mockLibrary(8);
+
+    render(<MovieCard movie={movie} onSelect={vi.fn()} />);
+
+    expect(screen.getByText(/Your rating:/)).toBeInTheDocument();
+    expect(screen.getByText("8")).toBeInTheDocument();
   });
 });

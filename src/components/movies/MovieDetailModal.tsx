@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import FavoriteButton from "@/components/movies/FavoriteButton";
 import MovieDetailView from "@/components/movies/MovieDetailView";
 import MovieNotFound from "@/components/movies/MovieNotFound";
 import Button from "@/components/ui/Button";
@@ -26,29 +25,9 @@ function useIsClient(): boolean {
   );
 }
 
-function ModalToolbar({
-  onClose,
-  movie,
-  showFavorite,
-}: {
-  onClose: () => void;
-  movie?: Movie;
-  showFavorite: boolean;
-}) {
+function ModalToolbar({ onClose }: { onClose: () => void }) {
   return (
     <div className="absolute right-3 top-3 z-30 flex items-center gap-2 sm:right-4 sm:top-4">
-      {showFavorite && movie && (
-        <FavoriteButton
-          movie={{
-            imdbID: movie.imdbID,
-            title: movie.Title,
-            year: movie.Year,
-            poster: movie.Poster,
-          }}
-          size="sm"
-          className="bg-neutral-800/95 text-neutral-100 ring-1 ring-neutral-700 transition hover:scale-105 hover:bg-neutral-700"
-        />
-      )}
       <Button
         type="button"
         variant="icon"
@@ -176,7 +155,6 @@ export default function MovieDetailModal({
   }
 
   const isMovieNotFound = error ? isMovieNotFoundMessage(error) : false;
-  const showFavorite = Boolean(movie && !isLoading && !error);
 
   return createPortal(
     <div
@@ -196,7 +174,7 @@ export default function MovieDetailModal({
         className="relative z-10 flex max-h-[94dvh] w-full max-w-5xl flex-col overflow-hidden overscroll-x-none rounded-t-2xl border border-neutral-800 bg-neutral-950 shadow-2xl sm:max-h-[90dvh] sm:rounded-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <ModalToolbar onClose={handleClose} movie={movie ?? undefined} showFavorite={showFavorite} />
+        <ModalToolbar onClose={handleClose} />
 
         {isLoading && (
           <div

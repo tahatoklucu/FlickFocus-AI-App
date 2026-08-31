@@ -5,16 +5,34 @@ import {
   useContext,
   type ReactNode,
 } from "react";
-import type { AddFavoritePayload, UserFavorite } from "@/types";
+import type {
+  AddFavoritePayload,
+  LibraryEntryChanges,
+  UserFavorite,
+} from "@/types";
 
 export interface FavoritesContextValue {
+  /** Every saved movie, whichever shelf it sits on. */
+  entries: UserFavorite[];
   favorites: UserFavorite[];
+  watchlist: UserFavorite[];
+  watched: UserFavorite[];
   favoriteIds: Set<string>;
+  watchlistIds: Set<string>;
+  watchedIds: Set<string>;
   loading: boolean;
   syncing: boolean;
   error: string | null;
+  getEntry: (imdbID: string) => UserFavorite | null;
   isFavorite: (imdbID: string) => boolean;
+  isInWatchlist: (imdbID: string) => boolean;
+  isWatched: (imdbID: string) => boolean;
   toggleFavorite: (payload: AddFavoritePayload) => void;
+  toggleWatchlist: (payload: AddFavoritePayload) => void;
+  toggleWatched: (payload: AddFavoritePayload) => void;
+  /** Applies an arbitrary change (rating, note, flags) to one movie. */
+  updateEntry: (payload: AddFavoritePayload, changes: LibraryEntryChanges) => void;
+  removeEntry: (imdbID: string) => void;
   clearError: () => void;
 }
 

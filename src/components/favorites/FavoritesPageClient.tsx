@@ -6,9 +6,12 @@ import { useCallback, useMemo, useState } from "react";
 import MovieList from "@/components/movies/MovieList";
 import Button from "@/components/ui/Button";
 import { buttonClass } from "@/lib/button-styles";
+import { cn } from "@/lib/cn";
 import { useAuth } from "@/context/AuthContext";
 import { useFavorites } from "@/context/FavoritesContext";
-import type { MovieSearchResult, UserFavorite } from "@/types";
+import { useLibraryShelf } from "@/hooks/useLibraryShelf";
+import { LIBRARY_TABS } from "@/lib/library-tabs";
+import type { LibraryShelf, MovieSearchResult, UserFavorite } from "@/types";
 
 const MovieDetailModal = dynamic(
   () => import("@/components/movies/MovieDetailModal"),
@@ -25,20 +28,45 @@ function toMovieSearchResult(favorite: UserFavorite): MovieSearchResult {
   };
 }
 
+const EMPTY_STATES: Record<LibraryShelf, { title: string; subtitle: string }> = {
+  favorite: {
+    title: "No favorites yet",
+    subtitle: "Tap the heart on any movie to keep it here.",
+  },
+  watchlist: {
+    title: "Your watchlist is empty",
+    subtitle: "Tap the bookmark on any movie to line it up for later.",
+  },
+  watched: {
+    title: "Nothing marked watched yet",
+    subtitle: "Open a movie and mark it watched to build your history.",
+  },
+};
+
 export default function FavoritesPageClient() {
   const { user, loading: authLoading, isConfigured, openAuthModal } = useAuth();
   const {
     favorites,
+    watchlist,
+    watched,
     syncing: favoritesSyncing,
     error: favoritesError,
     clearError,
   } = useFavorites();
+  const [shelf, selectShelf] = useLibraryShelf();
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const entriesByShelf = useMemo<Record<LibraryShelf, UserFavorite[]>>(
+    () => ({ favorite: favorites, watchlist, watched }),
+    [favorites, watchlist, watched],
+  );
+
+  const entries = entriesByShelf[shelf];
+
   const movies = useMemo(
-    () => favorites.map(toMovieSearchResult),
-    [favorites],
+    () => entries.map(toMovieSearchResult),
+    [entries],
   );
 
   const handleCloseModal = useCallback(() => {
@@ -51,14 +79,12 @@ export default function FavoritesPageClient() {
     setIsModalOpen(true);
   }, []);
 
-  const isAuthPending = authLoading;
-
   const resultLabel = useMemo(() => {
     if (favoritesSyncing) {
-      return "Syncing favorites...";
+      return "Syncing your library...";
     }
 
-    return `${movies.length} saved movie${movies.length === 1 ? "" : "s"}`;
+    return `${movies.length} movie${movies.length === 1 ? "" : "s"}`;
   }, [favoritesSyncing, movies.length]);
 
   if (!isConfigured) {
@@ -74,7 +100,7 @@ export default function FavoritesPageClient() {
     );
   }
 
-  if (isAuthPending) {
+  if (authLoading) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-20 text-zinc-500 dark:text-zinc-400">
         <svg
@@ -134,6 +160,8 @@ export default function FavoritesPageClient() {
     );
   }
 
+  const emptyState = EMPTY_STATES[shelf];
+
   return (
     <>
       {favoritesError && (
@@ -154,6 +182,43 @@ export default function FavoritesPageClient() {
         </div>
       )}
 
+      <div
+        role="tablist"
+        aria-label="Library shelves"
+        className="mb-6 flex flex-wrap justify-center gap-2"
+      >
+        {LIBRARY_TABS.map((tab) => {
+          const isActive = tab.shelf === shelf;
+          const count = entriesByShelf[tab.shelf].length;
+
+          return (
+            <button
+              key={tab.shelf}
+              type="button"
+              role="tab"
+              aria-selected={isActive}
+              onClick={() => selectShelf(tab.shelf)}
+              className={cn(
+                "inline-flex min-h-10 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40",
+                isActive
+                  ? "border-violet-400/40 bg-violet-500/20 text-violet-100"
+                  : "border-neutral-800 bg-neutral-900/70 text-neutral-300 hover:border-neutral-600 hover:bg-neutral-800 hover:text-white",
+              )}
+            >
+              {tab.label}
+              <span
+                className={cn(
+                  "rounded-full px-1.5 py-0.5 text-xs font-bold",
+                  isActive ? "bg-violet-500/30" : "bg-neutral-800",
+                )}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       <section>
         <MovieList
           movies={movies}
@@ -162,19 +227,16 @@ export default function FavoritesPageClient() {
           hasSearched
           onMovieSelect={handleMovieSelect}
           showInitialPrompt={false}
-          loadingMessage="Loading your favorites..."
-          emptyTitle="No favorites yet"
-          emptySubtitle="Search for movies and tap the heart icon to save them here."
+          loadingMessage="Loading your library..."
+          emptyTitle={emptyState.title}
+          emptySubtitle={emptyState.subtitle}
           resultLabel={resultLabel}
           priorityCount={5}
         />
 
         {!favoritesError && !favoritesSyncing && movies.length === 0 && (
           <div className="mt-6 text-center">
-            <Link
-              href="/"
-              className={buttonClass("secondary", "md")}
-            >
+            <Link href="/" className={buttonClass("secondary", "md")}>
               Browse Movies
             </Link>
           </div>

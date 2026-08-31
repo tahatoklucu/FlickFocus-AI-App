@@ -20,8 +20,19 @@ import {
   readFavoritesCache,
   writeFavoritesCache,
 } from "@/lib/profile/favorites-cache";
+import {
+  applyLibraryChanges,
+  createLibraryEntry,
+  isEmptyLibraryEntry,
+  isOnShelf,
+  sortLibraryEntries,
+} from "@/lib/library-entry";
 import { isFirebaseConfigured } from "@/lib/firebase";
-import type { AddFavoritePayload, UserFavorite } from "@/types";
+import type {
+  AddFavoritePayload,
+  LibraryEntryChanges,
+  UserFavorite,
+} from "@/types";
 
 export { useFavorites } from "@/context/favorites-context.shared";
 
@@ -38,21 +49,6 @@ const initialSyncState: FavoritesSyncState = {
 };
 
 const AUTH_TOKEN_TIMEOUT_MS = 5_000;
-
-function buildOptimisticFavorite(
-  userId: string,
-  payload: AddFavoritePayload,
-): UserFavorite {
-  return {
-    id: payload.imdbID,
-    userId,
-    imdbID: payload.imdbID,
-    title: payload.title,
-    year: payload.year,
-    poster: payload.poster,
-    addedAt: new Date().toISOString(),
-  };
-}
 
 async function waitForAuthToken(user: User): Promise<void> {
   await Promise.race([
@@ -173,7 +169,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     };
   }, [user, userId]);
 
-  const favorites = useMemo(() => {
+  const entries = useMemo(() => {
     if (!userId || syncState.userId !== userId) {
       return [];
     }
@@ -198,14 +194,63 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     return syncState.error;
   }, [userId, syncState]);
 
+  const favorites = useMemo(
+    () => sortLibraryEntries(entries.filter((entry) => isOnShelf(entry, "favorite"))),
+    [entries],
+  );
+
+  const watchlist = useMemo(
+    () => sortLibraryEntries(entries.filter((entry) => isOnShelf(entry, "watchlist"))),
+    [entries],
+  );
+
+  const watched = useMemo(
+    () =>
+      sortLibraryEntries(
+        entries.filter((entry) => isOnShelf(entry, "watched")),
+        "watched",
+      ),
+    [entries],
+  );
+
   const favoriteIds = useMemo(
-    () => new Set(favorites.map((favorite) => favorite.imdbID)),
+    () => new Set(favorites.map((entry) => entry.imdbID)),
     [favorites],
+  );
+
+  const watchlistIds = useMemo(
+    () => new Set(watchlist.map((entry) => entry.imdbID)),
+    [watchlist],
+  );
+
+  const watchedIds = useMemo(
+    () => new Set(watched.map((entry) => entry.imdbID)),
+    [watched],
+  );
+
+  const entryMap = useMemo(
+    () => new Map(entries.map((entry) => [entry.imdbID, entry])),
+    [entries],
+  );
+
+  const getEntry = useCallback(
+    (imdbID: string) => entryMap.get(imdbID) ?? null,
+    [entryMap],
   );
 
   const isFavorite = useCallback(
     (imdbID: string) => favoriteIds.has(imdbID),
     [favoriteIds],
+  );
+
+  const isInWatchlist = useCallback(
+    (imdbID: string) => watchlistIds.has(imdbID),
+    [watchlistIds],
+  );
+
+  const isWatched = useCallback(
+    (imdbID: string) => watchedIds.has(imdbID),
+    [watchedIds],
   );
 
   const clearError = useCallback(() => {
@@ -214,75 +259,157 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
-  const toggleFavorite = useCallback(
-    (payload: AddFavoritePayload) => {
+  const updateEntry = useCallback(
+    (payload: AddFavoritePayload, changes: LibraryEntryChanges) => {
       if (!user || !userId) {
         return;
       }
 
-      const isCurrentlyFavorite = favoriteIds.has(payload.imdbID);
-      const nextFavorites = isCurrentlyFavorite
-        ? favorites.filter((favorite) => favorite.imdbID !== payload.imdbID)
-        : [...favorites, buildOptimisticFavorite(userId, payload)];
+      const previousEntries = entries;
+      const existing = entryMap.get(payload.imdbID);
+      const base = existing ?? createLibraryEntry(userId, payload);
+      const nextEntry = applyLibraryChanges(base, changes);
 
-      commitFavorites(userId, nextFavorites, setSyncState);
+      const withoutMovie = previousEntries.filter(
+        (entry) => entry.imdbID !== payload.imdbID,
+      );
+      const optimisticEntries = isEmptyLibraryEntry(nextEntry)
+        ? withoutMovie
+        : [...withoutMovie, nextEntry];
+
+      commitFavorites(userId, sortLibraryEntries(optimisticEntries), setSyncState);
 
       void (async () => {
         try {
           await waitForAuthToken(user);
 
           const { ensureUserProfile } = await import("@/services/users");
-          const { toggleFavorite: toggleFavoriteService } = await import(
-            "@/services/favorites"
-          );
+          const { saveLibraryEntry } = await import("@/services/favorites");
 
           if (profileReadyForUserRef.current !== userId) {
             await ensureUserProfile(user);
             profileReadyForUserRef.current = userId;
           }
 
-          await toggleFavoriteService(userId, payload, isCurrentlyFavorite);
-        } catch (error) {
-          const reverted = isCurrentlyFavorite
-            ? [...nextFavorites, buildOptimisticFavorite(userId, payload)]
-            : nextFavorites.filter(
-                (favorite) => favorite.imdbID !== payload.imdbID,
-              );
-
-          commitFavorites(userId, reverted, setSyncState);
+          await saveLibraryEntry(userId, nextEntry);
+        } catch (updateError) {
+          commitFavorites(userId, previousEntries, setSyncState);
           setSyncState({
             userId,
-            favorites: reverted,
+            favorites: previousEntries,
             error:
-              error instanceof Error
-                ? error.message
-                : "Failed to update favorite.",
+              updateError instanceof Error
+                ? updateError.message
+                : "Failed to update your library.",
           });
         }
       })();
     },
-    [user, userId, favoriteIds, favorites],
+    [user, userId, entries, entryMap],
+  );
+
+  const toggleFavorite = useCallback(
+    (payload: AddFavoritePayload) => {
+      updateEntry(payload, {
+        favorite: !favoriteIds.has(payload.imdbID),
+      });
+    },
+    [updateEntry, favoriteIds],
+  );
+
+  const toggleWatchlist = useCallback(
+    (payload: AddFavoritePayload) => {
+      const next = !watchlistIds.has(payload.imdbID);
+      // Queueing a title again means the user wants to rewatch it.
+      updateEntry(payload, next ? { watchlist: true, watched: false } : { watchlist: false });
+    },
+    [updateEntry, watchlistIds],
+  );
+
+  const toggleWatched = useCallback(
+    (payload: AddFavoritePayload) => {
+      updateEntry(payload, { watched: !watchedIds.has(payload.imdbID) });
+    },
+    [updateEntry, watchedIds],
+  );
+
+  const removeEntry = useCallback(
+    (imdbID: string) => {
+      if (!user || !userId) {
+        return;
+      }
+
+      const previousEntries = entries;
+      commitFavorites(
+        userId,
+        previousEntries.filter((entry) => entry.imdbID !== imdbID),
+        setSyncState,
+      );
+
+      void (async () => {
+        try {
+          await waitForAuthToken(user);
+          const { removeFavorite } = await import("@/services/favorites");
+          await removeFavorite(userId, imdbID);
+        } catch (removeError) {
+          commitFavorites(userId, previousEntries, setSyncState);
+          setSyncState({
+            userId,
+            favorites: previousEntries,
+            error:
+              removeError instanceof Error
+                ? removeError.message
+                : "Failed to remove that movie.",
+          });
+        }
+      })();
+    },
+    [user, userId, entries],
   );
 
   const value = useMemo<FavoritesContextValue>(
     () => ({
+      entries,
       favorites,
+      watchlist,
+      watched,
       favoriteIds,
+      watchlistIds,
+      watchedIds,
       loading,
       syncing,
       error,
+      getEntry,
       isFavorite,
+      isInWatchlist,
+      isWatched,
       toggleFavorite,
+      toggleWatchlist,
+      toggleWatched,
+      updateEntry,
+      removeEntry,
       clearError,
     }),
     [
+      entries,
       favorites,
+      watchlist,
+      watched,
       favoriteIds,
+      watchlistIds,
+      watchedIds,
       loading,
       syncing,
       error,
+      getEntry,
       isFavorite,
+      isInWatchlist,
+      isWatched,
       toggleFavorite,
+      toggleWatchlist,
+      toggleWatched,
+      updateEntry,
+      removeEntry,
       clearError,
     ],
   );

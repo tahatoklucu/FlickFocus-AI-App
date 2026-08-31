@@ -66,19 +66,32 @@ export function AuthPlaceholderProvider({
 
   const emptyFavoriteIds = useMemo(() => new Set<string>(), []);
 
-  const favoritesValue = useMemo<FavoritesContextValue>(
-    () => ({
+  const favoritesValue = useMemo<FavoritesContextValue>(() => {
+    const requireAuth = () => openAuthModal("signin");
+
+    return {
+      entries: [],
       favorites: [],
+      watchlist: [],
+      watched: [],
       favoriteIds: emptyFavoriteIds,
+      watchlistIds: emptyFavoriteIds,
+      watchedIds: emptyFavoriteIds,
       loading: false,
       syncing: false,
       error: null,
+      getEntry: () => null,
       isFavorite: () => false,
-      toggleFavorite: () => openAuthModal("signin"),
+      isInWatchlist: () => false,
+      isWatched: () => false,
+      toggleFavorite: requireAuth,
+      toggleWatchlist: requireAuth,
+      toggleWatched: requireAuth,
+      updateEntry: requireAuth,
+      removeEntry: requireAuth,
       clearError: () => {},
-    }),
-    [emptyFavoriteIds, openAuthModal],
-  );
+    };
+  }, [emptyFavoriteIds, openAuthModal]);
 
   return (
     <AuthContext.Provider value={authValue}>

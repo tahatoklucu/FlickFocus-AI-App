@@ -1,17 +1,23 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { memo, useCallback, useRef, useState, type ReactNode } from "react";
+import { memo, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import MovieList from "@/components/movies/MovieList";
 import SearchBar from "@/components/movies/SearchBar";
+import SearchPagination from "@/components/movies/SearchPagination";
 import {
   GENRE_CHIPS,
   getGenreChipLabel,
   type GenreChipId,
 } from "@/constants/genreChips";
+import { useHomeSearchUrlState } from "@/hooks/useHomeSearchUrlState";
+import { describeGenreCatalog } from "@/lib/genre-filter";
 import {
-  describeGenreCatalog,
-} from "@/lib/genre-filter";
+  getHomeSearchKey,
+  getTotalPages,
+  homeSearchNeedsFetch,
+  type HomeSearchState,
+} from "@/lib/home-search-params";
 import {
   getFeaturedFallbackResults,
   isBroadSearchQuery,
@@ -31,6 +37,16 @@ interface HomePageClientProps {
 }
 
 type SearchView = "featured" | "genre" | "results" | "picks";
+
+/** Fetched payload tagged with the URL state it belongs to. */
+interface LoadedResults {
+  key: string;
+  view: Extract<SearchView, "genre" | "results" | "picks">;
+  movies: MovieSearchResult[];
+  totalResults: number;
+  resultLabel?: string;
+  subtitle?: string;
+}
 
 function SectionBadge({ children }: { children: ReactNode }) {
   return (
@@ -74,19 +90,34 @@ export default function HomePageClient({
   const resultsRef = useRef<HTMLElement>(null);
   /** First desktop row (5 cols) — covers Lighthouse LCP (often Interstellar @ index 2). */
   const posterPriorityCount = 5;
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeGenre, setActiveGenre] = useState<GenreChipId | null>(null);
-  const [movies, setMovies] = useState<MovieSearchResult[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [searchView, setSearchView] = useState<SearchView>("featured");
-  const [resultLabel, setResultLabel] = useState<string | undefined>();
-  const [listSubtitle, setListSubtitle] = useState<string | undefined>();
+  const [urlState, navigate] = useHomeSearchUrlState();
+  const [loaded, setLoaded] = useState<LoadedResults | null>(null);
+  const [inputValue, setInputValue] = useState("");
+  const [syncedQuery, setSyncedQuery] = useState("");
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  /** Only scroll when the user acts, never when a shared URL is restored. */
+  const shouldScrollRef = useRef(false);
+  /** Last known match count, so deep pages keep a working pager. */
+  const loadedTotalForQueryRef = useRef(0);
+
+  // Back/forward changes the URL, so pull the text back into the input.
+  if (syncedQuery !== urlState.query) {
+    setSyncedQuery(urlState.query);
+    setInputValue(urlState.query);
+  }
 
   const scrollToResults = useCallback(() => {
     resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, []);
+
+  const consumePendingScroll = useCallback(() => {
+    if (!shouldScrollRef.current) {
+      return;
+    }
+    shouldScrollRef.current = false;
+    scrollToResults();
+  }, [scrollToResults]);
 
   const handleCloseModal = useCallback(() => {
     setIsModalOpen(false);
@@ -98,129 +129,203 @@ export default function HomePageClient({
     setIsModalOpen(true);
   }, []);
 
-  const resetToFeatured = useCallback(() => {
-    setMovies([]);
-    setSearchView("featured");
-    setResultLabel(undefined);
-    setListSubtitle(undefined);
-    setActiveGenre(null);
-    setIsLoading(false);
-  }, []);
-
-  const showFeaturedPicks = useCallback(
-    (query: string, reason: "broad" | "empty" | "error") => {
+  const buildFallbackPicks = useCallback(
+    (key: string, query: string, reason: "empty" | "error"): LoadedResults => {
       const picks = getFeaturedFallbackResults(initialFeaturedMovies, query);
-      setMovies(picks);
-      setSearchView("picks");
-      setResultLabel(`${picks.length} top pick${picks.length === 1 ? "" : "s"}`);
-
-      if (reason === "broad") {
-        setListSubtitle("Try at least 3 characters for a more specific search.");
-      } else if (reason === "empty") {
-        setListSubtitle("No exact matches — here are some featured classics.");
-      } else {
-        setListSubtitle("Showing featured picks while search is unavailable.");
-      }
+      return {
+        key,
+        view: "picks",
+        movies: picks,
+        totalResults: 0,
+        resultLabel: `${picks.length} top pick${picks.length === 1 ? "" : "s"}`,
+        subtitle:
+          reason === "empty"
+            ? "No exact matches — here are some featured classics."
+            : "Showing featured picks while search is unavailable.",
+      };
     },
     [initialFeaturedMovies],
   );
 
-  const handleSearch = useCallback(
-    async (query: string) => {
-      const trimmed = query.trim();
+  useEffect(() => {
+    if (!homeSearchNeedsFetch(urlState)) {
+      return;
+    }
 
-      if (!trimmed) {
-        resetToFeatured();
+    const { query, page, genre } = urlState;
+    const key = getHomeSearchKey(urlState);
+    let cancelled = false;
+
+    function commit(results: LoadedResults) {
+      if (cancelled) {
         return;
       }
+      setLoaded(results);
+      consumePendingScroll();
+    }
 
-      setActiveGenre(null);
+    if (genre) {
+      const label = getGenreChipLabel(genre);
 
-      if (isBroadSearchQuery(trimmed)) {
-        showFeaturedPicks(trimmed, "broad");
-        scrollToResults();
-        return;
-      }
+      getGenreMovies(genre)
+        .then((genreMovies) => {
+          commit({
+            key,
+            view: "genre",
+            movies: genreMovies,
+            totalResults: 0,
+            resultLabel: `${genreMovies.length} popular ${label.toLowerCase()} film${genreMovies.length === 1 ? "" : "s"}`,
+            subtitle: describeGenreCatalog(genre),
+          });
+        })
+        .catch((error: unknown) => {
+          commit({
+            key,
+            view: "genre",
+            movies: [],
+            totalResults: 0,
+            subtitle: getOMDbErrorMessage(
+              error,
+              "Couldn't load genre picks. Please try again.",
+            ),
+          });
+        });
 
-      setIsLoading(true);
-      setListSubtitle(undefined);
+      return () => {
+        cancelled = true;
+      };
+    }
 
-      try {
-        const response = await searchMovies({ query: trimmed });
+    searchMovies({ query, page })
+      .then((response) => {
         const results = response.Search ?? [];
+        const total = Number.parseInt(response.totalResults ?? "0", 10) || 0;
 
         if (results.length === 0) {
-          showFeaturedPicks(trimmed, "empty");
-          scrollToResults();
+          if (page > 1) {
+            commit({
+              key,
+              view: "results",
+              movies: [],
+              // Keep the pager usable so the reader can step back.
+              totalResults: loadedTotalForQueryRef.current,
+              subtitle: "No more results on this page.",
+            });
+            return;
+          }
+
+          commit(buildFallbackPicks(key, query, "empty"));
           return;
         }
 
-        const ranked = rankSearchResults(results, trimmed);
-        setMovies(ranked);
-        setSearchView("results");
-        setResultLabel(
-          `${ranked.length} result${ranked.length === 1 ? "" : "s"} found`,
-        );
-      } catch {
-        showFeaturedPicks(trimmed, "error");
-      } finally {
-        setIsLoading(false);
-        scrollToResults();
+        loadedTotalForQueryRef.current = total;
+        commit({
+          key,
+          view: "results",
+          movies: rankSearchResults(results, query),
+          totalResults: total,
+          resultLabel: `${total.toLocaleString("en-US")} result${total === 1 ? "" : "s"} found`,
+        });
+      })
+      .catch(() => {
+        commit(buildFallbackPicks(key, query, "error"));
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [urlState, buildFallbackPicks, consumePendingScroll]);
+
+  const goTo = useCallback(
+    (next: HomeSearchState, options?: { scroll?: boolean }) => {
+      const wantsScroll = options?.scroll !== false;
+
+      if (next.query !== urlState.query) {
+        loadedTotalForQueryRef.current = 0;
       }
+
+      if (wantsScroll) {
+        if (homeSearchNeedsFetch(next)) {
+          // Scroll once the results land, to avoid jumping to a skeleton.
+          shouldScrollRef.current = true;
+        } else {
+          requestAnimationFrame(scrollToResults);
+        }
+      }
+
+      navigate(next);
     },
-    [resetToFeatured, scrollToResults, showFeaturedPicks],
+    [navigate, scrollToResults, urlState.query],
+  );
+
+  const handleSearch = useCallback(
+    (query: string) => {
+      const trimmed = query.trim();
+      goTo({ query: trimmed, page: 1, genre: null }, { scroll: Boolean(trimmed) });
+    },
+    [goTo],
   );
 
   const handleGenreSelect = useCallback(
-    async (genreId: GenreChipId) => {
-      const label = getGenreChipLabel(genreId);
-
-      setSearchQuery("");
-      setActiveGenre(genreId);
-      setSearchView("genre");
-      setIsLoading(true);
-      setListSubtitle(describeGenreCatalog(genreId));
-      scrollToResults();
-
-      try {
-        const genreMovies = await getGenreMovies(genreId);
-        setMovies(genreMovies);
-        setResultLabel(
-          `${genreMovies.length} popular ${label.toLowerCase()} film${genreMovies.length === 1 ? "" : "s"}`,
-        );
-      } catch (error) {
-        setMovies([]);
-        setResultLabel(undefined);
-        setListSubtitle(
-          getOMDbErrorMessage(error, "Couldn't load genre picks. Please try again."),
-        );
-      } finally {
-        setIsLoading(false);
-      }
+    (genreId: GenreChipId) => {
+      goTo({ query: "", page: 1, genre: genreId });
     },
-    [scrollToResults],
+    [goTo],
   );
 
-  const handleQueryChange = useCallback((query: string) => {
-    setSearchQuery(query);
+  const handleClear = useCallback(() => {
+    goTo({ query: "", page: 1, genre: null }, { scroll: false });
+  }, [goTo]);
 
-    if (!query.trim()) {
-      setActiveGenre(null);
-    }
-  }, []);
+  const handlePageChange = useCallback(
+    (page: number) => {
+      goTo({ query: urlState.query, page, genre: null });
+    },
+    [goTo, urlState.query],
+  );
 
-  const isFeaturedView = searchView === "featured";
-  const genreLabel = activeGenre ? getGenreChipLabel(activeGenre) : null;
+  const activeKey = getHomeSearchKey(urlState);
+  const currentResults = loaded?.key === activeKey ? loaded : null;
+  const isBroadQuery = Boolean(urlState.query) && isBroadSearchQuery(urlState.query);
+  const isLoading = homeSearchNeedsFetch(urlState) && currentResults === null;
+
+  let searchView: SearchView;
+  if (!urlState.query && !urlState.genre) {
+    searchView = "featured";
+  } else if (isBroadQuery) {
+    searchView = "picks";
+  } else if (currentResults) {
+    searchView = currentResults.view;
+  } else {
+    searchView = urlState.genre ? "genre" : "results";
+  }
+
+  const broadPicks = isBroadQuery
+    ? getFeaturedFallbackResults(initialFeaturedMovies, urlState.query)
+    : null;
+
+  const movies = broadPicks ?? currentResults?.movies ?? [];
+  const resultLabel = broadPicks
+    ? `${broadPicks.length} top pick${broadPicks.length === 1 ? "" : "s"}`
+    : currentResults?.resultLabel;
+  const listSubtitle = broadPicks
+    ? "Try at least 3 characters for a more specific search."
+    : isLoading && urlState.genre
+      ? describeGenreCatalog(urlState.genre)
+      : currentResults?.subtitle;
+
+  const genreLabel = urlState.genre ? getGenreChipLabel(urlState.genre) : null;
+  const totalPages = getTotalPages(currentResults?.totalResults ?? 0);
 
   return (
     <>
       <div className="mx-auto mb-12 max-w-2xl text-center sm:mb-14">
         <section>
           <SearchBar
-            query={searchQuery}
-            onQueryChange={handleQueryChange}
+            query={inputValue}
+            onQueryChange={setInputValue}
             onSearch={handleSearch}
-            onClear={resetToFeatured}
+            onClear={handleClear}
             isLoading={isLoading}
           />
           <div className="mt-4 flex flex-wrap justify-start gap-2">
@@ -228,7 +333,7 @@ export default function HomePageClient({
               <MemoizedGenreChip
                 key={genre.id}
                 label={genre.label}
-                active={activeGenre === genre.id}
+                active={urlState.genre === genre.id}
                 onClick={() => handleGenreSelect(genre.id)}
               />
             ))}
@@ -237,7 +342,7 @@ export default function HomePageClient({
       </div>
 
       <section ref={resultsRef} className="scroll-mt-24">
-        {isFeaturedView ? (
+        {searchView === "featured" ? (
           <div>
             <div className="mb-6">
               <div className="mb-2">
@@ -306,6 +411,16 @@ export default function HomePageClient({
                   : "Try a different title, director, or keyword."
               }
             />
+
+            {searchView === "results" && (
+              <SearchPagination
+                page={urlState.page}
+                totalPages={totalPages}
+                totalResults={currentResults?.totalResults ?? 0}
+                isLoading={isLoading}
+                onPageChange={handlePageChange}
+              />
+            )}
           </div>
         )}
       </section>

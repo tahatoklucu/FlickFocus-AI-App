@@ -3,9 +3,9 @@ import PageHeroGlow from "@/components/layout/PageHeroGlow";
 import { createPageMetadata } from "@/lib/metadata";
 
 export const metadata = createPageMetadata({
-  title: "My Favorites",
+  title: "My Library",
   description:
-    "View and manage your saved movies on FlickFocus. Your personal watchlist, synced in real time.",
+    "Your FlickFocus library: favorites, watchlist, and everything you've already watched, synced in real time.",
   path: "/favorites",
 });
 
@@ -20,10 +20,11 @@ export default function FavoritesPage() {
             Your collection
           </span>
           <h1 className="bg-gradient-to-br from-white via-neutral-100 to-neutral-400 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent sm:text-4xl">
-            My Favorites
+            My Library
           </h1>
           <p className="mt-3 text-sm text-neutral-400 sm:text-base">
-            Your FlickFocus watchlist, synced in real time
+            Favorites, watchlist, and what you&apos;ve already seen — synced in
+            real time
           </p>
         </header>
 

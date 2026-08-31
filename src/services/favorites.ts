@@ -8,7 +8,13 @@ import {
 } from "firebase/firestore";
 import { getFirestoreErrorMessage } from "@/lib/errors";
 import { getFirebaseDb } from "@/lib/firebase";
-import type { AddFavoritePayload, UserFavorite } from "@/types";
+import {
+  isEmptyLibraryEntry,
+  parseLibraryEntry,
+  sortLibraryEntries,
+  toFirestoreLibraryEntry,
+} from "@/lib/library-entry";
+import type { UserFavorite } from "@/types";
 
 export class FavoritesError extends Error {
   constructor(message: string) {
@@ -17,28 +23,12 @@ export class FavoritesError extends Error {
   }
 }
 
-function favoritesCollection(userId: string) {
+function libraryCollection(userId: string) {
   return collection(getFirebaseDb(), "users", userId, "favorites");
 }
 
-function mapFavoriteDoc(
-  userId: string,
-  docId: string,
-  data: Record<string, unknown>,
-): UserFavorite {
-  return {
-    id: docId,
-    userId,
-    imdbID: String(data.imdbID ?? docId),
-    title: String(data.title ?? ""),
-    year: String(data.year ?? ""),
-    poster: String(data.poster ?? ""),
-    addedAt: String(data.addedAt ?? ""),
-  };
-}
-
-function sortFavorites(favorites: UserFavorite[]): UserFavorite[] {
-  return [...favorites].sort((a, b) => b.addedAt.localeCompare(a.addedAt));
+function libraryDoc(userId: string, imdbID: string) {
+  return doc(getFirebaseDb(), "users", userId, "favorites", imdbID);
 }
 
 async function runFavoritesOperation<T>(
@@ -52,7 +42,7 @@ async function runFavoritesOperation<T>(
   }
 }
 
-/** Subscribe to real-time updates for a user's favorites. */
+/** Subscribe to real-time updates for a user's library. */
 export function subscribeToFavorites(
   userId: string,
   onUpdate: (favorites: UserFavorite[]) => void,
@@ -60,14 +50,15 @@ export function subscribeToFavorites(
 ): Unsubscribe {
   try {
     return onSnapshot(
-      favoritesCollection(userId),
+      libraryCollection(userId),
       (snapshot) => {
-        const favorites = sortFavorites(
-          snapshot.docs.map((document) =>
-            mapFavoriteDoc(userId, document.id, document.data()),
+        onUpdate(
+          sortLibraryEntries(
+            snapshot.docs.map((document) =>
+              parseLibraryEntry(userId, document.id, document.data()),
+            ),
           ),
         );
-        onUpdate(favorites);
       },
       (error) => {
         onError?.(new FavoritesError(getFirestoreErrorMessage(error)));
@@ -83,58 +74,33 @@ export function subscribeToFavorites(
   }
 }
 
-/** Add a movie to the user's favorites (document ID = imdbID). */
-export async function addFavorite(
+/**
+ * Writes an entry, or deletes it when the user no longer has any relationship
+ * with the movie, so the collection never fills up with blank documents.
+ */
+export async function saveLibraryEntry(
   userId: string,
-  payload: AddFavoritePayload,
+  entry: UserFavorite,
 ): Promise<void> {
   await runFavoritesOperation(async () => {
-    const favoriteRef = doc(
-      getFirebaseDb(),
-      "users",
-      userId,
-      "favorites",
-      payload.imdbID,
-    );
+    const entryRef = libraryDoc(userId, entry.imdbID);
 
-    await setDoc(favoriteRef, {
-      imdbID: payload.imdbID,
-      title: payload.title,
-      year: payload.year,
-      poster: payload.poster,
-      addedAt: new Date().toISOString(),
-    });
-  }, "Failed to save favorite.");
+    if (isEmptyLibraryEntry(entry)) {
+      await deleteDoc(entryRef);
+      return;
+    }
+
+    await setDoc(entryRef, toFirestoreLibraryEntry(entry));
+  }, "Failed to update your library.");
 }
 
-/** Remove a movie from the user's favorites. */
+/** Remove a movie from the user's library entirely. */
 export async function removeFavorite(
   userId: string,
   imdbID: string,
 ): Promise<void> {
-  await runFavoritesOperation(async () => {
-    const favoriteRef = doc(
-      getFirebaseDb(),
-      "users",
-      userId,
-      "favorites",
-      imdbID,
-    );
-    await deleteDoc(favoriteRef);
-  }, "Failed to remove favorite.");
-}
-
-/** Toggle favorite status; returns true if added, false if removed. */
-export async function toggleFavorite(
-  userId: string,
-  payload: AddFavoritePayload,
-  isCurrentlyFavorite: boolean,
-): Promise<boolean> {
-  if (isCurrentlyFavorite) {
-    await removeFavorite(userId, payload.imdbID);
-    return false;
-  }
-
-  await addFavorite(userId, payload);
-  return true;
+  await runFavoritesOperation(
+    () => deleteDoc(libraryDoc(userId, imdbID)),
+    "Failed to remove favorite.",
+  );
 }

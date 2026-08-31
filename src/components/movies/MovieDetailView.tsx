@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState, type ReactNode } from "react";
+import MovieLibraryControls from "@/components/movies/MovieLibraryControls";
 import MovieTrailer from "@/components/movies/MovieTrailer";
 import { hasValidPoster } from "@/components/movies/MoviePoster";
 import { POSTER_QUALITY, POSTER_SIZES } from "@/lib/image-config";
@@ -318,6 +319,15 @@ export default function MovieDetailView({
 
           {actions}
         </header>
+
+        <MovieLibraryControls
+          movie={{
+            imdbID: movie.imdbID,
+            title: movie.Title,
+            year: movie.Year,
+            poster: movie.Poster,
+          }}
+        />
 
         <MovieTrailer imdbID={movie.imdbID} title={movie.Title} className="text-left" />
 

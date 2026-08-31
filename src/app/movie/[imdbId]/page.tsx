@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import FavoriteButton from "@/components/movies/FavoriteButton";
 import MovieDetailView from "@/components/movies/MovieDetailView";
 import PageHeroGlow from "@/components/layout/PageHeroGlow";
 import { isValidImdbIdParam } from "@/lib/api/api-limits";
@@ -135,7 +134,7 @@ export default async function MoviePage({ params }: MoviePageProps) {
       <MovieStructuredData movie={movie} />
 
       <div className="relative mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8">
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="mb-6">
           <Link
             href="/"
             className="inline-flex items-center gap-1.5 text-sm font-medium text-neutral-300 transition hover:text-white"
@@ -152,17 +151,6 @@ export default async function MoviePage({ params }: MoviePageProps) {
             </svg>
             Back to discovery
           </Link>
-
-          <FavoriteButton
-            movie={{
-              imdbID: movie.imdbID,
-              title: movie.Title,
-              year: movie.Year,
-              poster: movie.Poster,
-            }}
-            size="sm"
-            className="bg-neutral-900/95 text-neutral-100 ring-1 ring-neutral-700 transition hover:scale-105 hover:bg-neutral-800"
-          />
         </div>
 
         <MovieDetailView movie={movie} headingLevel="h1" />
