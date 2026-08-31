@@ -1,6 +1,6 @@
 # FlickFocus 🎬
 
-**FlickFocus** is a production-ready movie discovery web app: search the OMDb catalog, save favorites with Firebase Auth, chat with an AI assistant that renders live movie data inline, and explore a cinematic homepage with a GLSL hero shader and optional 3D cinema scene.
+**FlickFocus** is a production-ready movie discovery web app: search the OMDb catalog, build a personal library (favorites, watchlist, watched) with ratings and reviews behind Firebase Auth, chat with an AI assistant that renders live movie data inline, and explore a cinematic homepage with a GLSL hero shader and optional 3D cinema scene.
 
 <p align="center">
   <a href="https://flickfocus.vercel.app" target="_blank" rel="noopener noreferrer">
@@ -80,6 +80,12 @@ npm run playwright:install
 npm run test:e2e
 ```
 
+Firestore security rules (requires a Java runtime for the emulator, e.g. `brew install openjdk`):
+
+```bash
+npm run test:rules
+```
+
 ### Deploy (Vercel)
 
 1. Push to GitHub and import the repo in [Vercel](https://vercel.com).
@@ -108,16 +114,25 @@ Create `.env.local` in the project root. **Never commit secrets.**
 | `NEXT_PUBLIC_FIREBASE_USE_STORAGE` | No | Client | Set to `true` to enable avatar uploads to Firebase Storage |
 | `NEXT_PUBLIC_APP_URL` | Recommended | Client | Canonical site URL (metadata, Open Graph). Default: `http://localhost:3000` |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | For chat | **Server only** | Gemini key for `POST /api/chat`. Chat returns 503 if missing |
+| `TMDB_ACCESS_TOKEN` | For trailers | **Server only** | TMDB v4 read access token used by the trailer route |
+| `TMDB_API_KEY` | For trailers | **Server only** | TMDB v3 key; used as a fallback when no access token is set |
 
-\*Firebase vars are required for auth, favorites, and profile. The app loads Firebase lazily and shows a configuration message if they are absent.
+\*Firebase vars are required for auth, the personal library, reviews, and profile. The app loads Firebase lazily and shows a configuration message if they are absent.
+
+Without TMDB credentials the trailer section is simply omitted; everything else keeps working.
 
 ---
 
 ## Features
 
 - **Movie discovery** — Real-time OMDb search, genre chips, paginated results, detail modal
+- **Shareable search state** — Query, genre, and page live in the URL, so results are bookmarkable and back/forward works
+- **Dedicated movie pages** — `/movie/[imdbId]` with server-rendered metadata, dynamic Open Graph images, sitemap entries
+- **Trailers** — TMDB-backed trailer lookup per title, proxied and cached through `/api/movies/[imdbId]/trailer`
 - **FlickFocus AI Chat** — Streaming assistant with server-side tools (`searchMovies`, `getMovieDetails`) and generative UI cards
-- **Watchlist & favorites** — Firebase Auth + Firestore per user
+- **Personal library** — Favorites, watchlist, and watched shelves per user (Firebase Auth + Firestore), with 1–10 ratings and private notes
+- **Reviews, private by default** — A saved note gets a read-only published view with edit/remove actions; sharing is opt-in per review
+- **Community reviews** — Shared reviews appear on the movie page with the author's name and photo, plus an abuse-report action
 - **Cinematic UI** — Dark glassmorphic layout, responsive grids, micro-interactions
 - **GLSL hero shader** — Fullscreen fragment shader on the homepage hero ([docs/SHADER_CAPSTONE.md](./docs/SHADER_CAPSTONE.md))
 - **3D cinema hero** — Optional procedural Three.js reel (lazy-loaded, reduced-motion fallback)
@@ -146,6 +161,7 @@ flowchart TB
 
   subgraph external [External services]
     OMDb[(OMDb API)]
+    TMDB[(TMDB trailers)]
     Gemini[(Google Gemini)]
     Firebase[(Firebase Auth / Firestore)]
   end
@@ -159,32 +175,54 @@ flowchart TB
   APIChat --> OMDbSvc
   APIMovies --> OMDbSvc
   OMDbSvc --> OMDb
+  APIMovies --> TMDB
   Home --> Pages
 ```
+
+### Firestore data model
+
+Two collections, split by who is allowed to read them:
+
+| Path | Visibility | Contents |
+| --- | --- | --- |
+| `users/{uid}` | Owner only | Profile (display name, photo) |
+| `users/{uid}/favorites/{imdbID}` | Owner only | One document per movie: `favorite`, `watchlist`, `watchedAt`, `rating`, `note`, `isPublic`, timestamps |
+| `movieReviews/{imdbID}/reviews/{uid}` | **Public read**, author write | Shared copy of a review: note, rating, denormalized `displayName` / `photoURL`, `publishedAt` |
+| `movieReviews/{imdbID}/reviews/{uid}/reports/{reporterUid}` | Reporter only | Write-once abuse report: `reason`, `createdAt` |
+
+A single library document holds every relationship a user has with a movie, so a title can sit in the watchlist without being a favorite, and the document is deleted once no shelf, rating, or note remains (`src/lib/library-entry.ts`).
+
+The public copy is **derived**, never the source of truth: flipping a review to public mirrors it into `movieReviews`, flipping it back (or deleting the note) removes the mirror. Author name and photo are copied in at publish time so readers never need access to other users' profiles. Logic lives in `src/lib/public-review.ts` and `src/services/reviews.ts`.
+
+Rules are in [`firestore.rules`](./firestore.rules) and verified by emulator tests — see [Testing Evidence](#testing-evidence).
 
 ### Project structure
 
 ```text
 src/
 ├── app/                      # Routes, layouts, API handlers
-│   ├── page.tsx              # Homepage (hero + search)
+│   ├── page.tsx              # Homepage (hero + URL-driven search)
 │   ├── chat/                 # AI chat page
-│   ├── favorites/            # Protected favorites
+│   ├── favorites/            # Protected library (favorites / watchlist / watched tabs)
+│   ├── movie/[imdbId]/       # Movie page + dynamic Open Graph image
 │   ├── profile/              # User profile & settings
-│   └── api/                  # chat, movies, poster availability
+│   ├── sitemap.ts, robots.ts # Crawler guidance
+│   └── api/                  # chat, movies (incl. trailer), poster availability
 ├── components/
 │   ├── auth/                 # AuthModal
 │   ├── chat/                 # Chat UI + generative tool cards
 │   ├── common/               # Shared helpers (DeferredMount)
-│   ├── favorites/            # Favorites page client
+│   ├── favorites/            # Library page client + loading skeleton
 │   ├── hero/                 # GLSL shader + 3D cinema scene
 │   ├── home/                 # Homepage client composition
 │   ├── layout/               # Header, Footer, PageHeroGlow
-│   ├── movies/               # MovieCard, SearchBar, modals, posters
+│   ├── movies/               # Cards, search, pagination, detail view, trailer,
+│   │                         #   library controls, star rating, public reviews
 │   ├── profile/              # Profile page + UserAvatar
 │   ├── providers/            # Providers, FirebaseProviders, ConsoleGuard
 │   └── ui/                   # Button, AnimatedActionButton
-├── context/                  # Auth & favorites React context
+├── context/                  # Auth & library React context
+├── hooks/                    # URL state: home search, library shelf tabs
 ├── lib/
 │   ├── api/                  # Rate limits & input caps
 │   ├── chat/                 # AI tools, prompts, streaming markdown
@@ -192,16 +230,19 @@ src/
 │   ├── hero/                 # GLSL source, 3D tokens, critical CSS
 │   ├── poster/               # Poster URL validation & availability
 │   ├── profile/              # Avatar, profile cache, favorites cache
-│   └── *.ts                  # Shared: cn, metadata, site, errors
-├── services/                 # OMDb client/server + Firestore users/favorites
+│   └── *.ts                  # Shared: cn, metadata, site, errors,
+│                             #   library-entry, public-review, URL params
+├── services/                 # OMDb, TMDB trailers, Firestore users/library/reviews
 └── types/                    # Shared TypeScript interfaces
+
+firestore-tests/              # Security rule tests (Firestore emulator)
 
 docs/
 ├── AUDIT.md                  # Performance & a11y audit
 └── SHADER_CAPSTONE.md        # GLSL capstone deliverable
 ```
 
-**Data flow:** Browser components call `/api/*` routes (or client OMDb wrappers). Chat hits Gemini with Zod-validated tools that fetch OMDb on the server. Favorites sync to Firestore after Firebase Auth.
+**Data flow:** Browser components call `/api/*` routes (or client OMDb wrappers). Chat hits Gemini with Zod-validated tools that fetch OMDb on the server. The library syncs to Firestore after Firebase Auth, with optimistic updates and a local cache; shared reviews are mirrored to the public collection on the same write.
 
 ---
 
@@ -214,6 +255,7 @@ All API routes export a Vercel **`maxDuration`** ceiling so long-running request
 | `POST /api/chat` | 30s | Streaming Gemini + tool calls |
 | `GET /api/movies/search` | 15s | OMDb search proxy |
 | `GET /api/movies/[imdbId]` | 15s | Movie detail proxy |
+| `GET /api/movies/[imdbId]/trailer` | 15s | TMDB trailer lookup |
 | `GET /api/movies/genre/[genreId]` | 15s | Curated genre lists |
 | `GET /api/poster/availability` | 10s | Poster HEAD check |
 
@@ -235,6 +277,16 @@ Exceeded limits return **429** with `Retry-After`.
 
 For production at scale, consider Vercel KV / Upstash Redis for distributed rate limits.
 
+**Firestore security rules** ([`firestore.rules`](./firestore.rules)) are the only guard on user data, since the client writes to Firestore directly. They enforce:
+
+- Private library documents readable and writable **only** by their owner
+- Public review documents writable only by their author, with `userId` and `imdbID` required to match the document path
+- A strict field allowlist (`keys().hasOnly(...)`) so a tampered client cannot smuggle extra fields in
+- Value bounds mirroring the UI: note 1–500 chars, display name 1–100 chars, rating an integer 1–10 or `null`
+- Abuse reports that are write-once, only creatable under the reporter's own uid, never readable by anyone else, and not allowed on your own review
+
+Every rule above is covered by emulator tests (`npm run test:rules`). Deploy rule changes with `npm run firebase:deploy:firestore` — **rules do not ship with the Vercel build.**
+
 ---
 
 ## Known limitations & future improvements
@@ -247,7 +299,11 @@ For production at scale, consider Vercel KV / Upstash Redis for distributed rate
 | **AI chat** | Requires `GOOGLE_GENERATIVE_AI_API_KEY` (Gemini); returns 503 without it — rest of app still works |
 | **Rate limiting** | In-memory, per serverless instance — not a shared Redis/KV store |
 | **Genre browse** | Curated IMDb ID lists per genre, not a full OMDb genre API |
-| **Favorites** | Requires Firebase Auth + Firestore; no offline sync beyond local cache |
+| **Library** | Requires Firebase Auth + Firestore; no offline sync beyond local cache; shelves have no sorting or in-shelf search yet |
+| **Review moderation** | Reports are collected in Firestore but reviewed manually in the Firebase console — no automatic hiding or notification |
+| **Report visibility** | A reported review is hidden only for the reporter, and only for that session; it reappears on reload |
+| **Community reviews & SEO** | Shared reviews are fetched client-side, so crawlers do not see them in the page source |
+| **Trailers** | Depend on TMDB availability and a `TMDB_ACCESS_TOKEN`; titles with no trailer simply omit the section |
 | **Monitoring** | No dedicated APM (Sentry/Datadog); relies on Vercel logs, CI, and `/health-check` |
 | **Test coverage** | Strong on chat UI and API guards; not every component has a co-located unit test yet |
 
@@ -259,6 +315,11 @@ For production at scale, consider Vercel KV / Upstash Redis for distributed rate
 - **Expanded unit tests** for movie components (`SearchBar`, `MovieCard`, `FavoriteButton`) — **done (51% component coverage)**
 - **axe/WAVE audit artifacts** — save scans to [`docs/evidence/`](./docs/evidence/) (see [screenshot guide](./docs/evidence/README.md))
 - **`prefers-reduced-data`** tier — skip heavy environment maps and poster pre-checks on slow connections
+- **Rule tests in CI** — add a Java setup step so `npm run test:rules` runs on every PR
+- **Server-side moderation** — auto-hide a review after N reports (Cloud Function) instead of manual console review
+- **Server-rendered community reviews** — render shared reviews on the movie page for crawlers and faster first paint
+- **Library sorting & filtering** — sort shelves by rating, date, or title and search within a shelf
+- **Library-aware AI chat** — let the assistant use watched history and ratings for personalized recommendations
 
 See also [docs/AUDIT.md §8](./docs/AUDIT.md#8-future-recommendations) for the full audit backlog.
 
@@ -375,19 +436,25 @@ Component tests and critical user-flow tests were written to keep FlickFocus rel
 | **Unit — AI tools** | OMDb tool `execute` functions, result shaping | `src/lib/chat/chat-tools.test.ts` |
 | **Unit — API guards** | Input caps, IMDb ID validation, rate limiting | `src/lib/api/api-limits.test.ts` |
 | **Unit — posters** | Poster URL validation type guard | `src/lib/poster/poster-url.test.ts` |
+| **Unit — library logic** | Shelf flags, rating clamping, note normalization, legacy documents, sharing turned off with the note | `src/lib/library-entry.test.ts` |
+| **Unit — review sharing** | Public copy derivation, author fallbacks, parsing, ordering | `src/lib/public-review.test.ts` |
+| **Unit — library UI** | Shelf toggles, publish / edit / remove review states, visibility switch, auth gating | `src/components/movies/MovieLibraryControls.test.tsx` |
+| **Unit — community reviews** | Own review excluded, report confirmation, optimistic hide, rollback on failure | `src/components/movies/PublicReviews.test.tsx` |
+| **Rules — Firestore** | Library isolation, public read, author-only writes, field allowlist, value bounds, report permissions | `firestore-tests/firestore.rules.test.ts` |
 | **E2E — chat flow** | Send message → streamed assistant reply (mocked SSE) | `e2e/chat.spec.ts` |
 | **Fixtures** | Shared chat SSE / tool output mocks | `src/test/fixtures/chat.ts` |
 
 ### Current test inventory
 
 ```text
-npm run test            → 73 unit tests across 26 files
+npm run test            → 121 unit tests across 33 files
+npm run test:rules      → 26 Firestore security rule tests (emulator)
 npm run test:coverage   → Vitest v8 report + docs/coverage-summary.json
 npm run test:e2e        → Playwright chat user-flow spec
 npm run lint            → ESLint (runs in CI before tests)
 ```
 
-**Component file coverage: 23 / 45 (51%)** — meets capstone ≥50% target.  
+**Component file coverage: 26 / 56 (46%)** — the library and review features added components faster than tests; the untested ones are presentational (`MovieTrailer`, `SearchPagination`, `StarRating`, `WatchlistButton`, `MovieDetailView`, `LibraryLoading`).  
 Full evidence: **[docs/TEST_COVERAGE.md](./docs/TEST_COVERAGE.md)** · [`docs/coverage-summary.json`](./docs/coverage-summary.json)
 
 ### CI pipeline
@@ -399,6 +466,8 @@ Automated checks run on every push/PR via [`.github/workflows/test.yml`](./.gith
 3. **Production build** → `npm run build`
 4. **E2E** → `npm run test:e2e` (Playwright; report artifact uploaded on failure)
 
+Firestore rule tests are run **locally** for now (`npm run test:rules`); adding them to CI needs a Java step in the workflow.
+
 ### How to reproduce locally
 
 ```bash
@@ -406,9 +475,10 @@ npm run lint
 npm run test
 npm run test:coverage
 npm run test:e2e        # optional: requires Playwright browser (npm run playwright:install)
+npm run test:rules      # optional: requires a Java runtime for the Firestore emulator
 ```
 
-> **Note:** Vitest is configured in [`vitest.config.ts`](./vitest.config.ts) with jsdom and path aliases matching the Next.js app. Playwright config: [`playwright.config.ts`](./playwright.config.ts). Coverage evidence: [`docs/TEST_COVERAGE.md`](./docs/TEST_COVERAGE.md).
+> **Note:** Vitest is configured in [`vitest.config.ts`](./vitest.config.ts) with jsdom and path aliases matching the Next.js app. Rule tests use a separate node-environment config ([`vitest.rules.config.ts`](./vitest.rules.config.ts)) and are kept out of `npm run test` because they need the Firestore emulator. Playwright config: [`playwright.config.ts`](./playwright.config.ts). Coverage evidence: [`docs/TEST_COVERAGE.md`](./docs/TEST_COVERAGE.md).
 
 ---
 
@@ -539,6 +609,7 @@ Procedural film reel (no external GLB) via Three.js / R3F / Drei. Lazy-loaded; d
 | `npm run lint` | ESLint |
 | `npm run test` | Vitest unit tests |
 | `npm run test:coverage` | Unit tests + component coverage report |
+| `npm run test:rules` | Firestore security rule tests on the emulator (needs Java) |
 | `npm run test:e2e` | Playwright E2E |
 | `npm run firebase:deploy` | Deploy Firestore + Storage rules |
 

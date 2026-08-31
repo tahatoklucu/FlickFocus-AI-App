@@ -19,19 +19,47 @@ service cloud.firestore {
 
       function isValidReview() {
         let data = request.resource.data;
-        return data.userId == userId
+        return data.keys().hasOnly([
+            'userId', 'imdbID', 'displayName', 'photoURL',
+            'rating', 'note', 'publishedAt'
+          ])
+          && data.userId == userId
           && data.imdbID == movieId
           && data.note is string
           && data.note.size() > 0
           && data.note.size() <= 500
           && data.displayName is string
+          && data.displayName.size() > 0
           && data.displayName.size() <= 100
+          && (data.photoURL == null || data.photoURL is string)
+          && data.publishedAt is string
           && (data.rating == null || (data.rating is int && data.rating >= 1 && data.rating <= 10));
       }
 
       allow read: if true;
       allow create, update: if isAuthor() && isValidReview();
       allow delete: if isAuthor();
+
+      // Abuse reports. Write-once signals: a reporter can file and see their
+      // own report, nobody can read anyone else's, and moderation happens
+      // outside the app.
+      match /reports/{reporterId} {
+        function isValidReport() {
+          let data = request.resource.data;
+          return data.keys().hasOnly(['reporterId', 'reason', 'createdAt'])
+            && data.reporterId == reporterId
+            && data.reason is string
+            && data.reason.size() <= 300
+            && data.createdAt is string;
+        }
+
+        allow read: if request.auth != null && request.auth.uid == reporterId;
+        allow create: if request.auth != null
+          && request.auth.uid == reporterId
+          && reporterId != userId
+          && isValidReport();
+        allow update, delete: if false;
+      }
     }
   }
 }

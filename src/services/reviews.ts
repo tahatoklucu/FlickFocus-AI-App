@@ -77,6 +77,40 @@ export async function publishReview(review: PublicReview): Promise<void> {
   }
 }
 
+/**
+ * Files an abuse report against someone else's review. Reports are write-once
+ * and only visible to their reporter; moderation happens outside the app.
+ */
+export async function reportReview(
+  imdbID: string,
+  authorId: string,
+  reporterId: string,
+  reason: string,
+): Promise<void> {
+  try {
+    await setDoc(
+      doc(
+        getFirebaseDb(),
+        "movieReviews",
+        imdbID,
+        "reviews",
+        authorId,
+        "reports",
+        reporterId,
+      ),
+      {
+        reporterId,
+        reason: reason.slice(0, 300),
+        createdAt: new Date().toISOString(),
+      },
+    );
+  } catch (error) {
+    throw new ReviewsError(
+      getFirestoreErrorMessage(error) || "Failed to report this review.",
+    );
+  }
+}
+
 /** Remove the shared copy, leaving the private note untouched. */
 export async function unpublishReview(
   imdbID: string,

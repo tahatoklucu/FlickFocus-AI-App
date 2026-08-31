@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import UserAvatar from "@/components/profile/UserAvatar";
+import Button from "@/components/ui/Button";
 import { useAuth } from "@/context/auth-context.shared";
 import { isFirebaseConfigured } from "@/lib/firebase";
 import type { PublicReview } from "@/types";
@@ -31,8 +32,15 @@ function StarIcon() {
   );
 }
 
-function ReviewCard({ review }: { review: PublicReview }) {
+function ReviewCard({
+  review,
+  onReport,
+}: {
+  review: PublicReview;
+  onReport: () => void;
+}) {
   const publishedOn = formatDate(review.publishedAt);
+  const [confirming, setConfirming] = useState(false);
 
   return (
     <li className="rounded-xl border border-neutral-800 bg-neutral-900/50 p-4">
@@ -61,6 +69,46 @@ function ReviewCard({ review }: { review: PublicReview }) {
       <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-neutral-300">
         {review.note}
       </p>
+
+      <div className="mt-2 flex flex-wrap items-center justify-end gap-2">
+        {confirming ? (
+          <>
+            <p className="mr-auto text-xs text-neutral-400">
+              Report this review to us?
+            </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setConfirming(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              onClick={() => {
+                setConfirming(false);
+                onReport();
+              }}
+            >
+              Report
+            </Button>
+          </>
+        ) : (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setConfirming(true)}
+            className="text-xs text-neutral-400 hover:text-neutral-200"
+            aria-label={`Report the review by ${review.displayName}`}
+          >
+            Report
+          </Button>
+        )}
+      </div>
     </li>
   );
 }
@@ -70,8 +118,10 @@ function ReviewCard({ review }: { review: PublicReview }) {
  * own review is left out, since they already see it in their controls above.
  */
 export default function PublicReviews({ imdbID }: { imdbID: string }) {
-  const { user } = useAuth();
+  const { user, openAuthModal } = useAuth();
   const [reviews, setReviews] = useState<PublicReview[]>([]);
+  const [reportedIds, setReportedIds] = useState<string[]>([]);
+  const [reportError, setReportError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isFirebaseConfigured()) {
@@ -103,9 +153,44 @@ export default function PublicReviews({ imdbID }: { imdbID: string }) {
     };
   }, [imdbID]);
 
-  const others = reviews.filter((review) => review.userId !== user?.uid);
+  /** Reported reviews are hidden for the reporter right away. */
+  const others = reviews.filter(
+    (review) =>
+      review.userId !== user?.uid && !reportedIds.includes(review.userId),
+  );
 
-  if (others.length === 0) {
+  function handleReport(review: PublicReview) {
+    if (!user) {
+      openAuthModal("signin");
+      return;
+    }
+
+    setReportError(null);
+    setReportedIds((current) => [...current, review.userId]);
+
+    void (async () => {
+      try {
+        const { reportReview } = await import("@/services/reviews");
+        await reportReview(
+          imdbID,
+          review.userId,
+          user.uid,
+          "Reported from the movie page.",
+        );
+      } catch (error) {
+        setReportedIds((current) =>
+          current.filter((id) => id !== review.userId),
+        );
+        setReportError(
+          error instanceof Error
+            ? error.message
+            : "Failed to report this review.",
+        );
+      }
+    })();
+  }
+
+  if (others.length === 0 && !reportError && reportedIds.length === 0) {
     return null;
   }
 
@@ -114,9 +199,27 @@ export default function PublicReviews({ imdbID }: { imdbID: string }) {
       <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-neutral-400">
         Community reviews ({others.length})
       </h3>
+
+      {reportedIds.length > 0 && (
+        <p className="mb-3 rounded-lg border border-neutral-800 bg-neutral-900/50 px-3 py-2 text-xs text-neutral-300">
+          Thanks for the report. We hid that review for you while we look into
+          it.
+        </p>
+      )}
+
+      {reportError && (
+        <p role="alert" className="mb-3 text-xs text-red-300">
+          {reportError}
+        </p>
+      )}
+
       <ul className="space-y-3">
         {others.map((review) => (
-          <ReviewCard key={review.userId} review={review} />
+          <ReviewCard
+            key={review.userId}
+            review={review}
+            onReport={() => handleReport(review)}
+          />
         ))}
       </ul>
     </section>
