@@ -50,6 +50,7 @@ export function parseLibraryEntry(
     watchedAt: typeof data.watchedAt === "string" ? data.watchedAt : null,
     rating: clampRating(typeof data.rating === "number" ? data.rating : null),
     note: normalizeNote(typeof data.note === "string" ? data.note : null),
+    isPublic: data.isPublic === true,
     updatedAt: typeof data.updatedAt === "string" ? data.updatedAt : null,
   };
 }
@@ -71,6 +72,7 @@ export function createLibraryEntry(
     watchedAt: null,
     rating: null,
     note: null,
+    isPublic: false,
     updatedAt: null,
   };
 }
@@ -107,6 +109,15 @@ export function applyLibraryChanges(
 
   if (changes.note !== undefined) {
     next.note = normalizeNote(changes.note);
+  }
+
+  if (changes.isPublic !== undefined) {
+    next.isPublic = changes.isPublic;
+  }
+
+  // There is nothing to share once the note is gone.
+  if (next.note === null) {
+    next.isPublic = false;
   }
 
   return next;
@@ -163,6 +174,7 @@ export function toFirestoreLibraryEntry(
     watchedAt: entry.watchedAt,
     rating: entry.rating,
     note: entry.note,
+    isPublic: entry.isPublic,
     updatedAt: entry.updatedAt ?? new Date().toISOString(),
   };
 }

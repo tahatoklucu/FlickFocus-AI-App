@@ -105,6 +105,16 @@ describe("applyLibraryChanges", () => {
 
     expect(applyLibraryChanges(seen, { watched: false }).watchedAt).toBeNull();
   });
+
+  it("stops sharing a review once its note is deleted", () => {
+    const shared = applyLibraryChanges(base, {
+      note: "Worth a rewatch.",
+      isPublic: true,
+    });
+    expect(shared.isPublic).toBe(true);
+
+    expect(applyLibraryChanges(shared, { note: null }).isPublic).toBe(false);
+  });
 });
 
 describe("isEmptyLibraryEntry", () => {

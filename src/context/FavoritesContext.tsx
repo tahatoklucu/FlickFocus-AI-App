@@ -61,6 +61,35 @@ async function waitForAuthToken(user: User): Promise<void> {
   ]);
 }
 
+/**
+ * Mirrors an entry into (or out of) the public reviews collection. Failures
+ * here never roll back the private write: the note is saved either way.
+ */
+async function syncPublicReview(
+  user: User,
+  entry: UserFavorite,
+  wasPublic: boolean,
+): Promise<void> {
+  const { toPublicReview } = await import("@/lib/public-review");
+  const review = toPublicReview(entry, {
+    displayName: user.displayName ?? user.email?.split("@")[0] ?? "",
+    photoURL: user.photoURL ?? null,
+  });
+
+  if (!review && !wasPublic) {
+    return;
+  }
+
+  const { publishReview, unpublishReview } = await import("@/services/reviews");
+
+  if (review) {
+    await publishReview(review);
+    return;
+  }
+
+  await unpublishReview(entry.imdbID, entry.userId);
+}
+
 function commitFavorites(
   userId: string,
   favorites: UserFavorite[],
@@ -292,6 +321,18 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
           }
 
           await saveLibraryEntry(userId, nextEntry);
+
+          try {
+            await syncPublicReview(user, nextEntry, existing?.isPublic === true);
+          } catch (shareError) {
+            setSyncState((current) => ({
+              ...current,
+              error:
+                shareError instanceof Error
+                  ? shareError.message
+                  : "Failed to update your shared review.",
+            }));
+          }
         } catch (updateError) {
           commitFavorites(userId, previousEntries, setSyncState);
           setSyncState({
@@ -340,6 +381,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
       }
 
       const previousEntries = entries;
+      const wasPublic = entryMap.get(imdbID)?.isPublic === true;
       commitFavorites(
         userId,
         previousEntries.filter((entry) => entry.imdbID !== imdbID),
@@ -351,6 +393,11 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
           await waitForAuthToken(user);
           const { removeFavorite } = await import("@/services/favorites");
           await removeFavorite(userId, imdbID);
+
+          if (wasPublic) {
+            const { unpublishReview } = await import("@/services/reviews");
+            await unpublishReview(imdbID, userId);
+          }
         } catch (removeError) {
           commitFavorites(userId, previousEntries, setSyncState);
           setSyncState({
@@ -364,7 +411,7 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
         }
       })();
     },
-    [user, userId, entries],
+    [user, userId, entries, entryMap],
   );
 
   const value = useMemo<FavoritesContextValue>(

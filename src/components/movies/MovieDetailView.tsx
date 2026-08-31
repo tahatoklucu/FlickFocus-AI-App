@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState, type ReactNode } from "react";
 import MovieLibraryControls from "@/components/movies/MovieLibraryControls";
 import MovieTrailer from "@/components/movies/MovieTrailer";
+import PublicReviews from "@/components/movies/PublicReviews";
 import { hasValidPoster } from "@/components/movies/MoviePoster";
 import { POSTER_QUALITY, POSTER_SIZES } from "@/lib/image-config";
 import { cn } from "@/lib/cn";
@@ -330,6 +331,8 @@ export default function MovieDetailView({
         />
 
         <MovieTrailer imdbID={movie.imdbID} title={movie.Title} className="text-left" />
+
+        <PublicReviews imdbID={movie.imdbID} />
 
         {plot && (
           <section>

@@ -20,7 +20,12 @@ const movie = {
 };
 
 interface LibraryMocks {
-  entry?: { rating: number | null; note: string | null; updatedAt?: string };
+  entry?: {
+    rating: number | null;
+    note: string | null;
+    updatedAt?: string;
+    isPublic?: boolean;
+  };
   toggleFavorite?: () => void;
   toggleWatchlist?: () => void;
   toggleWatched?: () => void;
@@ -118,7 +123,47 @@ describe("MovieLibraryControls", () => {
     expect(publishButton).toBeEnabled();
 
     await user.click(publishButton);
-    expect(updateEntry).toHaveBeenCalledWith(movie, { note: "  dream logic  " });
+    expect(updateEntry).toHaveBeenCalledWith(movie, {
+      note: "  dream logic  ",
+      isPublic: false,
+    });
+  });
+
+  it("can share a new review publicly from the editor", async () => {
+    const user = userEvent.setup();
+    const updateEntry = vi.fn();
+    mockContexts({ signedIn: true, library: { updateEntry } });
+
+    render(<MovieLibraryControls movie={movie} />);
+
+    await user.type(screen.getByLabelText("Your review"), "A quiet masterpiece.");
+    const share = screen.getByRole("switch");
+    expect(share).toHaveAttribute("aria-checked", "false");
+
+    await user.click(share);
+    expect(share).toHaveAttribute("aria-checked", "true");
+
+    await user.click(screen.getByRole("button", { name: "Publish review" }));
+    expect(updateEntry).toHaveBeenCalledWith(movie, {
+      note: "A quiet masterpiece.",
+      isPublic: true,
+    });
+  });
+
+  it("flips visibility on a saved review", async () => {
+    const user = userEvent.setup();
+    const updateEntry = vi.fn();
+    mockContexts({
+      signedIn: true,
+      library: { updateEntry, entry: { rating: null, note: "Loved it." } },
+    });
+
+    render(<MovieLibraryControls movie={movie} />);
+
+    expect(screen.getByText("Only you")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Share publicly" }));
+    expect(updateEntry).toHaveBeenCalledWith(movie, { isPublic: true });
   });
 
   it("shows a published review as read-only until Edit is pressed", async () => {

@@ -94,27 +94,126 @@ function formatReviewDate(iso: string | null): string | null {
   });
 }
 
+function GlobeIcon() {
+  return (
+    <svg
+      className="h-3.5 w-3.5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9" />
+      <path strokeLinecap="round" d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18" />
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg
+      className="h-3.5 w-3.5"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.75}
+      aria-hidden="true"
+    >
+      <rect x="4.5" y="10.5" width="15" height="10" rx="2" />
+      <path strokeLinecap="round" d="M8.5 10.5V7.75a3.5 3.5 0 017 0v2.75" />
+    </svg>
+  );
+}
+
+/** Switch controlling whether a review is shown to other visitors. */
+function VisibilitySwitch({
+  id,
+  isPublic,
+  onChange,
+}: {
+  id: string;
+  isPublic: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <div className="flex items-start gap-2.5">
+      <button
+        type="button"
+        id={id}
+        role="switch"
+        aria-checked={isPublic}
+        onClick={() => onChange(!isPublic)}
+        className={cn(
+          "mt-0.5 inline-flex h-5 w-9 shrink-0 items-center rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40",
+          isPublic
+            ? "border-violet-400/50 bg-violet-500/80"
+            : "border-neutral-700 bg-neutral-800",
+        )}
+      >
+        <span
+          className={cn(
+            "h-3.5 w-3.5 rounded-full bg-white transition-transform",
+            isPublic ? "translate-x-[1.15rem]" : "translate-x-[0.15rem]",
+          )}
+        />
+      </button>
+      <label htmlFor={id} className="cursor-pointer text-xs leading-snug text-neutral-300">
+        Share on the movie page
+        <span className="block text-neutral-400">
+          {isPublic
+            ? "Everyone sees it with your name and photo."
+            : "Only you can see it."}
+        </span>
+      </label>
+    </div>
+  );
+}
+
+function VisibilityBadge({ isPublic }: { isPublic: boolean }) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold",
+        isPublic
+          ? "bg-violet-500/15 text-violet-200"
+          : "bg-neutral-800 text-neutral-300",
+      )}
+    >
+      {isPublic ? <GlobeIcon /> : <LockIcon />}
+      {isPublic ? "Public" : "Only you"}
+    </span>
+  );
+}
+
 /** Read-only view of a saved review, with the ways out of it. */
 function PublishedReview({
   note,
   updatedAt,
+  isPublic,
   onEdit,
   onRemove,
+  onToggleVisibility,
 }: {
   note: string;
   updatedAt: string | null;
+  isPublic: boolean;
   onEdit: () => void;
   onRemove: () => void;
+  onToggleVisibility: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
   const publishedOn = formatReviewDate(updatedAt);
 
   return (
     <div>
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
-        <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">
-          Your review
-        </h3>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <div className="flex items-center gap-2">
+          <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">
+            Your review
+          </h3>
+          <VisibilityBadge isPublic={isPublic} />
+        </div>
         {publishedOn && (
           <p className="text-xs text-neutral-500">Published {publishedOn}</p>
         )}
@@ -154,6 +253,16 @@ function PublishedReview({
           </>
         ) : (
           <>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={onToggleVisibility}
+              className="mr-auto"
+            >
+              {isPublic ? <LockIcon /> : <GlobeIcon />}
+              {isPublic ? "Make private" : "Share publicly"}
+            </Button>
             <Button type="button" variant="secondary" size="sm" onClick={onEdit}>
               Edit
             </Button>
@@ -195,10 +304,19 @@ export default function MovieLibraryControls({
 
   const entry = getEntry(movie.imdbID);
   const savedNote = entry?.note ?? "";
+  const savedIsPublic = entry?.isPublic === true;
   const [noteDraft, setNoteDraft] = useState<string | null>(null);
+  const [shareDraft, setShareDraft] = useState<boolean | null>(null);
   const isEditing = noteDraft !== null;
   const noteValue = noteDraft ?? "";
-  const noteDirty = noteValue.trim() !== savedNote;
+  const shareValue = shareDraft ?? savedIsPublic;
+  const noteDirty =
+    noteValue.trim() !== savedNote || shareValue !== savedIsPublic;
+
+  function closeEditor() {
+    setNoteDraft(null);
+    setShareDraft(null);
+  }
 
   function requireAuth(action: () => void) {
     if (!user) {
@@ -259,9 +377,13 @@ export default function MovieLibraryControls({
             <PublishedReview
               note={savedNote}
               updatedAt={entry?.updatedAt ?? null}
+              isPublic={savedIsPublic}
               onEdit={() => setNoteDraft(savedNote)}
               onRemove={() =>
                 requireAuth(() => updateEntry(movie, { note: null, rating: null }))
+              }
+              onToggleVisibility={() =>
+                requireAuth(() => updateEntry(movie, { isPublic: !savedIsPublic }))
               }
             />
           ) : (
@@ -281,17 +403,23 @@ export default function MovieLibraryControls({
                 placeholder="Why does this one matter to you?"
                 className="mt-2 w-full resize-y rounded-lg border border-neutral-800 bg-neutral-950/80 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-violet-500/50 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
               />
-              <div className="mt-2 flex items-center justify-between gap-3">
-                <p className="text-xs text-neutral-400">
-                  {noteValue.length}/{MAX_USER_NOTE_LENGTH}
-                </p>
+              <p className="mt-1.5 text-xs text-neutral-400">
+                {noteValue.length}/{MAX_USER_NOTE_LENGTH}
+              </p>
+
+              <div className="mt-3 flex flex-wrap items-end justify-between gap-3">
+                <VisibilitySwitch
+                  id={`share-${movie.imdbID}`}
+                  isPublic={shareValue}
+                  onChange={setShareDraft}
+                />
                 <div className="flex gap-2">
                   {isEditing && (
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => setNoteDraft(null)}
+                      onClick={closeEditor}
                     >
                       Cancel
                     </Button>
@@ -303,8 +431,11 @@ export default function MovieLibraryControls({
                     disabled={!noteDirty || noteValue.trim().length === 0}
                     onClick={() =>
                       requireAuth(() => {
-                        updateEntry(movie, { note: noteValue });
-                        setNoteDraft(null);
+                        updateEntry(movie, {
+                          note: noteValue,
+                          isPublic: shareValue,
+                        });
+                        closeEditor();
                       })
                     }
                   >

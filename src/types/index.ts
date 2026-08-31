@@ -5,6 +5,7 @@ export type {
   AddFavoritePayload,
   LibraryShelf,
   LibraryEntryChanges,
+  PublicReview,
 } from "./favorite";
 export { MAX_USER_RATING, MAX_USER_NOTE_LENGTH } from "./favorite";
 export type { UserProfile } from "./user";
