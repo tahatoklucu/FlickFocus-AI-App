@@ -27,6 +27,8 @@ export interface UserFavorite {
   /** Personal score from 1 to MAX_USER_RATING, null when unrated. */
   rating: number | null;
   note: string | null;
+  /** ISO timestamp of the last change, used to date a published review. */
+  updatedAt: string | null;
 }
 
 /** Payload used when saving a movie (server generates id and timestamps). */

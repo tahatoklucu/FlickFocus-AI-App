@@ -50,9 +50,9 @@ const variants: Record<ButtonVariant, string> = {
   iconGhost:
     "rounded-full text-zinc-500 hover:bg-zinc-100/90 hover:text-zinc-800 focus-visible:ring-zinc-400 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-100",
   menu:
-    "w-full justify-between rounded-lg px-4 py-2.5 text-left text-sm font-medium text-neutral-300 transition hover:bg-white/5 hover:text-white focus-visible:ring-neutral-500",
+    "w-full justify-center px-4 py-3 text-center text-sm font-medium text-neutral-300 transition hover:bg-white/5 hover:text-white focus-visible:ring-inset focus-visible:ring-neutral-500",
   menuDanger:
-    "w-full rounded-lg px-4 py-2.5 text-left text-sm font-medium text-red-400 transition hover:bg-red-500/10 hover:text-red-300 focus-visible:ring-red-400",
+    "w-full justify-center px-4 py-3 text-center text-sm font-medium text-red-400 transition hover:bg-red-500/10 hover:text-red-300 focus-visible:ring-inset focus-visible:ring-red-400",
   favorite:
     "rounded-full bg-black/50 text-white shadow-sm shadow-black/30 backdrop-blur-md hover:bg-black/70 hover:shadow-md focus-visible:ring-white/30 dark:bg-zinc-900/85 dark:hover:bg-zinc-800",
   segment:

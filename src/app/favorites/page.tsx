@@ -1,4 +1,6 @@
+import { Suspense } from "react";
 import FavoritesPageClient from "@/components/favorites/FavoritesPageClient";
+import LibraryLoading from "@/components/favorites/LibraryLoading";
 import PageHeroGlow from "@/components/layout/PageHeroGlow";
 import { createPageMetadata } from "@/lib/metadata";
 
@@ -28,7 +30,10 @@ export default function FavoritesPage() {
           </p>
         </header>
 
-        <FavoritesPageClient />
+        {/* The active shelf comes from the URL, which is only known on the client. */}
+        <Suspense fallback={<LibraryLoading />}>
+          <FavoritesPageClient />
+        </Suspense>
       </div>
     </div>
   );

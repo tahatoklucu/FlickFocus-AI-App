@@ -50,6 +50,7 @@ export function parseLibraryEntry(
     watchedAt: typeof data.watchedAt === "string" ? data.watchedAt : null,
     rating: clampRating(typeof data.rating === "number" ? data.rating : null),
     note: normalizeNote(typeof data.note === "string" ? data.note : null),
+    updatedAt: typeof data.updatedAt === "string" ? data.updatedAt : null,
   };
 }
 
@@ -70,6 +71,7 @@ export function createLibraryEntry(
     watchedAt: null,
     rating: null,
     note: null,
+    updatedAt: null,
   };
 }
 
@@ -78,7 +80,7 @@ export function applyLibraryChanges(
   entry: UserFavorite,
   changes: LibraryEntryChanges,
 ): UserFavorite {
-  const next: UserFavorite = { ...entry };
+  const next: UserFavorite = { ...entry, updatedAt: new Date().toISOString() };
 
   if (changes.favorite !== undefined) {
     next.favorite = changes.favorite;
@@ -161,6 +163,6 @@ export function toFirestoreLibraryEntry(
     watchedAt: entry.watchedAt,
     rating: entry.rating,
     note: entry.note,
-    updatedAt: new Date().toISOString(),
+    updatedAt: entry.updatedAt ?? new Date().toISOString(),
   };
 }

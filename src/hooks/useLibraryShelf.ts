@@ -1,41 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import {
-  buildLibraryShelfQuery,
-  DEFAULT_LIBRARY_SHELF,
-  parseLibraryShelf,
-} from "@/lib/library-tabs";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback } from "react";
+import { buildLibraryShelfQuery, parseLibraryShelf } from "@/lib/library-tabs";
 import type { LibraryShelf } from "@/types";
 
 /**
- * Keeps the active library tab in the URL so a shelf can be linked and the
- * back button moves between tabs. Hydrates after mount to keep the page static.
+ * Keeps the active library shelf in the URL so it can be linked from anywhere
+ * (including the header menu) and the back button moves between shelves.
  */
 export function useLibraryShelf(): readonly [
   LibraryShelf,
   (shelf: LibraryShelf) => void,
 ] {
-  const [shelf, setShelf] = useState<LibraryShelf>(DEFAULT_LIBRARY_SHELF);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const shelf = parseLibraryShelf(searchParams.toString());
 
-  useEffect(() => {
-    function syncFromUrl() {
-      setShelf(parseLibraryShelf(window.location.search));
-    }
-
-    syncFromUrl();
-    window.addEventListener("popstate", syncFromUrl);
-    return () => window.removeEventListener("popstate", syncFromUrl);
-  }, []);
-
-  const selectShelf = useCallback((next: LibraryShelf) => {
-    setShelf(next);
-    window.history.pushState(
-      null,
-      "",
-      `${window.location.pathname}${buildLibraryShelfQuery(next)}`,
-    );
-  }, []);
+  const selectShelf = useCallback(
+    (next: LibraryShelf) => {
+      router.push(`/favorites${buildLibraryShelfQuery(next)}`, { scroll: false });
+    },
+    [router],
+  );
 
   return [shelf, selectShelf] as const;
 }

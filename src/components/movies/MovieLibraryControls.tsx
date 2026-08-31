@@ -77,6 +77,102 @@ function ShelfToggle({
   );
 }
 
+function formatReviewDate(iso: string | null): string | null {
+  if (!iso) {
+    return null;
+  }
+
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+
+  return date.toLocaleDateString("en-US", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+/** Read-only view of a saved review, with the ways out of it. */
+function PublishedReview({
+  note,
+  updatedAt,
+  onEdit,
+  onRemove,
+}: {
+  note: string;
+  updatedAt: string | null;
+  onEdit: () => void;
+  onRemove: () => void;
+}) {
+  const [confirming, setConfirming] = useState(false);
+  const publishedOn = formatReviewDate(updatedAt);
+
+  return (
+    <div>
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h3 className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400">
+          Your review
+        </h3>
+        {publishedOn && (
+          <p className="text-xs text-neutral-500">Published {publishedOn}</p>
+        )}
+      </div>
+
+      <blockquote className="mt-2 rounded-lg border-l-2 border-violet-500/60 bg-neutral-950/60 px-3 py-2.5">
+        <p className="whitespace-pre-wrap break-words text-sm leading-relaxed text-neutral-200">
+          {note}
+        </p>
+      </blockquote>
+
+      <div className="mt-3 flex flex-wrap items-center justify-end gap-2">
+        {confirming ? (
+          <>
+            <p className="mr-auto text-xs text-neutral-400">
+              Remove this review and its rating?
+            </p>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setConfirming(false)}
+            >
+              Keep
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              onClick={() => {
+                setConfirming(false);
+                onRemove();
+              }}
+            >
+              Remove
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button type="button" variant="secondary" size="sm" onClick={onEdit}>
+              Edit
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => setConfirming(true)}
+              className="text-red-300 hover:text-red-200"
+            >
+              Remove
+            </Button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 /**
  * Shelf toggles plus the personal rating and note for one movie. Signed-out
  * visitors get the auth modal instead of a silent no-op.
@@ -98,9 +194,10 @@ export default function MovieLibraryControls({
   } = useFavorites();
 
   const entry = getEntry(movie.imdbID);
-  const [noteDraft, setNoteDraft] = useState<string | null>(null);
   const savedNote = entry?.note ?? "";
-  const noteValue = noteDraft ?? savedNote;
+  const [noteDraft, setNoteDraft] = useState<string | null>(null);
+  const isEditing = noteDraft !== null;
+  const noteValue = noteDraft ?? "";
   const noteDirty = noteValue.trim() !== savedNote;
 
   function requireAuth(action: () => void) {
@@ -157,53 +254,66 @@ export default function MovieLibraryControls({
           </div>
         </div>
 
-        <div>
-          <label
-            htmlFor={`note-${movie.imdbID}`}
-            className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400"
-          >
-            Your note
-          </label>
-          <textarea
-            id={`note-${movie.imdbID}`}
-            value={noteValue}
-            maxLength={MAX_USER_NOTE_LENGTH}
-            rows={3}
-            onChange={(event) => setNoteDraft(event.target.value)}
-            placeholder="Why does this one matter to you?"
-            className="mt-2 w-full resize-y rounded-lg border border-neutral-800 bg-neutral-950/80 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-violet-500/50 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
-          />
-          <div className="mt-2 flex items-center justify-between gap-3">
-            <p className="text-xs text-neutral-400">
-              {noteValue.length}/{MAX_USER_NOTE_LENGTH}
-            </p>
-            <div className="flex gap-2">
-              {noteDirty && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setNoteDraft(null)}
-                >
-                  Cancel
-                </Button>
-              )}
-              <Button
-                type="button"
-                variant="violet"
-                size="sm"
-                disabled={!noteDirty}
-                onClick={() =>
-                  requireAuth(() => {
-                    updateEntry(movie, { note: noteValue });
-                    setNoteDraft(null);
-                  })
-                }
+        <div className="border-t border-neutral-800/70 pt-3">
+          {savedNote && !isEditing ? (
+            <PublishedReview
+              note={savedNote}
+              updatedAt={entry?.updatedAt ?? null}
+              onEdit={() => setNoteDraft(savedNote)}
+              onRemove={() =>
+                requireAuth(() => updateEntry(movie, { note: null, rating: null }))
+              }
+            />
+          ) : (
+            <div>
+              <label
+                htmlFor={`note-${movie.imdbID}`}
+                className="text-xs font-semibold uppercase tracking-[0.18em] text-neutral-400"
               >
-                Save note
-              </Button>
+                {savedNote ? "Edit your review" : "Your review"}
+              </label>
+              <textarea
+                id={`note-${movie.imdbID}`}
+                value={noteValue}
+                maxLength={MAX_USER_NOTE_LENGTH}
+                rows={3}
+                onChange={(event) => setNoteDraft(event.target.value)}
+                placeholder="Why does this one matter to you?"
+                className="mt-2 w-full resize-y rounded-lg border border-neutral-800 bg-neutral-950/80 px-3 py-2 text-sm text-neutral-100 placeholder:text-neutral-500 focus:border-violet-500/50 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+              />
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <p className="text-xs text-neutral-400">
+                  {noteValue.length}/{MAX_USER_NOTE_LENGTH}
+                </p>
+                <div className="flex gap-2">
+                  {isEditing && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setNoteDraft(null)}
+                    >
+                      Cancel
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="violet"
+                    size="sm"
+                    disabled={!noteDirty || noteValue.trim().length === 0}
+                    onClick={() =>
+                      requireAuth(() => {
+                        updateEntry(movie, { note: noteValue });
+                        setNoteDraft(null);
+                      })
+                    }
+                  >
+                    {savedNote ? "Update review" : "Publish review"}
+                  </Button>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

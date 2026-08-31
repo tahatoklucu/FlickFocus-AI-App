@@ -12,6 +12,20 @@ export const LIBRARY_TABS: ReadonlyArray<{
 
 export const DEFAULT_LIBRARY_SHELF: LibraryShelf = "favorite";
 
+/**
+ * Menu order, newest activity first: what you just watched, then what is
+ * queued, then the long-term favorites.
+ */
+export const MENU_LIBRARY_TABS = (
+  ["watched", "watchlist", "favorite"] as const
+).map((shelf) => {
+  const tab = LIBRARY_TABS.find((entry) => entry.shelf === shelf);
+  if (!tab) {
+    throw new Error(`Unknown library shelf: ${shelf}`);
+  }
+  return tab;
+});
+
 export function parseLibraryShelf(search: string): LibraryShelf {
   const value = new URLSearchParams(search).get("tab")?.toLowerCase();
   const match = LIBRARY_TABS.find((tab) => tab.param === value);

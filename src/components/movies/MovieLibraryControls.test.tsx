@@ -20,7 +20,7 @@ const movie = {
 };
 
 interface LibraryMocks {
-  entry?: { rating: number | null; note: string | null };
+  entry?: { rating: number | null; note: string | null; updatedAt?: string };
   toggleFavorite?: () => void;
   toggleWatchlist?: () => void;
   toggleWatched?: () => void;
@@ -104,23 +104,73 @@ describe("MovieLibraryControls", () => {
     expect(updateEntry).toHaveBeenCalledWith(movie, { rating: null });
   });
 
-  it("only enables the note button once the text changes", async () => {
+  it("publishes a new review only once something is written", async () => {
+    const user = userEvent.setup();
+    const updateEntry = vi.fn();
+    mockContexts({ signedIn: true, library: { updateEntry } });
+
+    render(<MovieLibraryControls movie={movie} />);
+
+    const publishButton = screen.getByRole("button", { name: "Publish review" });
+    expect(publishButton).toBeDisabled();
+
+    await user.type(screen.getByLabelText("Your review"), "  dream logic  ");
+    expect(publishButton).toBeEnabled();
+
+    await user.click(publishButton);
+    expect(updateEntry).toHaveBeenCalledWith(movie, { note: "  dream logic  " });
+  });
+
+  it("shows a published review as read-only until Edit is pressed", async () => {
     const user = userEvent.setup();
     const updateEntry = vi.fn();
     mockContexts({
       signedIn: true,
-      library: { updateEntry, entry: { rating: null, note: "first pass" } },
+      library: {
+        updateEntry,
+        entry: {
+          rating: 9,
+          note: "Still the best heist movie.",
+          updatedAt: "2026-03-04T10:00:00.000Z",
+        },
+      },
     });
 
     render(<MovieLibraryControls movie={movie} />);
 
-    const saveButton = screen.getByRole("button", { name: "Save note" });
-    expect(saveButton).toBeDisabled();
+    expect(screen.getByText("Still the best heist movie.")).toBeInTheDocument();
+    expect(screen.getByText(/Published Mar 4, 2026/)).toBeInTheDocument();
+    expect(screen.queryByLabelText("Your review")).not.toBeInTheDocument();
 
-    await user.type(screen.getByLabelText("Your note"), " again");
-    expect(saveButton).toBeEnabled();
+    await user.click(screen.getByRole("button", { name: "Edit" }));
 
-    await user.click(saveButton);
-    expect(updateEntry).toHaveBeenCalledWith(movie, { note: "first pass again" });
+    const editor = screen.getByLabelText("Edit your review");
+    expect(editor).toHaveValue("Still the best heist movie.");
+
+    // Leaving the editor without changes restores the published view.
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByLabelText("Edit your review")).not.toBeInTheDocument();
+    expect(updateEntry).not.toHaveBeenCalled();
+  });
+
+  it("asks for confirmation before removing a review and its rating", async () => {
+    const user = userEvent.setup();
+    const updateEntry = vi.fn();
+    mockContexts({
+      signedIn: true,
+      library: { updateEntry, entry: { rating: 9, note: "Overrated." } },
+    });
+
+    render(<MovieLibraryControls movie={movie} />);
+
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    expect(updateEntry).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "Keep" }));
+    expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    await user.click(screen.getByRole("button", { name: "Remove" }));
+    expect(updateEntry).toHaveBeenCalledWith(movie, { note: null, rating: null });
   });
 });
