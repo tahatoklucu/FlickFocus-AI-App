@@ -10,6 +10,12 @@ import { cn } from "@/lib/cn";
 import { useAuth } from "@/context/AuthContext";
 import { useFavorites } from "@/context/FavoritesContext";
 import { useLibraryShelf } from "@/hooks/useLibraryShelf";
+import {
+  browseLibraryEntries,
+  LIBRARY_SORT_OPTIONS,
+  pickRandomLibraryEntry,
+  type LibrarySort,
+} from "@/lib/library-browse";
 import { LIBRARY_TABS } from "@/lib/library-tabs";
 import type { LibraryShelf, MovieSearchResult, UserFavorite } from "@/types";
 
@@ -43,6 +49,83 @@ const EMPTY_STATES: Record<LibraryShelf, { title: string; subtitle: string }> = 
   },
 };
 
+function LibraryBrowseToolbar({
+  query,
+  sort,
+  shelf,
+  canSurprise,
+  onQueryChange,
+  onSortChange,
+  onSurprise,
+}: {
+  query: string;
+  sort: LibrarySort;
+  shelf: LibraryShelf;
+  canSurprise: boolean;
+  onQueryChange: (value: string) => void;
+  onSortChange: (value: LibrarySort) => void;
+  onSurprise: () => void;
+}) {
+  return (
+    <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+      <label className="relative min-w-0 flex-1 sm:max-w-sm">
+        <span className="sr-only">Search this shelf</span>
+        <svg
+          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-400"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.75}
+          aria-hidden="true"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M21 21l-4.35-4.35m1.6-5.15a6.75 6.75 0 11-13.5 0 6.75 6.75 0 0113.5 0z"
+          />
+        </svg>
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => onQueryChange(event.target.value)}
+          placeholder="Search titles on this shelf…"
+          className="w-full rounded-xl border border-neutral-800 bg-neutral-950/80 py-2.5 pl-10 pr-3 text-sm text-neutral-100 placeholder:text-neutral-400 focus:border-violet-500/50 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+        />
+      </label>
+
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="inline-flex items-center gap-2 text-sm text-neutral-400">
+          <span className="hidden sm:inline">Sort</span>
+          <select
+            value={sort}
+            onChange={(event) => onSortChange(event.target.value as LibrarySort)}
+            aria-label="Sort shelf"
+            className="min-h-10 rounded-xl border border-neutral-800 bg-neutral-950/80 px-3 text-sm font-medium text-neutral-100 focus:border-violet-500/50 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
+          >
+            {LIBRARY_SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        {shelf === "watchlist" ? (
+          <Button
+            type="button"
+            variant="violet"
+            size="sm"
+            disabled={!canSurprise}
+            onClick={onSurprise}
+          >
+            Surprise me
+          </Button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 export default function FavoritesPageClient() {
   const { user, loading: authLoading, isConfigured, openAuthModal } = useAuth();
   const {
@@ -56,17 +139,24 @@ export default function FavoritesPageClient() {
   const [shelf, selectShelf] = useLibraryShelf();
   const [selectedMovieId, setSelectedMovieId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<LibrarySort>("newest");
 
   const entriesByShelf = useMemo<Record<LibraryShelf, UserFavorite[]>>(
     () => ({ favorite: favorites, watchlist, watched }),
     [favorites, watchlist, watched],
   );
 
-  const entries = entriesByShelf[shelf];
+  const shelfEntries = entriesByShelf[shelf];
+
+  const browsedEntries = useMemo(
+    () => browseLibraryEntries(shelfEntries, { query, sort, shelf }),
+    [shelfEntries, query, sort, shelf],
+  );
 
   const movies = useMemo(
-    () => entries.map(toMovieSearchResult),
-    [entries],
+    () => browsedEntries.map(toMovieSearchResult),
+    [browsedEntries],
   );
 
   const handleCloseModal = useCallback(() => {
@@ -79,13 +169,41 @@ export default function FavoritesPageClient() {
     setIsModalOpen(true);
   }, []);
 
+  const handleShelfChange = useCallback(
+    (next: LibraryShelf) => {
+      selectShelf(next);
+      setQuery("");
+      setSort("newest");
+    },
+    [selectShelf],
+  );
+
+  const handleSurprise = useCallback(() => {
+    const pick = pickRandomLibraryEntry(browsedEntries);
+    if (!pick) {
+      return;
+    }
+    setSelectedMovieId(pick.imdbID);
+    setIsModalOpen(true);
+  }, [browsedEntries]);
+
   const resultLabel = useMemo(() => {
     if (favoritesSyncing) {
       return "Syncing your library...";
     }
 
-    return `${movies.length} movie${movies.length === 1 ? "" : "s"}`;
-  }, [favoritesSyncing, movies.length]);
+    const filtered = Boolean(query.trim());
+    if (filtered && browsedEntries.length !== shelfEntries.length) {
+      return `${browsedEntries.length} of ${shelfEntries.length} movie${shelfEntries.length === 1 ? "" : "s"}`;
+    }
+
+    return `${browsedEntries.length} movie${browsedEntries.length === 1 ? "" : "s"}`;
+  }, [
+    favoritesSyncing,
+    query,
+    browsedEntries.length,
+    shelfEntries.length,
+  ]);
 
   if (!isConfigured) {
     return (
@@ -161,6 +279,13 @@ export default function FavoritesPageClient() {
   }
 
   const emptyState = EMPTY_STATES[shelf];
+  const hasShelfMovies = shelfEntries.length > 0;
+  const emptyTitle = hasShelfMovies
+    ? "No titles match that search"
+    : emptyState.title;
+  const emptySubtitle = hasShelfMovies
+    ? "Try another spelling, or clear the search box."
+    : emptyState.subtitle;
 
   return (
     <>
@@ -197,7 +322,7 @@ export default function FavoritesPageClient() {
               type="button"
               role="tab"
               aria-selected={isActive}
-              onClick={() => selectShelf(tab.shelf)}
+              onClick={() => handleShelfChange(tab.shelf)}
               className={cn(
                 "inline-flex min-h-10 items-center gap-2 rounded-full border px-4 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500/40",
                 isActive
@@ -219,6 +344,18 @@ export default function FavoritesPageClient() {
         })}
       </div>
 
+      {hasShelfMovies ? (
+        <LibraryBrowseToolbar
+          query={query}
+          sort={sort}
+          shelf={shelf}
+          canSurprise={browsedEntries.length > 0}
+          onQueryChange={setQuery}
+          onSortChange={setSort}
+          onSurprise={handleSurprise}
+        />
+      ) : null}
+
       <section>
         <MovieList
           movies={movies}
@@ -228,13 +365,13 @@ export default function FavoritesPageClient() {
           onMovieSelect={handleMovieSelect}
           showInitialPrompt={false}
           loadingMessage="Loading your library..."
-          emptyTitle={emptyState.title}
-          emptySubtitle={emptyState.subtitle}
+          emptyTitle={emptyTitle}
+          emptySubtitle={emptySubtitle}
           resultLabel={resultLabel}
           priorityCount={5}
         />
 
-        {!favoritesError && !favoritesSyncing && movies.length === 0 && (
+        {!favoritesError && !favoritesSyncing && !hasShelfMovies && (
           <div className="mt-6 text-center">
             <Link href="/" className={buttonClass("secondary", "md")}>
               Browse Movies

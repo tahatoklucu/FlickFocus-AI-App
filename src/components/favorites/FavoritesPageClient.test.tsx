@@ -18,13 +18,17 @@ vi.mock("@/hooks/useLibraryShelf", () => ({
   useLibraryShelf: vi.fn(),
 }));
 
+vi.mock("@/components/movies/MovieDetailModal", () => ({
+  default: () => null,
+}));
+
 vi.mock("@/components/movies/MovieList", () => ({
   default: ({ resultLabel }: { resultLabel?: string }) => (
     <div data-testid="movie-list">{resultLabel}</div>
   ),
 }));
 
-function entry(imdbID: string): UserFavorite {
+function entry(imdbID: string, overrides: Partial<UserFavorite> = {}): UserFavorite {
   return {
     id: imdbID,
     userId: "user-1",
@@ -38,6 +42,9 @@ function entry(imdbID: string): UserFavorite {
     watchedAt: null,
     rating: null,
     note: null,
+    isPublic: false,
+    updatedAt: null,
+    ...overrides,
   };
 }
 
@@ -104,5 +111,56 @@ describe("FavoritesPageClient", () => {
 
     await user.click(screen.getByRole("tab", { name: /watched/i }));
     expect(selectShelf).toHaveBeenCalledWith("watched");
+  });
+
+  it("filters the active shelf by title and gates Surprise me", async () => {
+    const user = userEvent.setup();
+
+    vi.mocked(useAuth).mockReturnValue({
+      user: { uid: "user-1" },
+      loading: false,
+      isConfigured: true,
+      openAuthModal: vi.fn(),
+    } as unknown as ReturnType<typeof useAuth>);
+
+    vi.mocked(useFavorites).mockReturnValue({
+      favorites: [],
+      watchlist: [
+        entry("tt1", { title: "Inception", watchlist: true, favorite: false }),
+        entry("tt2", { title: "Heat", watchlist: true, favorite: false }),
+      ],
+      watched: [],
+      syncing: false,
+      error: null,
+      clearError: vi.fn(),
+    } as unknown as ReturnType<typeof useFavorites>);
+
+    vi.mocked(useLibraryShelf).mockReturnValue([
+      "watchlist" as LibraryShelf,
+      vi.fn(),
+    ] as const);
+
+    render(<FavoritesPageClient />);
+
+    const surprise = screen.getByRole("button", { name: "Surprise me" });
+    expect(surprise).toBeEnabled();
+    expect(screen.getByTestId("movie-list")).toHaveTextContent("2 movies");
+
+    await user.type(
+      screen.getByRole("searchbox", { name: /search this shelf/i }),
+      "heat",
+    );
+    expect(screen.getByTestId("movie-list")).toHaveTextContent("1 of 2 movies");
+    expect(surprise).toBeEnabled();
+
+    await user.clear(
+      screen.getByRole("searchbox", { name: /search this shelf/i }),
+    );
+    await user.type(
+      screen.getByRole("searchbox", { name: /search this shelf/i }),
+      "zzzz",
+    );
+    expect(screen.getByTestId("movie-list")).toHaveTextContent("0 of 2 movies");
+    expect(surprise).toBeDisabled();
   });
 });
