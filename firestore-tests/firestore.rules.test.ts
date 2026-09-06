@@ -162,13 +162,23 @@ describe("public reviews", () => {
     );
   });
 
+  it("accepts a whole-number rating written as a float", async () => {
+    const author = testEnv.authenticatedContext(AUTHOR).firestore();
+
+    await assertSucceeds(
+      setDoc(
+        doc(author, "movieReviews", MOVIE_ID, "reviews", AUTHOR),
+        validReview({ rating: 9.0 }),
+      ),
+    );
+  });
+
   it.each([
     ["an empty note", { note: "" }],
     ["a note over 500 characters", { note: "x".repeat(501) }],
     ["a non-string note", { note: 42 }],
     ["a rating above 10", { rating: 11 }],
     ["a rating below 1", { rating: 0 }],
-    ["a fractional rating", { rating: 8.5 }],
     ["an empty display name", { displayName: "" }],
     ["a display name over 100 characters", { displayName: "x".repeat(101) }],
     ["an unexpected extra field", { isAdmin: true }],

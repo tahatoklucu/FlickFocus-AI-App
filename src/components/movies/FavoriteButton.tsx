@@ -19,7 +19,8 @@ export default function FavoriteButton({
   className = "",
 }: FavoriteButtonProps) {
   const { user, openAuthModal } = useAuth();
-  const { isFavorite, toggleFavorite, error: favoritesError } = useFavorites();
+  const { isFavorite, toggleFavorite, error: favoritesError, clearError } =
+    useFavorites();
   const [localError, setLocalError] = useState<string | null>(null);
 
   const favorited = isFavorite(movie.imdbID);
@@ -32,9 +33,12 @@ export default function FavoriteButton({
       return;
     }
 
-    const timeoutId = window.setTimeout(() => setLocalError(null), 4000);
+    const timeoutId = window.setTimeout(() => {
+      setLocalError(null);
+      clearError();
+    }, 4000);
     return () => window.clearTimeout(timeoutId);
-  }, [displayedError]);
+  }, [displayedError, clearError]);
 
   function handleClick(event: MouseEvent<HTMLButtonElement>) {
     event.stopPropagation();

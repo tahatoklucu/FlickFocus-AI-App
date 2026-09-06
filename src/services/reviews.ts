@@ -66,7 +66,10 @@ export async function publishReview(review: PublicReview): Promise<void> {
       imdbID: review.imdbID,
       displayName: review.displayName,
       photoURL: review.photoURL,
-      rating: review.rating,
+      // Whole numbers can still serialize as floats in the web SDK; rules
+      // accept both. Rounding keeps the stored value clean for readers.
+      rating:
+        typeof review.rating === "number" ? Math.round(review.rating) : null,
       note: review.note,
       publishedAt: review.publishedAt,
     });

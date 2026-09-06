@@ -325,12 +325,29 @@ export function FavoritesProvider({ children }: { children: ReactNode }) {
           try {
             await syncPublicReview(user, nextEntry, existing?.isPublic === true);
           } catch (shareError) {
+            // Keep the private note, but do not leave isPublic stuck on true
+            // when the shared copy never made it out.
+            if (nextEntry.isPublic) {
+              const privateOnly = { ...nextEntry, isPublic: false };
+              await saveLibraryEntry(userId, privateOnly).catch(() => {});
+              commitFavorites(
+                userId,
+                sortLibraryEntries([
+                  ...previousEntries.filter(
+                    (entry) => entry.imdbID !== payload.imdbID,
+                  ),
+                  privateOnly,
+                ]),
+                setSyncState,
+              );
+            }
+
             setSyncState((current) => ({
               ...current,
               error:
                 shareError instanceof Error
                   ? shareError.message
-                  : "Failed to update your shared review.",
+                  : "Failed to share your review publicly.",
             }));
           }
         } catch (updateError) {

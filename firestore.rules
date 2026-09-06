@@ -19,6 +19,11 @@ service cloud.firestore {
 
       function isValidReview() {
         let data = request.resource.data;
+        // Client SDKs often store whole numbers as floats; accept either.
+        let ratingOk = data.rating == null
+          || ((data.rating is int || data.rating is float)
+            && data.rating >= 1
+            && data.rating <= 10);
         return data.keys().hasOnly([
             'userId', 'imdbID', 'displayName', 'photoURL',
             'rating', 'note', 'publishedAt'
@@ -33,7 +38,7 @@ service cloud.firestore {
           && data.displayName.size() <= 100
           && (data.photoURL == null || data.photoURL is string)
           && data.publishedAt is string
-          && (data.rating == null || (data.rating is int && data.rating >= 1 && data.rating <= 10));
+          && ratingOk;
       }
 
       allow read: if true;

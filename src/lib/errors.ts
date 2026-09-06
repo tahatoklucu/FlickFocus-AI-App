@@ -4,7 +4,7 @@ export function getFirestoreErrorMessage(error: unknown): string {
   if (error instanceof FirebaseError) {
     switch (error.code) {
       case "permission-denied":
-        return "Firestore access denied. Check user rules in Firebase Console → Firestore Rules.";
+        return "Firestore access denied. If you just added public reviews, deploy the latest firestore.rules (npm run firebase:deploy:firestore).";
       case "unavailable":
         return "Could not reach Firestore. Enable Firestore in Firebase Console or check your internet connection.";
       case "failed-precondition":
