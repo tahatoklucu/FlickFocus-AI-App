@@ -312,7 +312,7 @@ Every rule above is covered by emulator tests (`npm run test:rules`). Deploy rul
 - **Lighthouse CI** in GitHub Actions to catch performance regressions on every PR
 - **Distributed rate limiting** via Vercel KV or Upstash Redis
 - **Full WAI-ARIA menu pattern** (arrow-key navigation) on the profile dropdown
-- **Expanded unit tests** for movie components (`SearchBar`, `MovieCard`, `FavoriteButton`) — **done (51% component coverage)**
+- **Expanded unit tests** for movie components (`SearchBar`, `MovieCard`, `FavoriteButton`, library controls, reviews) — **done (52% component coverage)**
 - **axe/WAVE audit artifacts** — save scans to [`docs/evidence/`](./docs/evidence/) (see [screenshot guide](./docs/evidence/README.md))
 - **`prefers-reduced-data`** tier — skip heavy environment maps and poster pre-checks on slow connections
 - **Rule tests in CI** — add a Java setup step so `npm run test:rules` runs on every PR
@@ -440,6 +440,9 @@ Component tests and critical user-flow tests were written to keep FlickFocus rel
 | **Unit — review sharing** | Public copy derivation, author fallbacks, parsing, ordering | `src/lib/public-review.test.ts` |
 | **Unit — library UI** | Shelf toggles, publish / edit / remove review states, visibility switch, auth gating | `src/components/movies/MovieLibraryControls.test.tsx` |
 | **Unit — community reviews** | Own review excluded, report confirmation, optimistic hide, rollback on failure | `src/components/movies/PublicReviews.test.tsx` |
+| **Unit — rating & shelves** | Star selection, clearing a score, disabled state, watchlist toggle states | `src/components/movies/StarRating.test.tsx`, `WatchlistButton.test.tsx` |
+| **Unit — pagination** | Hidden on a single page, current-page marking, step bounds, loading lock | `src/components/movies/SearchPagination.test.tsx` |
+| **Unit — profile menu** | Shelf links, plain labels, active shelf highlighting | `src/components/layout/Header.test.tsx` |
 | **Rules — Firestore** | Library isolation, public read, author-only writes, field allowlist, value bounds, report permissions | `firestore-tests/firestore.rules.test.ts` |
 | **E2E — chat flow** | Send message → streamed assistant reply (mocked SSE) | `e2e/chat.spec.ts` |
 | **Fixtures** | Shared chat SSE / tool output mocks | `src/test/fixtures/chat.ts` |
@@ -447,14 +450,14 @@ Component tests and critical user-flow tests were written to keep FlickFocus rel
 ### Current test inventory
 
 ```text
-npm run test            → 121 unit tests across 33 files
+npm run test            → 134 unit tests across 36 files
 npm run test:rules      → 26 Firestore security rule tests (emulator)
 npm run test:coverage   → Vitest v8 report + docs/coverage-summary.json
 npm run test:e2e        → Playwright chat user-flow spec
 npm run lint            → ESLint (runs in CI before tests)
 ```
 
-**Component file coverage: 26 / 56 (46%)** — the library and review features added components faster than tests; the untested ones are presentational (`MovieTrailer`, `SearchPagination`, `StarRating`, `WatchlistButton`, `MovieDetailView`, `LibraryLoading`).  
+**Component file coverage: 29 / 56 (52%)** — meets capstone ≥50% target. Remaining gaps are deliberate: WebGL/Three.js scenes, large page clients, the YouTube embed, and static skeletons.  
 Full evidence: **[docs/TEST_COVERAGE.md](./docs/TEST_COVERAGE.md)** · [`docs/coverage-summary.json`](./docs/coverage-summary.json)
 
 ### CI pipeline
@@ -663,7 +666,7 @@ The biggest surprise was how much **prompt engineering** changed the quality of 
 
 ## Related docs
 
-- [docs/TEST_COVERAGE.md](./docs/TEST_COVERAGE.md) — Test coverage evidence (51% component files)
+- [docs/TEST_COVERAGE.md](./docs/TEST_COVERAGE.md) — Test coverage evidence (52% component files)
 - [docs/evidence/](./docs/evidence/) — Capstone screenshots (axe, terminal coverage) — see [guide](./docs/evidence/README.md)
 - [docs/DEPLOYMENT_CHECKLIST.md](./docs/DEPLOYMENT_CHECKLIST.md) — FE-11 deployment checklist (env, domain, Firebase, smoke tests, rollback)
 - [docs/AUDIT.md](./docs/AUDIT.md) — Performance, accessibility, and SEO audit

@@ -13,7 +13,8 @@
 | # | Item | Status | Notes |
 | --- | --- | :---: | --- |
 | 1.1 | `npm run lint` passes locally | ✅ | ESLint clean |
-| 1.2 | `npm run test` passes locally | ✅ | 73 unit tests (26 files) |
+| 1.2 | `npm run test` passes locally | ✅ | 134 unit tests (36 files) |
+| 1.2a | `npm run test:rules` passes locally | ✅ | 26 Firestore rule tests (needs Java) |
 | 1.3 | `npm run build` succeeds locally | ✅ | Next.js 16 production build |
 | 1.4 | `.env.local` never committed | ✅ | Listed in `.gitignore` |
 | 1.5 | Secrets stored in Vercel (not in repo) | ✅ | Server + client vars separated |
@@ -37,6 +38,8 @@ Configure under **Project → Settings → Environment Variables** for **Product
 | `NEXT_PUBLIC_FIREBASE_USE_STORAGE` | No | Client | ✅ | ✅ |
 | `NEXT_PUBLIC_APP_URL` | Recommended | Client | ✅ | ✅ `https://flickfocus.vercel.app` |
 | `GOOGLE_GENERATIVE_AI_API_KEY` | For chat | **Server only** | ✅ | ✅ |
+| `TMDB_ACCESS_TOKEN` | For trailers | **Server only** | ✅ | ✅ |
+| `TMDB_API_KEY` | For trailers | **Server only** | ✅ | ✅ (fallback if no access token) |
 
 **Rules:**
 
@@ -61,7 +64,8 @@ Configure under **Project → Settings → Environment Variables** for **Product
 
 | # | Item | Status | Command / file |
 | --- | --- | :---: | --- |
-| 4.1 | Firestore rules reviewed | ✅ | `firestore.rules` |
+| 4.1 | Firestore rules reviewed | ✅ | `firestore.rules` (library + public reviews + reports) |
+| 4.1a | Firestore rule tests pass | ✅ | `npm run test:rules` (26 cases) |
 | 4.2 | Storage rules reviewed | ✅ | `storage.rules` |
 | 4.3 | Rules deployed to Firebase project | ✅ | `npm run firebase:deploy` |
 | 4.4 | Auth providers enabled (Email + Google) | ✅ | Firebase Console |
@@ -103,9 +107,13 @@ Run after every production deployment.
 | 6.3 | Movie search | `/` → search "Inception" | Results grid updates | ✅ |
 | 6.4 | Genre chip browse | `/` → click genre chip | Curated genre results | ✅ |
 | 6.5 | Movie detail modal | Click any movie card | Modal opens with poster, plot, ratings | ✅ |
+| 6.5a | Dedicated movie page | Open `/movie/tt1375666` | Full page with metadata, library controls | ✅ |
+| 6.5b | Trailer (if TMDB configured) | On a movie with a trailer | Trailer section embeds a YouTube player | ✅ |
 | 6.6 | AI chat | `/chat` → send message | Streamed reply; tool cards if triggered | ✅ |
 | 6.7 | Auth sign-in | Header → Sign in | Firebase auth modal works | ✅ |
-| 6.8 | Favorites (authenticated) | Add favorite → `/favorites` | Movie appears in list | ✅ |
+| 6.8 | Library shelves (authenticated) | Favorite / watchlist / watched toggles → `/favorites?tab=…` | Movie appears on the matching shelf | ✅ |
+| 6.8a | Personal rating & review | Rate a movie, publish a private note | Published view shows; Edit / Remove work | ✅ |
+| 6.8b | Share review (opt-in) | Toggle “Share on the movie page” | Review appears under Community reviews | ✅ |
 | 6.9 | Profile | `/profile` | Settings load for signed-in user | ✅ |
 | 6.10 | Error page | Invalid route | Branded 404 (`not-found.tsx`) | ✅ |
 | 6.11 | API rate limit (optional) | Rapid `/api/chat` calls | Eventually `429` with `Retry-After` | ✅ |
@@ -117,7 +125,8 @@ Run after every production deployment.
 2. Open https://flickfocus.vercel.app/health-check  → confirm OK
 3. Search "Matrix" on homepage                       → results appear
 4. Open /chat → send "Recommend a sci-fi film"       → assistant replies
-5. Sign in → add a favorite → verify on /favorites
+5. Sign in → favorite a title → check `/favorites`, `/favorites?tab=watchlist`, `/favorites?tab=watched`
+6. Open a movie page → publish a review → optionally share it → confirm it shows under Community reviews
 ```
 
 ---
