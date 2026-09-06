@@ -256,6 +256,11 @@ export default function ProfilePageClient() {
             </p>
           </div>
         </div>
+        <div className="mt-4">
+          <Link href="/stats" className={buttonClass("secondary", "md")}>
+            View full stats
+          </Link>
+        </div>
       </section>
 
       <AnimatedActionButtonDemo />

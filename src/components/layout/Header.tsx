@@ -271,6 +271,14 @@ export default function Header() {
                       ))}
 
                       <DropdownItem
+                        href="/stats"
+                        active={pathname === "/stats"}
+                        onClick={closeMenu}
+                      >
+                        My Stats
+                      </DropdownItem>
+
+                      <DropdownItem
                         href="/profile"
                         active={pathname === "/profile"}
                         onClick={closeMenu}

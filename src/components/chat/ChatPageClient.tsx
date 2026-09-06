@@ -26,9 +26,11 @@ import {
 import { messageHasToolParts } from "@/components/chat/ChatToolInvocation";
 import AnimatedActionButton from "@/components/ui/AnimatedActionButton";
 import Button from "@/components/ui/Button";
+import { useFavorites } from "@/context/favorites-context.shared";
 import { useChatAutoScroll } from "@/hooks/useChatAutoScroll";
 import { ANIMATED_ACTION_BUTTON, type AnimatedActionVisualState } from "@/lib/animated-action-button";
 import { readChatMessages, writeChatMessages, clearChatMessages } from "@/lib/chat/chat-storage";
+import { summarizeLibraryForChat } from "@/lib/chat/library-context";
 import { cn } from "@/lib/cn";
 
 const MovieDetailModal = dynamic(
@@ -241,10 +243,20 @@ function ChatPageClientLoaded() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const pendingSendRef = useRef<string | null>(null);
   const prevPhaseRef = useRef<ChatUiPhase>("idle");
+  const { entries } = useFavorites();
+
+  const libraryContext = useMemo(
+    () => summarizeLibraryForChat(entries),
+    [entries],
+  );
 
   const transport = useMemo(
-    () => new DefaultChatTransport({ api: "/api/chat" }),
-    [],
+    () =>
+      new DefaultChatTransport({
+        api: "/api/chat",
+        body: { library: libraryContext },
+      }),
+    [libraryContext],
   );
 
   const {
@@ -561,6 +573,15 @@ function ChatPageClientLoaded() {
                   Ask for recommendations, search OMDb live, or get ratings — tools
                   render rich movie cards inline.
                 </p>
+                {libraryContext ? (
+                  <p className="mt-3 max-w-sm rounded-lg border border-violet-500/20 bg-violet-500/10 px-3 py-2 text-xs text-violet-200">
+                    Using your library ({libraryContext.watchedCount} watched
+                    {libraryContext.averageRating !== null
+                      ? ` · avg ${libraryContext.averageRating}/10`
+                      : ""}
+                    ) for personalized picks.
+                  </p>
+                ) : null}
               </div>
             ) : (
               messages.map((message, index) => {

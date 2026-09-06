@@ -59,6 +59,7 @@ describe("Header profile menu", () => {
       "Watched",
       "Watchlist",
       "Favorites",
+      "My Stats",
       "Profile Settings",
       "Sign Out",
     ]);

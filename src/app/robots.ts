@@ -8,7 +8,7 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: "/",
         // Account-scoped pages hold nothing useful for crawlers.
-        disallow: ["/api/", "/profile", "/favorites", "/health-check"],
+        disallow: ["/api/", "/profile", "/favorites", "/stats", "/health-check"],
       },
     ],
     sitemap: `${SITE_URL}/sitemap.xml`,

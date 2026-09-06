@@ -130,7 +130,9 @@ Without TMDB credentials the trailer section is simply omitted; everything else 
 - **Dedicated movie pages** — `/movie/[imdbId]` with server-rendered metadata, dynamic Open Graph images, sitemap entries
 - **Trailers** — TMDB-backed trailer lookup per title, proxied and cached through `/api/movies/[imdbId]/trailer`
 - **FlickFocus AI Chat** — Streaming assistant with server-side tools (`searchMovies`, `getMovieDetails`) and generative UI cards
+- **Library-aware recommendations** — When signed in, chat receives a capped taste summary from your watched history, ratings, and watchlist
 - **Personal library** — Favorites, watchlist, and watched shelves per user (Firebase Auth + Firestore), with 1–10 ratings and private notes
+- **My Stats** — Watched counts, average rating, rating spread, decade trends, and OMDb-enriched genre mix
 - **Reviews, private by default** — A saved note gets a read-only published view with edit/remove actions; sharing is opt-in per review
 - **Community reviews** — Shared reviews appear on the movie page with the author's name and photo, plus an abuse-report action
 - **Cinematic UI** — Dark glassmorphic layout, responsive grids, micro-interactions
@@ -206,6 +208,7 @@ src/
 │   ├── favorites/            # Protected library (favorites / watchlist / watched tabs)
 │   ├── movie/[imdbId]/       # Movie page + dynamic Open Graph image
 │   ├── profile/              # User profile & settings
+│   ├── stats/                # Personal viewing stats
 │   ├── sitemap.ts, robots.ts # Crawler guidance
 │   └── api/                  # chat, movies (incl. trailer), poster availability
 ├── components/
@@ -319,7 +322,6 @@ Every rule above is covered by emulator tests (`npm run test:rules`). Deploy rul
 - **Server-side moderation** — auto-hide a review after N reports (Cloud Function) instead of manual console review
 - **Server-rendered community reviews** — render shared reviews on the movie page for crawlers and faster first paint
 - **Library sorting & filtering** — sort shelves by rating, date, or title and search within a shelf
-- **Library-aware AI chat** — let the assistant use watched history and ratings for personalized recommendations
 
 See also [docs/AUDIT.md §8](./docs/AUDIT.md#8-future-recommendations) for the full audit backlog.
 

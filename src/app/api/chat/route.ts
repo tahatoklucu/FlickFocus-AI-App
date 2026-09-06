@@ -12,8 +12,12 @@ import { enforceRateLimit } from "@/lib/api/api-rate-limit";
 import { flickFocusChatTools } from "@/lib/chat/chat-tools";
 import {
   CHAT_MODEL_ID,
-  FLICKFOCUS_CHAT_SYSTEM_PROMPT,
+  buildChatSystemPrompt,
 } from "@/lib/chat/chat-system-prompt";
+import {
+  formatLibraryContextForPrompt,
+  parseLibraryChatContext,
+} from "@/lib/chat/library-context";
 
 export const maxDuration = 30;
 
@@ -38,17 +42,23 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid request body." }, { status: 400 });
   }
 
-  const messages = (body as { messages?: unknown })?.messages;
+  const payload = body as { messages?: unknown; library?: unknown };
+  const messages = payload.messages;
   const validationError = validateChatMessages(messages);
 
   if (validationError) {
     return Response.json({ error: validationError }, { status: 400 });
   }
 
+  const library = parseLibraryChatContext(payload.library);
+  const system = buildChatSystemPrompt(
+    library ? formatLibraryContextForPrompt(library) : null,
+  );
+
   try {
     const result = streamText({
       model: google(CHAT_MODEL_ID),
-      system: FLICKFOCUS_CHAT_SYSTEM_PROMPT,
+      system,
       messages: await convertToModelMessages(messages as UIMessage[]),
       tools: flickFocusChatTools,
       stopWhen: isStepCount(5),
